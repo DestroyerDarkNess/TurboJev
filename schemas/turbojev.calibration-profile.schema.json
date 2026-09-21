@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://turbojev.dev/schema/calibration-profile-v1.json",
+  "title": "TurboJev Calibration Profile v1",
+  "type": "object",
+  "required": ["contract", "id", "method", "temperature", "holdout_id", "sample_count", "ece_bins", "before", "after"],
+  "additionalProperties": false,
+  "properties": {
+    "contract": { "const": "turbojev.calibration-profile.v1" },
+    "id": { "type": "string", "minLength": 1 },
+    "method": { "const": "temperature-softmax" },
+    "temperature": { "type": "number", "exclusiveMinimum": 0 },
+    "holdout_id": { "type": "string", "minLength": 1 },
+    "sample_count": { "type": "integer", "minimum": 1 },
+    "ece_bins": { "type": "integer", "minimum": 1 },
+    "model_id": { "type": "string", "minLength": 1 },
+    "tokenizer_revision": { "type": "string", "minLength": 1 },
+    "prompt_profile": { "type": "string", "minLength": 1 },
+    "renderer_profile": { "type": "string", "minLength": 1 },
+    "before": { "$ref": "#/$defs/metrics" },
+    "after": { "$ref": "#/$defs/metrics" }
+  },
+  "$defs": {
+    "metrics": {
+      "type": "object",
+      "required": ["count", "total_weight", "accuracy", "nll", "brier", "ece", "ece_bins"],
+      "additionalProperties": false,
+      "properties": {
+        "count": { "type": "integer", "minimum": 1 },
+        "total_weight": { "type": "number", "exclusiveMinimum": 0 },
+        "accuracy": { "type": "number", "minimum": 0, "maximum": 1 },
+        "nll": { "type": "number", "minimum": 0 },
+        "brier": { "type": "number", "minimum": 0 },
+        "ece": { "type": "number", "minimum": 0, "maximum": 1 },
+        "ece_bins": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["lower", "upper", "count", "weight", "mean_confidence", "accuracy", "gap"],
+            "additionalProperties": false,
+            "properties": {
+              "lower": { "type": "number" },
+              "upper": { "type": "number" },
+              "count": { "type": "integer", "minimum": 0 },
+              "weight": { "type": "number", "minimum": 0 },
+              "mean_confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+              "accuracy": { "type": "number", "minimum": 0, "maximum": 1 },
+              "gap": { "type": "number", "minimum": 0, "maximum": 1 }
+            }
+          }
+        }
+      }
+    }
+  }
+}

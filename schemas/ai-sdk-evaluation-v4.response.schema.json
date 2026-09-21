@@ -1,0 +1,99 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://turbojev.dev/schema/compat/ai-sdk-evaluation-v4.response.json",
+  "title": "AI SDK Evaluation v4 compatible response",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "answers",
+    "providerMetadata"
+  ],
+  "properties": {
+    "answers": {
+      "type": "object",
+      "additionalProperties": {
+        "oneOf": [
+          {
+            "$ref": "#/$defs/choice"
+          },
+          {
+            "$ref": "#/$defs/boolean"
+          },
+          {
+            "$ref": "#/$defs/score"
+          }
+        ]
+      }
+    },
+    "usage": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "inputTokens": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "providerMetadata": {
+      "type": "object"
+    }
+  },
+  "$defs": {
+    "probs": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "number",
+        "minimum": 0,
+        "maximum": 1
+      }
+    },
+    "choice": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "choice",
+        "probabilities"
+      ],
+      "properties": {
+        "choice": {
+          "type": "string"
+        },
+        "probabilities": {
+          "$ref": "#/$defs/probs"
+        }
+      }
+    },
+    "boolean": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "probability"
+      ],
+      "properties": {
+        "probability": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      }
+    },
+    "score": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "score",
+        "probabilities"
+      ],
+      "properties": {
+        "score": {
+          "type": "number",
+          "minimum": 0
+        },
+        "probabilities": {
+          "$ref": "#/$defs/probs"
+        }
+      }
+    }
+  }
+}

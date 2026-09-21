@@ -1,0 +1,13 @@
+{
+  "$schema":"https://json-schema.org/draft/2020-12/schema",
+  "$id":"https://turbojev.dev/schemas/turbojev.e2e-language-matrix.schema.json",
+  "title":"TurboJev Cross-Language E2E Matrix",
+  "type":"object","additionalProperties":false,
+  "required":["contract","model","request","languages"],
+  "properties":{
+    "contract":{"const":"turbojev.e2e-language-matrix.v1"},
+    "model":{"type":"string","minLength":1},
+    "request":{"type":"string","minLength":1},
+    "languages":{"type":"array","minItems":4,"items":{"type":"object","additionalProperties":false,"required":["id","required","runner"],"properties":{"id":{"enum":["node-ts","python","c","dotnet","swift"]},"required":{"type":"boolean"},"runner":{"type":"string","minLength":1}}}}
+  }
+}
