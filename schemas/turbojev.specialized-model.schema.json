@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://turbojev.dev/schemas/turbojev.specialized-model.schema.json",
+  "title": "TurboJev specialized model manifest v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["contract", "id", "revision", "recipe_id", "base_model", "decision_contract", "training_dataset"],
+  "properties": {
+    "contract": { "const": "turbojev.specialized-model.v1" },
+    "id": { "type": "string", "minLength": 1 },
+    "revision": { "type": "string", "minLength": 1 },
+    "recipe_id": { "type": "string", "minLength": 1 },
+    "training_dataset": { "type": "string", "minLength": 1 },
+    "calibration_profile": { "type": "string", "minLength": 1 },
+    "base_model": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "revision", "tokenizer_revision"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "revision": { "type": "string", "minLength": 1 },
+        "tokenizer_revision": { "type": "string", "minLength": 1 }
+      }
+    },
+    "decision_contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["contract", "prompt_ir", "renderer_profile", "candidate_encoding"],
+      "properties": {
+        "contract": { "const": "turbojev.decision-model.v1" },
+        "prompt_ir": { "type": "string", "minLength": 1 },
+        "renderer_profile": { "type": "string", "minLength": 1 },
+        "candidate_encoding": {
+          "oneOf": [
+            { "type": "object", "additionalProperties": false, "required": ["kind"], "properties": { "kind": { "const": "dynamic" } } },
+            { "type": "object", "additionalProperties": false, "required": ["kind", "profile"], "properties": { "kind": { "const": "profile" }, "profile": { "type": "string", "minLength": 1 } } }
+          ]
+        },
+        "tokenizer_revision": { "type": "string", "minLength": 1 },
+        "max_context_tokens": { "type": "integer", "minimum": 1 },
+        "calibration_profile": { "type": "string", "minLength": 1 }
+      }
+    }
+  }
+}

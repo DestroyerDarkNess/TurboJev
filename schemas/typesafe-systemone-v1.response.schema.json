@@ -1,0 +1,126 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://turbojev.dev/schema/compat/typesafe-systemone-v1.response.json",
+  "title": "TypeSafe System One compatible response",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "answers"
+  ],
+  "properties": {
+    "answers": {
+      "type": "object",
+      "additionalProperties": {
+        "oneOf": [
+          {
+            "$ref": "#/$defs/choice"
+          },
+          {
+            "$ref": "#/$defs/noul"
+          },
+          {
+            "$ref": "#/$defs/score"
+          }
+        ]
+      }
+    },
+    "usage": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "input_tokens": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    }
+  },
+  "$defs": {
+    "probs": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "number",
+        "minimum": 0,
+        "maximum": 1
+      }
+    },
+    "choice": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "choice",
+        "confidence",
+        "probabilities"
+      ],
+      "properties": {
+        "type": {
+          "const": "choice"
+        },
+        "choice": {
+          "type": "string"
+        },
+        "confidence": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "probabilities": {
+          "$ref": "#/$defs/probs"
+        }
+      }
+    },
+    "noul": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "noul"
+      ],
+      "properties": {
+        "type": {
+          "const": "noul"
+        },
+        "noul": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      }
+    },
+    "score": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "score",
+        "confidence",
+        "probabilities",
+        "legend"
+      ],
+      "properties": {
+        "type": {
+          "const": "score"
+        },
+        "score": {
+          "type": "number",
+          "minimum": 0
+        },
+        "confidence": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "probabilities": {
+          "$ref": "#/$defs/probs"
+        },
+        "legend": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}
