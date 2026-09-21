@@ -1,0 +1,26 @@
+[package]
+name = "turbojev-training-data"
+description = "Portable semantic training datasets and deterministic materialization for TurboJev specialized models"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+
+[dependencies]
+indexmap.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+turbojev-backend = { path = "../turbojev-backend" }
+turbojev-core = { path = "../turbojev-core" }
+turbojev-prompt = { path = "../turbojev-prompt" }
+turbojev-schema = { path = "../turbojev-schema" }
+turbojev-specialized = { path = "../turbojev-specialized" }
+
+[dev-dependencies]
+serde_json.workspace = true
+
+[lints]
+workspace = true
