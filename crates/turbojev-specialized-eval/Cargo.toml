@@ -1,0 +1,19 @@
+[package]
+name = "turbojev-specialized-eval"
+description = "Portable generic-vs-specialized evaluation and external-run interchange for TurboJev"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+
+[dependencies]
+serde.workspace = true
+thiserror.workspace = true
+turbojev-benchmark = { path = "../turbojev-benchmark" }
+turbojev-calibration = { path = "../turbojev-calibration" }
+turbojev-specialized = { path = "../turbojev-specialized" }
+
+[lints]
+workspace = true
