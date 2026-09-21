@@ -1,0 +1,22 @@
+[package]
+name = "turbojev-runtime-projection"
+description = "Portable dense candidate-only projection runtime adapter for TurboJev"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+
+[dependencies]
+thiserror.workspace = true
+turbojev-backend = { path = "../turbojev-backend" }
+turbojev-projection = { path = "../turbojev-projection" }
+turbojev-runtime = { path = "../turbojev-runtime" }
+
+[dev-dependencies]
+turbojev-runtime-conformance = { path = "../turbojev-runtime-conformance" }
+turbojev-tokenizer = { path = "../turbojev-tokenizer" }
+
+[lints]
+workspace = true
