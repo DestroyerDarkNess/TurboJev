@@ -1,0 +1,28 @@
+[package]
+name = "turbojev-specialized-artifact"
+description = "Portable model-bound artifact pipeline for TurboJev specialized open-weight models"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+
+[dependencies]
+serde.workspace = true
+thiserror.workspace = true
+turbojev-calibration = { path = "../turbojev-calibration" }
+turbojev-model = { path = "../turbojev-model" }
+turbojev-prompt = { path = "../turbojev-prompt" }
+turbojev-runtime = { path = "../turbojev-runtime" }
+turbojev-runtime-conformance = { path = "../turbojev-runtime-conformance" }
+turbojev-specialized = { path = "../turbojev-specialized" }
+turbojev-tokenizer = { path = "../turbojev-tokenizer" }
+turbojev-training-data = { path = "../turbojev-training-data" }
+
+[lints]
+workspace = true
+
+[dev-dependencies]
+serde_json.workspace = true
+turbojev-backend = { path = "../turbojev-backend" }
