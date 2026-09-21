@@ -1,0 +1,123 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://turbojev.dev/schemas/turbojev.model-bound-training-dataset.schema.json",
+  "title": "TurboJev model-bound candidate-logit training dataset v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract", "id", "source_materialized_dataset", "source_semantic_dataset",
+    "recipe_id", "objective", "model", "prompt_ir", "renderer_profile",
+    "tokenizer_profile", "candidate_code_profile", "max_context_tokens", "records", "stats"
+  ],
+  "properties": {
+    "contract": { "const": "turbojev.model-bound-training-dataset.v1" },
+    "id": { "type": "string", "minLength": 1 },
+    "source_materialized_dataset": { "type": "string", "minLength": 1 },
+    "source_semantic_dataset": { "type": "string", "minLength": 1 },
+    "recipe_id": { "type": "string", "minLength": 1 },
+    "objective": { "const": "candidate-logit-cross-entropy" },
+    "model": { "$ref": "#/$defs/model" },
+    "prompt_ir": { "const": "turbojev.prompt-ir.v2" },
+    "renderer_profile": { "type": "string", "minLength": 1 },
+    "tokenizer_profile": { "type": "string", "minLength": 1 },
+    "candidate_code_profile": { "type": "string", "minLength": 1 },
+    "max_context_tokens": { "type": "integer", "minimum": 1 },
+    "records": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/record" }
+    },
+    "stats": { "$ref": "#/$defs/stats" }
+  },
+  "$defs": {
+    "model": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "revision", "tokenizer_revision"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "revision": { "type": "string", "minLength": 1 },
+        "tokenizer_revision": { "type": "string", "minLength": 1 }
+      }
+    },
+    "messages": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["user", "profile"],
+      "properties": {
+        "system": { "type": "string" },
+        "user": { "type": "string" },
+        "profile": { "type": "string", "minLength": 1 }
+      }
+    },
+    "candidate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["key", "code", "token_ids"],
+      "properties": {
+        "key": { "type": "string", "minLength": 1 },
+        "code": { "type": "string", "minLength": 1 },
+        "token_ids": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 1,
+          "items": { "type": "integer", "minimum": 0 }
+        }
+      }
+    },
+    "augmentation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["order_variant", "order_variants", "code_variant", "code_variants"],
+      "properties": {
+        "order_variant": { "type": "integer", "minimum": 0 },
+        "order_variants": { "type": "integer", "minimum": 1 },
+        "code_variant": { "type": "integer", "minimum": 0 },
+        "code_variants": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "record": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id", "source_record_id", "source_example_id", "question_id", "language",
+        "messages", "prompt_token_ids", "candidates", "target_key", "target_index",
+        "target_code", "target_token_id", "weight", "augmentation"
+      ],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "source_record_id": { "type": "string", "minLength": 1 },
+        "source_example_id": { "type": "string", "minLength": 1 },
+        "question_id": { "type": "string", "minLength": 1 },
+        "language": { "type": "string", "minLength": 1 },
+        "messages": { "$ref": "#/$defs/messages" },
+        "prompt_token_ids": {
+          "type": "array", "minItems": 1,
+          "items": { "type": "integer", "minimum": 0 }
+        },
+        "candidates": {
+          "type": "array", "minItems": 2,
+          "items": { "$ref": "#/$defs/candidate" }
+        },
+        "target_key": { "type": "string", "minLength": 1 },
+        "target_index": { "type": "integer", "minimum": 0 },
+        "target_code": { "type": "string", "minLength": 1 },
+        "target_token_id": { "type": "integer", "minimum": 0 },
+        "weight": { "type": "number", "exclusiveMinimum": 0 },
+        "augmentation": { "$ref": "#/$defs/augmentation" }
+      }
+    },
+    "stats": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source_records", "records", "total_record_weight", "max_prompt_tokens", "max_context_tokens_used"],
+      "properties": {
+        "source_records": { "type": "integer", "minimum": 1 },
+        "records": { "type": "integer", "minimum": 1 },
+        "total_record_weight": { "type": "number", "exclusiveMinimum": 0 },
+        "max_prompt_tokens": { "type": "integer", "minimum": 1 },
+        "max_context_tokens_used": { "type": "integer", "minimum": 2 }
+      }
+    }
+  }
+}

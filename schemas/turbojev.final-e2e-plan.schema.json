@@ -1,0 +1,16 @@
+{
+  "$schema":"https://json-schema.org/draft/2020-12/schema",
+  "$id":"https://turbojev.dev/schemas/turbojev.final-e2e-plan.schema.json",
+  "title":"TurboJev Final Real-Model E2E Plan",
+  "type":"object","additionalProperties":false,
+  "required":["contract","rust","node","python","dotnet","llamaCpp","model","qualification","languages","request"],
+  "properties":{
+    "contract":{"const":"turbojev.final-e2e-plan.v1"},
+    "rust":{"type":"string"},"node":{"type":"string"},"python":{"type":"string"},"dotnet":{"type":"string"},
+    "llamaCpp":{"type":"object","additionalProperties":false,"required":["repository","tag","commitPrefix","backend"],"properties":{"repository":{"type":"string","minLength":1},"tag":{"type":"string","minLength":1},"commitPrefix":{"type":"string","pattern":"^[0-9a-f]{7,40}$"},"backend":{"const":"cpu"}}},
+    "model":{"type":"object","additionalProperties":false,"required":["repository","filename","url","sha256","quantization","sizeBytes"],"properties":{"repository":{"type":"string","minLength":1},"filename":{"type":"string","minLength":1},"url":{"type":"string","format":"uri"},"sha256":{"type":"string","pattern":"^[0-9a-f]{64}$"},"quantization":{"type":"string","minLength":1},"sizeBytes":{"type":"integer","minimum":1}}},
+    "qualification":{"type":"object","additionalProperties":false,"required":["rounds","absoluteTolerance","relativeTolerance","maxFusedItems"],"properties":{"rounds":{"type":"integer","minimum":1},"absoluteTolerance":{"type":"number","minimum":0},"relativeTolerance":{"type":"number","minimum":0},"maxFusedItems":{"type":"integer","minimum":2}}},
+    "languages":{"type":"array","minItems":4,"uniqueItems":true,"items":{"enum":["node-ts","python","c","dotnet"]}},
+    "request":{"type":"string","minLength":1}
+  }
+}

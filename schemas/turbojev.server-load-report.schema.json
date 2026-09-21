@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://turbojev.dev/schemas/turbojev.server-load-report.schema.json",
+  "title": "TurboJev Server Load Report",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract", "planContract", "target", "concurrency", "totalRequests",
+    "completedRequests", "successes", "failures", "statusCounts", "latencyMs",
+    "wallMs", "requestsPerSecond"
+  ],
+  "properties": {
+    "contract": {"const": "turbojev.server-load-report.v1"},
+    "planContract": {"const": "turbojev.server-load-plan.v1"},
+    "target": {"type": "string", "minLength": 1},
+    "concurrency": {"type": "integer", "minimum": 1},
+    "totalRequests": {"type": "integer", "minimum": 1},
+    "completedRequests": {"type": "integer", "minimum": 0},
+    "successes": {"type": "integer", "minimum": 0},
+    "failures": {"type": "integer", "minimum": 0},
+    "statusCounts": {"type": "object", "additionalProperties": {"type": "integer", "minimum": 0}},
+    "latencyMs": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["min", "p50", "p95", "p99", "max", "mean"],
+      "properties": {
+        "min": {"type": "number", "minimum": 0},
+        "p50": {"type": "number", "minimum": 0},
+        "p95": {"type": "number", "minimum": 0},
+        "p99": {"type": "number", "minimum": 0},
+        "max": {"type": "number", "minimum": 0},
+        "mean": {"type": "number", "minimum": 0}
+      }
+    },
+    "wallMs": {"type": "number", "minimum": 0},
+    "requestsPerSecond": {"type": "number", "minimum": 0},
+    "errors": {"type": "array", "items": {"type": "string"}, "maxItems": 32}
+  }
+}

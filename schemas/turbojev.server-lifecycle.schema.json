@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://turbojev.dev/schemas/turbojev.server-lifecycle.schema.json",
+  "title": "TurboJev Server Lifecycle Contract",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["contract", "phases", "probeBehavior", "drainBehavior"],
+  "properties": {
+    "contract": {"const": "turbojev.server-lifecycle.v1"},
+    "phases": {
+      "type": "array",
+      "const": ["ready", "draining", "stopped"]
+    },
+    "probeBehavior": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ready", "draining"],
+      "properties": {
+        "ready": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["healthz", "readyz"],
+          "properties": {
+            "healthz": {"const": 200},
+            "readyz": {"const": 200}
+          }
+        },
+        "draining": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["healthz", "readyz", "newInference"],
+          "properties": {
+            "healthz": {"const": 200},
+            "readyz": {"const": 503},
+            "newInference": {"const": 503}
+          }
+        }
+      }
+    },
+    "drainBehavior": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["stopAccepting", "finishAdmittedWork", "boundedByDrainTimeout"],
+      "properties": {
+        "stopAccepting": {"const": true},
+        "finishAdmittedWork": {"const": true},
+        "boundedByDrainTimeout": {"const": true}
+      }
+    }
+  }
+}

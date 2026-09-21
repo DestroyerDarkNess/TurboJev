@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://turbojev.dev/schemas/turbojev.native-execution-capabilities.schema.json",
+  "title": "TurboJev Native Execution Capabilities",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract",
+    "fixture",
+    "llamacpp",
+    "llamacppOptIn"
+  ],
+  "properties": {
+    "contract": {
+      "const": "turbojev.native-execution-capabilities.v1"
+    },
+    "fixture": {
+      "$ref": "#/$defs/capabilities"
+    },
+    "llamacpp": {
+      "$ref": "#/$defs/capabilities"
+    },
+    "llamacppOptIn": {
+      "$ref": "#/$defs/capabilities"
+    }
+  },
+  "$defs": {
+    "capabilities": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "fusedBatch",
+        "cooperativeCancellation",
+        "hardDeadlines",
+        "maxFusedItems",
+        "estimatedFusedItemBytes"
+      ],
+      "properties": {
+        "fusedBatch": {
+          "type": "boolean"
+        },
+        "cooperativeCancellation": {
+          "type": "boolean"
+        },
+        "hardDeadlines": {
+          "type": "boolean"
+        },
+        "maxFusedItems": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        },
+        "estimatedFusedItemBytes": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        }
+      }
+    }
+  }
+}

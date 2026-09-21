@@ -1,0 +1,183 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://turbojev.dev/schemas/turbojev.final-validation-report.schema.json",
+  "title": "TurboJev Final Real-Model Validation Report v2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract",
+    "passed",
+    "planSha256",
+    "model",
+    "runtime",
+    "qualification",
+    "languageMatrix",
+    "dependencyResolution",
+    "toolchains"
+  ],
+  "properties": {
+    "contract": {
+      "const": "turbojev.final-validation-report.v2"
+    },
+    "passed": {
+      "type": "boolean"
+    },
+    "planSha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "model": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "repository",
+        "filename",
+        "sha256",
+        "quantization",
+        "sizeBytes"
+      ],
+      "properties": {
+        "repository": {
+          "type": "string"
+        },
+        "filename": {
+          "type": "string"
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "quantization": {
+          "type": "string"
+        },
+        "sizeBytes": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "runtime": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "llamaCppTag",
+        "llamaCppRevision",
+        "backend",
+        "shimAbi"
+      ],
+      "properties": {
+        "llamaCppTag": {
+          "type": "string"
+        },
+        "llamaCppRevision": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "backend": {
+          "type": "string"
+        },
+        "shimAbi": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "qualification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "passed",
+        "evidenceSha256",
+        "manifestSha256",
+        "summary"
+      ],
+      "properties": {
+        "passed": {
+          "type": "boolean"
+        },
+        "evidenceSha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "manifestSha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "summary": {
+          "type": "object"
+        }
+      }
+    },
+    "languageMatrix": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "passed",
+        "semanticParity",
+        "reportSha256",
+        "results"
+      ],
+      "properties": {
+        "passed": {
+          "type": "boolean"
+        },
+        "semanticParity": {
+          "type": "boolean"
+        },
+        "reportSha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "results": {
+          "type": "array"
+        }
+      }
+    },
+    "toolchains": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "rustc",
+        "cargo",
+        "node",
+        "python",
+        "dotnet"
+      ],
+      "properties": {
+        "rustc": {
+          "type": "string"
+        },
+        "cargo": {
+          "type": "string"
+        },
+        "node": {
+          "type": "string"
+        },
+        "python": {
+          "type": "string"
+        },
+        "dotnet": {
+          "type": "string"
+        }
+      }
+    },
+    "dependencyResolution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "cargoLockSha256",
+        "nodePackageLockSha256"
+      ],
+      "properties": {
+        "cargoLockSha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "nodePackageLockSha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    }
+  }
+}

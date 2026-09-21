@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://turbojev.dev/schemas/turbojev.llamacpp-multi-root.schema.json",
+  "title": "TurboJev llama.cpp Multi-Root Runtime Contract",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract",
+    "shimAbi",
+    "enabledByDefault",
+    "execution",
+    "candidatePolicy",
+    "isolation",
+    "realBackendEvidenceRequired",
+    "limits"
+  ],
+  "properties": {
+    "contract": {
+      "const": "turbojev.llamacpp-multi-root.v1"
+    },
+    "shimAbi": {
+      "const": 5
+    },
+    "enabledByDefault": {
+      "const": false
+    },
+    "execution": {
+      "const": "single-decode-independent-sequence-roots"
+    },
+    "candidatePolicy": {
+      "const": "single-token-next-logit"
+    },
+    "isolation": {
+      "const": "distinct-sequence-id-clear-before-after"
+    },
+    "realBackendEvidenceRequired": {
+      "const": true
+    },
+    "limits": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "maxRoots",
+        "maxTotalPromptTokens",
+        "estimatedFusedItemBytes"
+      ],
+      "properties": {
+        "maxRoots": {
+          "type": "integer",
+          "minimum": 2
+        },
+        "maxTotalPromptTokens": {
+          "type": "integer",
+          "minimum": 2
+        },
+        "estimatedFusedItemBytes": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        }
+      }
+    }
+  }
+}

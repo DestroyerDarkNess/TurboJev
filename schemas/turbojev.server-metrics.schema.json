@@ -1,0 +1,119 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://turbojev.dev/schemas/turbojev.server-metrics.schema.json",
+  "title": "TurboJev Server Metrics",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract",
+    "lifecycle",
+    "executionContract",
+    "capabilities",
+    "submittedJobs",
+    "submittedRequests",
+    "completedJobs",
+    "completedRequests",
+    "rejectedJobs",
+    "callerDeadlines",
+    "cancelledBeforeExecution",
+    "serialTurns",
+    "fusedTurns",
+    "inflightJobs",
+    "inflightHighWater"
+  ],
+  "properties": {
+    "contract": {
+      "const": "turbojev.server-metrics.v1"
+    },
+    "lifecycle": {
+      "enum": [
+        "ready",
+        "draining",
+        "stopped"
+      ]
+    },
+    "executionContract": {
+      "const": "turbojev.cross-request-execution.v1"
+    },
+    "capabilities": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "fusedBatch",
+        "cooperativeCancellation",
+        "hardDeadlines",
+        "maxFusedItems",
+        "estimatedFusedItemBytes"
+      ],
+      "properties": {
+        "fusedBatch": {
+          "type": "boolean"
+        },
+        "cooperativeCancellation": {
+          "type": "boolean"
+        },
+        "hardDeadlines": {
+          "type": "boolean"
+        },
+        "maxFusedItems": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        },
+        "estimatedFusedItemBytes": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        }
+      }
+    },
+    "submittedJobs": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "submittedRequests": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "completedJobs": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "completedRequests": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "rejectedJobs": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "callerDeadlines": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "cancelledBeforeExecution": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "serialTurns": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "fusedTurns": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "inflightJobs": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "inflightHighWater": {
+      "type": "integer",
+      "minimum": 0
+    }
+  }
+}

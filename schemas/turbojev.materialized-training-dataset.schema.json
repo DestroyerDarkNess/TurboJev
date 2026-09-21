@@ -1,0 +1,105 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://turbojev.dev/schemas/turbojev.materialized-training-dataset.schema.json",
+  "title": "TurboJev materialized candidate-logit training dataset v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["contract", "id", "source_dataset", "recipe_id", "prompt_ir", "renderer_profile", "candidate_code_profile", "seed", "records", "stats"],
+  "properties": {
+    "contract": { "const": "turbojev.materialized-training-dataset.v1" },
+    "id": { "type": "string", "minLength": 1 },
+    "source_dataset": { "type": "string", "minLength": 1 },
+    "recipe_id": { "type": "string", "minLength": 1 },
+    "prompt_ir": { "const": "turbojev.prompt-ir.v2" },
+    "renderer_profile": { "type": "string", "minLength": 1 },
+    "candidate_code_profile": { "type": "string", "minLength": 1 },
+    "seed": { "type": "integer", "minimum": 0 },
+    "records": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/record" }
+    },
+    "stats": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source_examples", "source_decisions", "records", "total_record_weight"],
+      "properties": {
+        "source_examples": { "type": "integer", "minimum": 1 },
+        "source_decisions": { "type": "integer", "minimum": 1 },
+        "records": { "type": "integer", "minimum": 1 },
+        "total_record_weight": { "type": "number", "exclusiveMinimum": 0 }
+      }
+    }
+  },
+  "$defs": {
+    "record": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "source_example_id", "question_id", "language", "document", "target_key", "target_index", "target_code", "weight", "augmentation"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "source_example_id": { "type": "string", "minLength": 1 },
+        "question_id": { "type": "string", "minLength": 1 },
+        "language": { "type": "string", "minLength": 1 },
+        "document": { "$ref": "#/$defs/document" },
+        "target_key": { "type": "string", "minLength": 1 },
+        "target_index": { "type": "integer", "minimum": 0 },
+        "target_code": { "type": "string", "minLength": 1 },
+        "weight": { "type": "number", "exclusiveMinimum": 0 },
+        "augmentation": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["order_variant", "order_variants", "code_variant", "code_variants"],
+          "properties": {
+            "order_variant": { "type": "integer", "minimum": 0 },
+            "order_variants": { "type": "integer", "minimum": 1 },
+            "code_variant": { "type": "integer", "minimum": 0 },
+            "code_variants": { "type": "integer", "minimum": 1 }
+          }
+        }
+      }
+    },
+    "document": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["evidence", "criterion", "options", "contract"],
+      "properties": {
+        "evidence": {},
+        "criterion": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["kind", "text"],
+              "properties": {
+                "kind": { "const": "criterion" },
+                "text": { "type": "string", "minLength": 1 }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["kind"],
+              "properties": { "kind": { "const": "best_match" } }
+            }
+          ]
+        },
+        "options": {
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["code", "key", "description"],
+            "properties": {
+              "code": { "type": "string", "minLength": 1 },
+              "key": { "type": "string", "minLength": 1 },
+              "description": { "type": "string", "minLength": 1 }
+            }
+          }
+        },
+        "contract": { "const": "turbojev.prompt-ir.v2" }
+      }
+    }
+  }
+}

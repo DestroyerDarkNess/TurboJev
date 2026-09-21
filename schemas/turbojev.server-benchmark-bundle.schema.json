@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://turbojev.dev/schemas/turbojev.server-benchmark-bundle.schema.json",
+  "title": "TurboJev Server Benchmark Bundle",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["contract", "serverVersion", "artifacts"],
+  "properties": {
+    "contract": {"const": "turbojev.server-benchmark-bundle.v1"},
+    "serverVersion": {"type": "string", "minLength": 1},
+    "artifacts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["config", "loadPlan", "loadReport"],
+      "properties": {
+        "config": {"$ref": "#/$defs/artifact"},
+        "loadPlan": {"$ref": "#/$defs/artifact"},
+        "loadReport": {"$ref": "#/$defs/artifact"}
+      }
+    }
+  },
+  "$defs": {
+    "artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sha256"],
+      "properties": {
+        "path": {"type": "string", "minLength": 1},
+        "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+      }
+    }
+  }
+}

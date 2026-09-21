@@ -1,0 +1,115 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://turbojev.dev/schemas/turbojev.server-config.schema.json",
+  "title": "TurboJev Local Server Config",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "load"
+  ],
+  "properties": {
+    "bind": {
+      "type": "string",
+      "default": "127.0.0.1:3217"
+    },
+    "load": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "model"
+      ],
+      "properties": {
+        "model": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "limits": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "maxBodyBytes": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 1048576
+        },
+        "maxBatchItems": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 64
+        }
+      }
+    },
+    "transport": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "maxConnections": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 64
+        },
+        "maxHeaderBytes": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 16384
+        },
+        "queueCapacity": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 128
+        },
+        "ioTimeoutMs": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 30000
+        },
+        "sessionTimeoutMs": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 120000
+        },
+        "fairnessQuantum": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 1
+        },
+        "maxFusedItems": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 8
+        },
+        "drainTimeoutMs": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 30000
+        },
+        "fusedMemoryBudgetBytes": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        }
+      }
+    },
+    "deployment": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "mode": {
+          "enum": [
+            "loopback",
+            "reverse-proxy"
+          ],
+          "default": "loopback"
+        },
+        "requireForwardedHttps": {
+          "type": "boolean",
+          "default": true
+        }
+      }
+    }
+  }
+}

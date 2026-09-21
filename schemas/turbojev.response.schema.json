@@ -1,0 +1,96 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://turbojev.dev/schema/response-v4.json",
+  "title": "TurboJev EvaluationResponse v4",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["answers", "usage", "_turbojev"],
+  "properties": {
+    "model": { "type": "string" },
+    "answers": {
+      "type": "object",
+      "additionalProperties": { "$ref": "#/$defs/answer" }
+    },
+    "usage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["decisions", "generated_tokens"],
+      "properties": {
+        "decisions": { "type": "integer", "minimum": 0 },
+        "input_tokens": { "type": "integer", "minimum": 0 },
+        "generated_tokens": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "_turbojev": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["backend", "calibration", "calibrated", "confidence_method", "contract", "execution"],
+      "properties": {
+        "backend": { "type": "string" },
+        "calibration": { "type": "string" },
+        "calibrated": { "type": "boolean" },
+        "confidence_method": { "type": "string" },
+        "contract": { "type": "string" },
+        "execution": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["prefix_reuse", "scheduling", "parallel_task_limit", "projection"],
+          "properties": {
+            "prefix_reuse": { "enum": ["none", "shared"] },
+            "scheduling": { "enum": ["serial", "parallel"] },
+            "parallel_task_limit": { "type": "integer", "minimum": 1 },
+            "projection": { "enum": ["full-vocabulary", "candidates-only"] }
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "probabilities": {
+      "type": "object",
+      "additionalProperties": { "type": "number", "minimum": 0, "maximum": 1 }
+    },
+    "choice": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "choice", "confidence", "probabilities"],
+      "properties": {
+        "type": { "const": "choice" },
+        "choice": { "type": "string" },
+        "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+        "probabilities": { "$ref": "#/$defs/probabilities" }
+      }
+    },
+    "noul": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "noul"],
+      "properties": {
+        "type": { "const": "noul" },
+        "noul": { "type": "number", "minimum": 0, "maximum": 1 }
+      }
+    },
+    "score": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "score", "confidence", "probabilities", "legend"],
+      "properties": {
+        "type": { "const": "score" },
+        "score": { "type": "number", "minimum": 0 },
+        "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+        "probabilities": { "$ref": "#/$defs/probabilities" },
+        "legend": {
+          "type": "object",
+          "additionalProperties": { "type": "string" }
+        }
+      }
+    },
+    "answer": {
+      "oneOf": [
+        { "$ref": "#/$defs/choice" },
+        { "$ref": "#/$defs/noul" },
+        { "$ref": "#/$defs/score" }
+      ]
+    }
+  }
+}

@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://turbojev.dev/schemas/turbojev.server-load-plan.schema.json",
+  "title": "TurboJev Server Load Plan",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract",
+    "baseUrl",
+    "route",
+    "method",
+    "concurrency",
+    "totalRequests",
+    "body"
+  ],
+  "properties": {
+    "contract": {
+      "const": "turbojev.server-load-plan.v1"
+    },
+    "baseUrl": {
+      "type": "string",
+      "minLength": 1
+    },
+    "route": {
+      "type": "string",
+      "pattern": "^/"
+    },
+    "method": {
+      "const": "POST"
+    },
+    "concurrency": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 1024
+    },
+    "totalRequests": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "timeoutMs": {
+      "type": "integer",
+      "minimum": 1,
+      "default": 30000
+    },
+    "headers": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "body": {
+      "type": "object"
+    }
+  }
+}

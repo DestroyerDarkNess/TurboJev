@@ -1,0 +1,129 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://turbojev.dev/schemas/turbojev.server-execution.schema.json",
+  "title": "TurboJev Cross-Request Execution Fixture",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract",
+    "nativeSessionCapabilities",
+    "planningCases"
+  ],
+  "properties": {
+    "contract": {
+      "const": "turbojev.cross-request-execution.v1"
+    },
+    "nativeSessionCapabilities": {
+      "$ref": "#/$defs/capabilities"
+    },
+    "planningCases": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "policy",
+          "capabilities",
+          "remainingItems",
+          "fairnessQuantum",
+          "hostMaxFusedItems",
+          "expected"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "policy": {
+            "enum": [
+              "auto",
+              "reference-serial"
+            ]
+          },
+          "capabilities": {
+            "$ref": "#/$defs/capabilities"
+          },
+          "remainingItems": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "fairnessQuantum": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "hostMaxFusedItems": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "expected": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "mode",
+              "turnItems"
+            ],
+            "properties": {
+              "mode": {
+                "enum": [
+                  "serial",
+                  "fused"
+                ]
+              },
+              "turnItems": {
+                "type": "integer",
+                "minimum": 1
+              }
+            }
+          },
+          "hostFusedMemoryBudgetBytes": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 1
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "capabilities": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "fusedBatch",
+        "cooperativeCancellation",
+        "hardDeadlines",
+        "maxFusedItems",
+        "estimatedFusedItemBytes"
+      ],
+      "properties": {
+        "fusedBatch": {
+          "type": "boolean"
+        },
+        "cooperativeCancellation": {
+          "type": "boolean"
+        },
+        "hardDeadlines": {
+          "type": "boolean"
+        },
+        "maxFusedItems": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        },
+        "estimatedFusedItemBytes": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        }
+      }
+    }
+  }
+}
