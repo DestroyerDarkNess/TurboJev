@@ -1,0 +1,62 @@
+name: real-model-e2e
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  linux-real-model-e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.82.0
+        with:
+          components: rustfmt, clippy
+          targets: wasm32-unknown-unknown
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Python validation dependencies
+        run: python -m pip install jsonschema
+      - name: Locked workspace gates + real model + fused qualification + language parity
+        run: >-
+          python scripts/final_e2e_linux.py
+          --work-dir .e2e-final
+          --report artifacts/final-validation-report.json
+      - name: Validate final reports
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from jsonschema import Draft202012Validator
+          root=Path('.')
+          for document, schema in [
+              (root/'tests/e2e/final-plan.json', root/'schemas/turbojev.final-e2e-plan.schema.json'),
+              (root/'.e2e-final/e2e-language-report.json', root/'schemas/turbojev.e2e-language-report.schema.json'),
+              (root/'artifacts/final-validation-report.json', root/'schemas/turbojev.final-validation-report.schema.json'),
+              (root/'.e2e-final/runtime-qualification.json', root/'schemas/turbojev.runtime-qualification.schema.json'),
+          ]:
+              errors=list(Draft202012Validator(json.loads(schema.read_text())).iter_errors(json.loads(document.read_text())))
+              if errors: raise SystemExit(f'{document}: ' + '; '.join(e.message for e in errors))
+          print('final real-model report schemas PASS')
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: turbojev-real-e2e
+          path: |
+            artifacts/final-validation-report.json
+            .e2e-final/qualification-evidence.json
+            .e2e-final/runtime-fingerprint.json
+            .e2e-final/runtime-qualification.json
+            .e2e-final/e2e-language-report.json
+            .e2e-final/dependency-locks/Cargo.lock
+            .e2e-final/dependency-locks/node-package-lock.json

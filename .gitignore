@@ -1,0 +1,12 @@
+/target
+.DS_Store
+*.gguf
+*.safetensors
+*.bin
+.env
+.cache/
+**/.build/
+**/.pytest_cache/
+**/__pycache__/
+**/node_modules/
+*.tgz

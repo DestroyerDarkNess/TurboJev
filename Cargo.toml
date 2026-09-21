@@ -1,0 +1,65 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/turbojev",
+    "crates/turbojev-schema",
+    "crates/turbojev-calibration",
+    "crates/turbojev-calibrate",
+    "crates/turbojev-tokenizer",
+    "crates/turbojev-prompt",
+    "crates/turbojev-model",
+    "crates/turbojev-specialized",
+    "crates/turbojev-training-data",
+    "crates/turbojev-specialized-artifact",
+    "crates/turbojev-specialized-eval",
+    "crates/turbojev-specialized-report",
+    "crates/turbojev-server-protocol",
+    "crates/turbojev-server-execution",
+    "crates/turbojev-server",
+    "crates/turbojev-backend",
+    "crates/turbojev-engine",
+    "crates/turbojev-core",
+    "crates/turbojev-wire",
+    "crates/turbojev-backend-mock",
+    "crates/turbojev-backend-custom",
+    "crates/turbojev-compat",
+    "crates/turbojev-conformance",
+    "crates/turbojev-runtime",
+    "crates/turbojev-sequence",
+    "crates/turbojev-runtime-conformance",
+    "crates/turbojev-runtime-qualification",
+    "crates/turbojev-runtime-llamacpp",
+    "crates/turbojev-projection",
+    "crates/turbojev-runtime-projection",
+    "crates/turbojev-benchmark",
+    "crates/turbojev-host-native",
+    "crates/turbojev-node",
+    "crates/turbojev-wasm",
+    "crates/turbojev-capi",
+    "crates/turbojev-python",
+    "crates/turbojev-jni",
+]
+
+[workspace.package]
+version = "0.28.2"
+edition = "2021"
+rust-version = "1.82"
+license = "MIT"
+repository = "https://github.com/turbojev/turbojev"
+homepage = "https://github.com/turbojev/turbojev"
+authors = ["TurboJev contributors"]
+
+[workspace.dependencies]
+indexmap = { version = "=2.7.1", features = ["serde"] }
+serde = { version = "=1.0.217", features = ["derive"] }
+serde_json = "=1.0.135"
+thiserror = "=2.0.11"
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+rust_2018_idioms = "deny"
+unused_lifetimes = "deny"
+unused_qualifications = "warn"
+
+[workspace.lints.clippy]
+all = "warn"

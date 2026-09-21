@@ -1,0 +1,154 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  portable-core:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.82.0
+        with:
+          components: rustfmt, clippy
+      - name: Structural validation
+        run: python scripts/check_structure.py
+      - name: Dependency graph
+        run: python scripts/check_dependency_graph.py
+      - name: Rust source sanity
+        run: python scripts/check_rust_sources.py
+      - name: Portability audit
+        run: python scripts/audit_portability.py
+      - name: Compatibility golden fixtures
+        run: python scripts/check_compat_fixtures.py
+      - name: Calibration fixtures
+        run: python scripts/check_calibration_fixtures.py
+      - name: Specialized-model fixtures
+        run: python scripts/check_specialized_fixtures.py
+      - name: Specialized evaluation fixtures
+        run: python scripts/check_specialized_evaluation.py
+      - name: Server fixtures
+        run: python scripts/check_server_fixtures.py
+      - name: Runtime qualification fixtures
+        run: python scripts/check_runtime_qualification.py
+      - name: Cross-language E2E fixtures
+        run: python scripts/check_e2e_fixtures.py
+      - name: Source manifest
+        run: python scripts/source_manifest.py
+      - name: Format
+        run: cargo fmt --all --check
+      - name: Check
+        run: cargo check --workspace --all-targets
+      - name: Clippy
+        run: cargo clippy --workspace --all-targets -- -D warnings
+      - name: Test
+        run: cargo test --workspace
+
+  wasm-portable-core:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.82.0
+        with:
+          targets: wasm32-unknown-unknown
+      - name: Dependency graph
+        run: python scripts/check_dependency_graph.py
+      - name: Rust source sanity
+        run: python scripts/check_rust_sources.py
+      - name: Portability audit
+        run: python scripts/audit_portability.py
+      - name: Compatibility golden fixtures
+        run: python scripts/check_compat_fixtures.py
+      - name: Source manifest
+        run: python scripts/source_manifest.py
+      - name: Check portable crates for wasm32
+        run: >-
+          cargo check --target wasm32-unknown-unknown
+          -p turbojev-schema
+          -p turbojev-calibration
+          -p turbojev-tokenizer
+          -p turbojev-prompt
+          -p turbojev-model
+          -p turbojev-specialized
+          -p turbojev-training-data
+          -p turbojev-specialized-artifact
+          -p turbojev-specialized-eval
+          -p turbojev-server-protocol
+          -p turbojev-server-execution
+          -p turbojev-backend
+          -p turbojev-engine
+          -p turbojev-core
+          -p turbojev-wire
+          -p turbojev-backend-mock
+          -p turbojev-backend-custom
+          -p turbojev-compat
+          -p turbojev-conformance
+          -p turbojev-runtime
+          -p turbojev-sequence
+          -p turbojev-runtime-conformance
+          -p turbojev-runtime-qualification
+          -p turbojev-projection
+          -p turbojev-runtime-projection
+          -p turbojev-benchmark
+          -p turbojev
+
+  native-shim-and-c-header:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Native llama.cpp shim smoke
+        run: python scripts/check_native_shims.py
+      - name: C11 public header smoke
+        run: cc -std=c11 -Wall -Wextra -Werror -Ibindings/c/include -c bindings/c/smoke.c -o /tmp/turbojev-c-smoke.o
+      - name: Binding structure
+        run: python scripts/check_bindings.py
+
+  javascript-bindings:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        package:
+          - bindings/node
+          - bindings/web
+          - bindings/web-runtimes/transformersjs
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install package dependencies
+        working-directory: ${{ matrix.package }}
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: TypeScript build
+        working-directory: ${{ matrix.package }}
+        run: npm run build
+      - name: Tests
+        working-directory: ${{ matrix.package }}
+        run: npm test
+      - name: Package dry run
+        working-directory: ${{ matrix.package }}
+        run: npm pack --dry-run
+
+  python-wrapper:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install pytest
+      - name: Thin wrapper tests
+        working-directory: bindings/python
+        run: pytest -q
+
+  swift-binding:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build Swift package surface
+        working-directory: bindings/swift
+        run: swift build
