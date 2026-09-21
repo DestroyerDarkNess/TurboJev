@@ -1,0 +1,31 @@
+[package]
+name = "turbojev-node"
+description = "Node-API binding over TurboJev host-native sessions"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+
+[lib]
+crate-type = ["cdylib"]
+
+[features]
+default = []
+llamacpp = ["turbojev-host-native/llamacpp"]
+
+[dependencies]
+turbojev-host-native = { path = "../turbojev-host-native" }
+napi = { version = "=3.0.0", default-features = false, features = ["napi8"] }
+napi-derive = "=3.0.0"
+
+[build-dependencies]
+napi-build = "=2.2.1"
+
+[lints.rust]
+rust_2018_idioms = "deny"
+unsafe_code = "forbid"
+
+[lints.clippy]
+all = "warn"

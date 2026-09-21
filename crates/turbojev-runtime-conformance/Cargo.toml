@@ -1,0 +1,24 @@
+[package]
+name = "turbojev-runtime-conformance"
+description = "Portable conformance kit for TurboJev tokenizer and runtime adapters"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+
+[dependencies]
+serde.workspace = true
+thiserror.workspace = true
+turbojev-backend = { path = "../turbojev-backend" }
+turbojev-prompt = { path = "../turbojev-prompt" }
+turbojev-projection = { path = "../turbojev-projection" }
+turbojev-runtime = { path = "../turbojev-runtime" }
+turbojev-sequence = { path = "../turbojev-sequence" }
+
+[dev-dependencies]
+turbojev-tokenizer = { path = "../turbojev-tokenizer" }
+
+[lints]
+workspace = true

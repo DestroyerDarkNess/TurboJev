@@ -1,0 +1,29 @@
+[package]
+name = "turbojev-python"
+description = "PyO3 native extension for TurboJev"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+
+[lib]
+name = "_native"
+crate-type = ["cdylib", "rlib"]
+
+[features]
+default = ["abi3"]
+abi3 = ["pyo3/abi3-py39"]
+llamacpp = ["turbojev-host-native/llamacpp"]
+
+[dependencies]
+turbojev-host-native = { path = "../turbojev-host-native" }
+pyo3 = { version = "=0.23.4", features = ["extension-module"] }
+
+[lints.rust]
+rust_2018_idioms = "deny"
+unsafe_code = "forbid"
+
+[lints.clippy]
+all = "warn"

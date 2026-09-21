@@ -1,0 +1,18 @@
+[package]
+name = "turbojev-prompt"
+description = "Deterministic prompt contract for TurboJev decision backends"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+turbojev-backend = { path = "../turbojev-backend" }
+
+[lints]
+workspace = true
