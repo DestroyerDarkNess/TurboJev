@@ -1,0 +1,31 @@
+{
+  "contract": "turbojev.calibration-profile.v1",
+  "id": "turbojev-0.6b-calibration-v1",
+  "method": "temperature-softmax",
+  "temperature": 1.37,
+  "holdout_id": "specialized-calibration-v1",
+  "sample_count": 500,
+  "ece_bins": 15,
+  "model_id": "turbojev-0.6b-specialized-fixture",
+  "tokenizer_revision": "tok-0.6b-fixture-rev",
+  "prompt_profile": "turbojev.prompt-ir.v2",
+  "renderer_profile": "turbojev-specialized-v1",
+  "before": {
+    "count": 500,
+    "total_weight": 500.0,
+    "accuracy": 0.74,
+    "nll": 0.91,
+    "brier": 0.42,
+    "ece": 0.18,
+    "ece_bins": []
+  },
+  "after": {
+    "count": 500,
+    "total_weight": 500.0,
+    "accuracy": 0.74,
+    "nll": 0.83,
+    "brier": 0.39,
+    "ece": 0.09,
+    "ece_bins": []
+  }
+}

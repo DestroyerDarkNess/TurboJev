@@ -1,0 +1,18 @@
+{
+  "contract": "turbojev.runtime-qualification.v1",
+  "id": "tiny-gguf-llamacpp-cpu-example",
+  "fingerprint": {
+    "runtime": "llama.cpp",
+    "runtimeRevision": "example-revision",
+    "shimAbi": 5,
+    "backend": "cpu",
+    "backendRevision": null,
+    "hardware": {"architecture": "x86_64", "device": "example-cpu", "driver": null, "os": "linux"},
+    "model": {"source": "/models/tiny.gguf", "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "revision": "example", "quantization": "Q4_0"}
+  },
+  "harnessRevision": "turbojev-real-runtime-conformance-v1",
+  "tolerance": {"absolute": 0.00001, "relative": 0.00001},
+  "summary": {"rounds": 48, "requests": 192, "maxAbsLogitDelta": 0.0, "maxRelativeLogitDelta": 0.0, "responseMismatches": 0, "isolationFailures": 0, "nonFiniteValues": 0, "passed": true},
+  "capabilities": {"fusedBatch": true, "cooperativeCancellation": false, "hardDeadlines": false, "maxFusedItems": 8, "estimatedFusedItemBytes": null},
+  "evidenceSha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+}

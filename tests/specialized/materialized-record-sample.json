@@ -1,0 +1,35 @@
+{
+  "contract": "turbojev.materialized-training-dataset.v1",
+  "id": "routing-train-v3-materialized-sample",
+  "source_dataset": "specialized-train-v1",
+  "recipe_id": "turbojev-0.6b-lora-candidate-ce-v1",
+  "prompt_ir": "turbojev.prompt-ir.v2",
+  "renderer_profile": "turbojev-specialized-v1",
+  "candidate_code_profile": "fixture-verified-ascii-v1",
+  "seed": 2701,
+  "records": [
+    {
+      "id": "routing-en-001::route::o0::c0",
+      "source_example_id": "routing-en-001",
+      "question_id": "route",
+      "language": "en",
+      "document": {
+        "evidence": {"message": "My package never arrived", "days_since_shipment": 12},
+        "criterion": {"kind": "criterion", "text": "Which team should handle this?"},
+        "options": [
+          {"code": "A", "key": "billing", "description": "Billing or payment problems"},
+          {"code": "B", "key": "shipping", "description": "Delivery and logistics problems"},
+          {"code": "C", "key": "technical", "description": "Technical problems"},
+          {"code": "D", "key": "other", "description": "None of the above"}
+        ],
+        "contract": "turbojev.prompt-ir.v2"
+      },
+      "target_key": "shipping",
+      "target_index": 1,
+      "target_code": "B",
+      "weight": 1.0,
+      "augmentation": {"order_variant": 0, "order_variants": 1, "code_variant": 0, "code_variants": 1}
+    }
+  ],
+  "stats": {"source_examples": 1, "source_decisions": 1, "records": 1, "total_record_weight": 1.0}
+}

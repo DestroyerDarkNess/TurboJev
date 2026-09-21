@@ -1,0 +1,16 @@
+{
+  "GET /healthz": "health",
+  "GET /readyz": "ready",
+  "GET /v1/models": "models",
+  "POST /v1/evaluate": "turbojev",
+  "POST /v1/openrouter/evaluate": "turbojev",
+  "POST /v1/systemone": "typesafe-systemone-v1",
+  "POST /v1/ai-sdk/evaluate": "ai-sdk-evaluation-v4",
+  "POST /v1/vercel/evaluate": "ai-sdk-evaluation-v4",
+  "POST /v1/batch": "turbojev",
+  "POST /v1/openrouter/evaluate/batch": "turbojev",
+  "POST /v1/systemone/batch": "typesafe-systemone-v1",
+  "POST /v1/ai-sdk/evaluate/batch": "ai-sdk-evaluation-v4",
+  "POST /v1/vercel/evaluate/batch": "ai-sdk-evaluation-v4",
+  "GET /v1/server/metrics": "metrics"
+}

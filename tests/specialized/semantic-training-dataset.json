@@ -1,0 +1,124 @@
+{
+  "contract": "turbojev.semantic-training-dataset.v1",
+  "id": "specialized-train-v1",
+  "examples": [
+    {
+      "id": "routing-en-001",
+      "language": "en",
+      "request": {
+        "state": {"message": "My package never arrived", "days_since_shipment": 12},
+        "questions": {
+          "route": {
+            "type": "choice",
+            "instructions": "Which team should handle this?",
+            "criteria": {
+              "billing": "Billing or payment problems",
+              "shipping": "Delivery and logistics problems",
+              "technical": "Technical problems",
+              "other": "None of the above"
+            }
+          },
+          "urgent": {"type": "noul", "instructions": "Does this require urgent human intervention?"}
+        }
+      },
+      "targets": {
+        "route": {"type": "choice", "value": "shipping"},
+        "urgent": {"type": "noul", "value": false}
+      },
+      "properties": {"contrastive_group": "shipment-arrival", "adversarial_criteria": true}
+    },
+    {
+      "id": "routing-en-002",
+      "language": "en",
+      "request": {
+        "state": {"message": "The package arrived this morning", "days_since_shipment": 0},
+        "questions": {
+          "route": {
+            "type": "choice",
+            "instructions": "Which team should handle this?",
+            "criteria": {
+              "billing": "Billing or payment problems",
+              "shipping": "Delivery and logistics problems",
+              "technical": "Technical problems",
+              "other": "None of the above"
+            }
+          }
+        }
+      },
+      "targets": {"route": {"type": "choice", "value": "other"}},
+      "properties": {"contrastive_group": "shipment-arrival", "negative_no_match": true}
+    },
+    {
+      "id": "routing-es-001",
+      "language": "es",
+      "request": {
+        "state": {"mensaje": "El cobro aparece duplicado en mi tarjeta"},
+        "questions": {
+          "route": {
+            "type": "choice",
+            "instructions": "¿Qué equipo debe atender este caso?",
+            "criteria": {"billing": "Pagos y cobros", "shipping": "Envíos", "technical": "Problemas técnicos", "other": "Ninguno"}
+          }
+        }
+      },
+      "targets": {"route": {"type": "choice", "value": "billing"}},
+      "properties": {}
+    },
+    {
+      "id": "routing-pt-001",
+      "language": "pt",
+      "request": {
+        "state": {"mensagem": "O aplicativo fecha quando tento entrar"},
+        "questions": {
+          "route": {
+            "type": "choice",
+            "instructions": "Qual equipe deve tratar este caso?",
+            "criteria": {"billing": "Pagamento", "shipping": "Entrega", "technical": "Falha técnica", "other": "Nenhum"}
+          }
+        }
+      },
+      "targets": {"route": {"type": "choice", "value": "technical"}},
+      "properties": {}
+    },
+    {
+      "id": "routing-fr-001",
+      "language": "fr",
+      "request": {
+        "state": {"message": "Je ne reconnais pas ce paiement"},
+        "questions": {
+          "route": {
+            "type": "choice",
+            "instructions": "Quelle équipe doit traiter ce cas ?",
+            "criteria": {"billing": "Paiement", "shipping": "Livraison", "technical": "Technique", "other": "Aucun"}
+          }
+        }
+      },
+      "targets": {"route": {"type": "choice", "value": "billing"}},
+      "properties": {}
+    },
+    {
+      "id": "routing-de-001",
+      "language": "de",
+      "request": {
+        "state": {"nachricht": "Die Anmeldung schlägt nach dem Update fehl", "kontext": ["Konto aktiv", "Passwort zurückgesetzt", "Fehler bleibt bestehen", "mehrere Geräte betroffen"]},
+        "questions": {
+          "route": {
+            "type": "choice",
+            "instructions": "Welches Team soll den Fall bearbeiten?",
+            "criteria": {"billing": "Zahlung", "shipping": "Lieferung", "technical": "Technisches Problem", "other": "Keines davon"}
+          },
+          "severity": {
+            "type": "score",
+            "instructions": "Wie schwerwiegend ist das Problem?",
+            "criteria": ["Keine Auswirkung", "Gering", "Erheblich", "Kritisch"]
+          }
+        }
+      },
+      "targets": {
+        "route": {"type": "choice", "value": "technical"},
+        "severity": {"type": "score", "value": 2}
+      },
+      "properties": {"long_shared_state": true}
+    }
+  ]
+}

@@ -1,0 +1,33 @@
+{
+  "state": {
+    "message": "The package never arrived and the customer has waited twelve days.",
+    "daysSinceShipment": 12,
+    "customerTier": "standard"
+  },
+  "questions": {
+    "route": {
+      "type": "choice",
+      "instructions": "Which team should handle this?",
+      "criteria": {
+        "billing": "Billing or payment problems",
+        "shipping": "Delivery and logistics problems",
+        "technical": "Technical problems",
+        "other": "None of the above"
+      }
+    },
+    "urgent": {
+      "type": "boolean",
+      "instructions": "Does this require urgent human intervention?"
+    },
+    "severity": {
+      "type": "score",
+      "instructions": "How severe is this issue?",
+      "criteria": [
+        "No meaningful impact",
+        "Minor impact",
+        "Significant impact",
+        "Critical impact"
+      ]
+    }
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "requests": [
+    {
+      "state": "package missing",
+      "questions": {
+        "route": {
+          "type": "choice",
+          "instructions": "Which team should handle this?",
+          "criteria": {"billing": "Billing", "shipping": "Shipping"}
+        }
+      }
+    },
+    {
+      "state": "duplicate charge",
+      "questions": {
+        "route": {
+          "type": "choice",
+          "instructions": "Which team should handle this?",
+          "criteria": {"billing": "Billing", "shipping": "Shipping"}
+        }
+      }
+    }
+  ]
+}

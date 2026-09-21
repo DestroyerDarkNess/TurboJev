@@ -1,0 +1,61 @@
+{
+  "contract": "turbojev.specialized-training-recipe.v1",
+  "id": "turbojev-2b-qlora-candidate-ce-v1",
+  "base_model": {
+    "id": "open-weight/base-2b",
+    "revision": "base-2b-fixture-rev",
+    "tokenizer_revision": "tok-2b-fixture-rev"
+  },
+  "method": "qlora",
+  "objective": "candidate-logit-cross-entropy",
+  "prompt_ir": "turbojev.prompt-ir.v2",
+  "renderer_profile": "turbojev-specialized-v1",
+  "candidate_encoding": {
+    "kind": "dynamic"
+  },
+  "max_context_tokens": 8192,
+  "adapter": {
+    "rank": 32,
+    "alpha": 64.0,
+    "dropout": 0.05,
+    "target_modules": [
+      "q_proj",
+      "k_proj",
+      "v_proj",
+      "o_proj"
+    ]
+  },
+  "optimization": {
+    "learning_rate": 0.0001,
+    "epochs": 3,
+    "micro_batch_size": 2,
+    "gradient_accumulation_steps": 16,
+    "warmup_ratio": 0.03,
+    "weight_decay": 0.01,
+    "seed": 1703
+  },
+  "debiasing": {
+    "candidate_order_permutations": 4,
+    "candidate_code_permutations": 4,
+    "seed": 2703
+  },
+  "data": {
+    "languages": [
+      "en",
+      "es",
+      "pt",
+      "fr",
+      "de"
+    ],
+    "require_contrastive_pairs": true,
+    "require_negative_no_match": true,
+    "require_adversarial_criteria": true,
+    "require_long_shared_state": true
+  },
+  "splits": {
+    "train": "specialized-train-v1",
+    "validation": "specialized-validation-v1",
+    "calibration": "specialized-calibration-v1",
+    "benchmark": "specialized-benchmark-v1"
+  }
+}

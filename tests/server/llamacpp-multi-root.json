@@ -1,0 +1,14 @@
+{
+  "contract": "turbojev.llamacpp-multi-root.v1",
+  "shimAbi": 5,
+  "enabledByDefault": false,
+  "execution": "single-decode-independent-sequence-roots",
+  "candidatePolicy": "single-token-next-logit",
+  "isolation": "distinct-sequence-id-clear-before-after",
+  "realBackendEvidenceRequired": true,
+  "limits": {
+    "maxRoots": 8,
+    "maxTotalPromptTokens": 1024,
+    "estimatedFusedItemBytes": null
+  }
+}

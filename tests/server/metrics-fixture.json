@@ -1,0 +1,23 @@
+{
+  "contract": "turbojev.server-metrics.v1",
+  "executionContract": "turbojev.cross-request-execution.v1",
+  "capabilities": {
+    "fusedBatch": true,
+    "cooperativeCancellation": false,
+    "hardDeadlines": false,
+    "maxFusedItems": 64,
+    "estimatedFusedItemBytes": null
+  },
+  "submittedJobs": 3,
+  "submittedRequests": 18,
+  "completedJobs": 2,
+  "completedRequests": 17,
+  "rejectedJobs": 0,
+  "callerDeadlines": 1,
+  "cancelledBeforeExecution": 1,
+  "serialTurns": 3,
+  "fusedTurns": 4,
+  "inflightJobs": 0,
+  "inflightHighWater": 2,
+  "lifecycle": "ready"
+}

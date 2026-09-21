@@ -1,0 +1,23 @@
+{
+  "model": "typesafe-ai/jev",
+  "state": {"message": "I was charged twice and cannot access my account."},
+  "questions": {
+    "team": {
+      "type": "choice",
+      "instructions": "Which team should handle this first?",
+      "criteria": {
+        "billing": "Payment or refund problems",
+        "technical": "Account access or product problems"
+      }
+    },
+    "refund_review": {
+      "type": "boolean",
+      "instructions": "Does this require refund review?"
+    },
+    "urgency": {
+      "type": "score",
+      "instructions": "How urgently does this need attention?",
+      "criteria": ["Routine", "Time-sensitive", "Blocked"]
+    }
+  }
+}

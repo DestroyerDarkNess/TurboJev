@@ -1,0 +1,85 @@
+{
+  "contract": "turbojev.cross-request-execution.v1",
+  "nativeSessionCapabilities": {
+    "fusedBatch": true,
+    "cooperativeCancellation": false,
+    "hardDeadlines": false,
+    "maxFusedItems": 64,
+    "estimatedFusedItemBytes": null
+  },
+  "planningCases": [
+    {
+      "id": "fixture-fused-bounded-by-fairness",
+      "policy": "auto",
+      "capabilities": {
+        "fusedBatch": true,
+        "cooperativeCancellation": false,
+        "hardDeadlines": false,
+        "maxFusedItems": 64,
+        "estimatedFusedItemBytes": null
+      },
+      "remainingItems": 16,
+      "fairnessQuantum": 4,
+      "hostMaxFusedItems": 8,
+      "expected": {
+        "mode": "fused",
+        "turnItems": 4
+      }
+    },
+    {
+      "id": "future-fused-adapter-bounded-by-host",
+      "policy": "auto",
+      "capabilities": {
+        "fusedBatch": true,
+        "cooperativeCancellation": true,
+        "hardDeadlines": true,
+        "maxFusedItems": 16,
+        "estimatedFusedItemBytes": null
+      },
+      "remainingItems": 32,
+      "fairnessQuantum": 8,
+      "hostMaxFusedItems": 4,
+      "expected": {
+        "mode": "fused",
+        "turnItems": 4
+      }
+    },
+    {
+      "id": "reference-forces-serial",
+      "policy": "reference-serial",
+      "capabilities": {
+        "fusedBatch": true,
+        "cooperativeCancellation": true,
+        "hardDeadlines": true,
+        "maxFusedItems": 16,
+        "estimatedFusedItemBytes": null
+      },
+      "remainingItems": 8,
+      "fairnessQuantum": 3,
+      "hostMaxFusedItems": 8,
+      "expected": {
+        "mode": "serial",
+        "turnItems": 3
+      }
+    },
+    {
+      "id": "fused-bounded-by-memory",
+      "policy": "auto",
+      "capabilities": {
+        "fusedBatch": true,
+        "cooperativeCancellation": false,
+        "hardDeadlines": false,
+        "maxFusedItems": 16,
+        "estimatedFusedItemBytes": 4096
+      },
+      "remainingItems": 32,
+      "fairnessQuantum": 8,
+      "hostMaxFusedItems": 8,
+      "hostFusedMemoryBudgetBytes": 12288,
+      "expected": {
+        "mode": "fused",
+        "turnItems": 3
+      }
+    }
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "contract": "turbojev.specialized-model.v1",
+  "id": "turbojev-0.6b-specialized-fixture",
+  "revision": "specialized-fixture-rev-1",
+  "recipe_id": "turbojev-0.6b-lora-candidate-ce-v1",
+  "base_model": {
+    "id": "open-weight/base-0.6b",
+    "revision": "base-0.6b-fixture-rev",
+    "tokenizer_revision": "tok-0.6b-fixture-rev"
+  },
+  "decision_contract": {
+    "contract": "turbojev.decision-model.v1",
+    "prompt_ir": "turbojev.prompt-ir.v2",
+    "renderer_profile": "turbojev-specialized-v1",
+    "candidate_encoding": {
+      "kind": "dynamic"
+    },
+    "tokenizer_revision": "tok-0.6b-fixture-rev",
+    "max_context_tokens": 4096,
+    "calibration_profile": "turbojev-0.6b-calibration-v1"
+  },
+  "training_dataset": "specialized-train-v1",
+  "calibration_profile": "turbojev-0.6b-calibration-v1"
+}

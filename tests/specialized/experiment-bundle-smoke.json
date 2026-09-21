@@ -1,0 +1,52 @@
+{
+  "contract": "turbojev.specialization-bundle.v1",
+  "id": "phase10-smoke-bundle-v1",
+  "plan": {
+    "contract": "turbojev.specialization-evaluation.v1",
+    "id": "phase10-smoke-eval-v1",
+    "sha256": "6dcd9a1a4cfdcbe66068c53bae34d49521c541a9a343ad17337fdceadc0f35b6"
+  },
+  "benchmark": {
+    "contract": "turbojev.benchmark.v1",
+    "id": "reference-semantic-v1",
+    "sha256": "a2bf400b5743a17767ebb05558c3480a9197bb3d84630b9ca4c7fc80e2ce8113"
+  },
+  "runs": [
+    {
+      "contract": "turbojev.specialization-run.v1",
+      "id": "run-generic-0.6b-v1",
+      "sha256": "6d0eac48ec4954c28c103b39608418d1cf83ba111cd23f9a0d1160ca46f1724d"
+    },
+    {
+      "contract": "turbojev.specialization-run.v1",
+      "id": "run-specialized-0.6b-v1",
+      "sha256": "ae234bca97574f4e41a75f079c2025f0b1a01e23fb6b2854d9ad63d3c52628a7"
+    }
+  ],
+  "report": {
+    "contract": "turbojev.specialization-report.v1",
+    "id": "phase10-smoke-report-v1",
+    "sha256": "7e82103f28e8f1ac2e3ef62b05345de0367a61eeda47f67fa44c08dd18d8e12e"
+  },
+  "recipes": [
+    {
+      "contract": "turbojev.specialized-training-recipe.v1",
+      "id": "turbojev-0.6b-lora-candidate-ce-v1",
+      "sha256": "410a934626d3a0f827e484e3b274d0c91476787f60fc8d30b66bc2bf3967f075"
+    }
+  ],
+  "model_manifests": [
+    {
+      "contract": "turbojev.specialized-model.v1",
+      "id": "turbojev-0.6b-specialized-fixture",
+      "sha256": "00f08d2b45929d5169a06823547a95f26f484a56e2004fa28e37524f20b7a4ad"
+    }
+  ],
+  "calibration_profiles": [
+    {
+      "contract": "turbojev.calibration-profile.v1",
+      "id": "turbojev-0.6b-calibration-v1",
+      "sha256": "dde04f532271ff5bbaabd4c7ecb677ebc9598ade3f1dbf5db043e3ee23b1e8b2"
+    }
+  ]
+}

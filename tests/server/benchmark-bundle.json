@@ -1,0 +1,18 @@
+{
+  "artifacts": {
+    "config": {
+      "path": "tests/server/config-fixture.json",
+      "sha256": "c57d80fdeef9abbcf0c71039097bb8fa397c0baf544b11072d0ebd7593cc8329"
+    },
+    "loadPlan": {
+      "path": "tests/server/load-plan.json",
+      "sha256": "f17e58a0944f76e9cb2da3c4d49636f6dbaea06b02a072caa963f25cd88f73af"
+    },
+    "loadReport": {
+      "path": "tests/server/load-report-sample.json",
+      "sha256": "a3a87a837653f2a4b5c04f220592be05d43e8c1617923eeb9e9411be48d5fcf8"
+    }
+  },
+  "contract": "turbojev.server-benchmark-bundle.v1",
+  "serverVersion": "0.28.2"
+}

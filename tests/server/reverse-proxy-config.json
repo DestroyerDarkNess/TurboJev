@@ -1,0 +1,35 @@
+{
+  "bind": "127.0.0.1:3217",
+  "load": {
+    "model": "fixture://server",
+    "nCtx": 64,
+    "nBatch": 64,
+    "nSeqMax": 2,
+    "nGpuLayers": 0,
+    "fixtureLogits": {
+      "route": [
+        0.0,
+        4.0
+      ]
+    }
+  },
+  "limits": {
+    "maxBodyBytes": 1048576,
+    "maxBatchItems": 16
+  },
+  "transport": {
+    "maxConnections": 8,
+    "maxHeaderBytes": 16384,
+    "queueCapacity": 16,
+    "ioTimeoutMs": 30000,
+    "sessionTimeoutMs": 120000,
+    "fairnessQuantum": 1,
+    "maxFusedItems": 8,
+    "drainTimeoutMs": 30000,
+    "fusedMemoryBudgetBytes": 16777216
+  },
+  "deployment": {
+    "mode": "reverse-proxy",
+    "requireForwardedHttps": true
+  }
+}

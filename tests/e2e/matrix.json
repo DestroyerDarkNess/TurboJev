@@ -1,0 +1,12 @@
+{
+  "contract": "turbojev.e2e-language-matrix.v1",
+  "model": "${TURBOJEV_E2E_MODEL}",
+  "request": "tests/e2e/request.json",
+  "languages": [
+    {"id":"node-ts","required":true,"runner":"tests/e2e/node/run.mjs"},
+    {"id":"python","required":true,"runner":"tests/e2e/python/run.py"},
+    {"id":"c","required":true,"runner":"tests/e2e/c/main.c"},
+    {"id":"dotnet","required":true,"runner":"tests/e2e/dotnet/TurboJev.E2E.csproj"},
+    {"id":"swift","required":false,"runner":"bindings/swift"}
+  ]
+}

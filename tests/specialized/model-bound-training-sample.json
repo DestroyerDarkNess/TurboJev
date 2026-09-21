@@ -1,0 +1,57 @@
+{
+  "contract": "turbojev.model-bound-training-dataset.v1",
+  "id": "specialized-train-v1-bound-fixture",
+  "source_materialized_dataset": "routing-train-v3-materialized-sample",
+  "source_semantic_dataset": "specialized-train-v1",
+  "recipe_id": "turbojev-0.6b-lora-candidate-ce-v1",
+  "objective": "candidate-logit-cross-entropy",
+  "model": {
+    "id": "open-weight/base-0.6b",
+    "revision": "base-0.6b-fixture-rev",
+    "tokenizer_revision": "tok-0.6b-fixture-rev"
+  },
+  "prompt_ir": "turbojev.prompt-ir.v2",
+  "renderer_profile": "turbojev-specialized-v1",
+  "tokenizer_profile": "fixture-tokenizer-v1",
+  "candidate_code_profile": "fixture-verified-ascii-v1",
+  "max_context_tokens": 4096,
+  "records": [
+    {
+      "id": "routing-en-001::route::o0::c0::bound",
+      "source_record_id": "routing-en-001::route::o0::c0",
+      "source_example_id": "routing-en-001",
+      "question_id": "route",
+      "language": "en",
+      "messages": {
+        "system": "Choose exactly one candidate code.",
+        "user": "My package never arrived ... A=billing B=shipping C=technical D=other",
+        "profile": "turbojev-specialized-v1"
+      },
+      "prompt_token_ids": [101, 205, 309, 411, 512],
+      "candidates": [
+        {"key": "billing", "code": "A", "token_ids": [1001]},
+        {"key": "shipping", "code": "B", "token_ids": [1002]},
+        {"key": "technical", "code": "C", "token_ids": [1003]},
+        {"key": "other", "code": "D", "token_ids": [1004]}
+      ],
+      "target_key": "shipping",
+      "target_index": 1,
+      "target_code": "B",
+      "target_token_id": 1002,
+      "weight": 1.0,
+      "augmentation": {
+        "order_variant": 0,
+        "order_variants": 1,
+        "code_variant": 0,
+        "code_variants": 1
+      }
+    }
+  ],
+  "stats": {
+    "source_records": 1,
+    "records": 1,
+    "total_record_weight": 1.0,
+    "max_prompt_tokens": 5,
+    "max_context_tokens_used": 6
+  }
+}

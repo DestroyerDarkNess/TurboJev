@@ -1,0 +1,13 @@
+{
+  "contract": "turbojev.server-lifecycle.v1",
+  "phases": ["ready", "draining", "stopped"],
+  "probeBehavior": {
+    "ready": {"healthz": 200, "readyz": 200},
+    "draining": {"healthz": 200, "readyz": 503, "newInference": 503}
+  },
+  "drainBehavior": {
+    "stopAccepting": true,
+    "finishAdmittedWork": true,
+    "boundedByDrainTimeout": true
+  }
+}

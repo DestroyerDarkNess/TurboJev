@@ -1,0 +1,35 @@
+{
+  "answers": {
+    "team": {
+      "type": "choice",
+      "choice": "billing",
+      "confidence": 0.8,
+      "probabilities": {
+        "billing": 0.8,
+        "technical": 0.2
+      }
+    },
+    "refund_review": {
+      "type": "noul",
+      "noul": 0.9
+    },
+    "urgency": {
+      "type": "score",
+      "score": 1.5,
+      "confidence": 0.6,
+      "probabilities": {
+        "0": 0.1,
+        "1": 0.3,
+        "2": 0.6
+      },
+      "legend": {
+        "0": "Routine",
+        "1": "Time-sensitive",
+        "2": "Blocked"
+      }
+    }
+  },
+  "usage": {
+    "input_tokens": 128
+  }
+}

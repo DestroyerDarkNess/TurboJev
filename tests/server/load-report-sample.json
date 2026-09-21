@@ -1,0 +1,15 @@
+{
+  "contract": "turbojev.server-load-report.v1",
+  "planContract": "turbojev.server-load-plan.v1",
+  "target": "http://127.0.0.1:3217/v1/evaluate",
+  "concurrency": 4,
+  "totalRequests": 32,
+  "completedRequests": 32,
+  "successes": 32,
+  "failures": 0,
+  "statusCounts": {"200": 32},
+  "latencyMs": {"min": 3.0, "p50": 5.0, "p95": 8.0, "p99": 9.0, "max": 10.0, "mean": 5.5},
+  "wallMs": 48.0,
+  "requestsPerSecond": 666.666667,
+  "errors": []
+}

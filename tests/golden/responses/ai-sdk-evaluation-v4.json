@@ -1,0 +1,40 @@
+{
+  "answers": {
+    "team": {
+      "choice": "billing",
+      "probabilities": {
+        "billing": 0.8,
+        "technical": 0.2
+      }
+    },
+    "refund_review": {
+      "probability": 0.9
+    },
+    "urgency": {
+      "score": 1.5,
+      "probabilities": {
+        "0": 0.1,
+        "1": 0.3,
+        "2": 0.6
+      }
+    }
+  },
+  "usage": {
+    "inputTokens": 128
+  },
+  "providerMetadata": {
+    "typesafe": {
+      "confidence": {
+        "team": 0.8,
+        "urgency": 0.6
+      }
+    },
+    "turbojev": {
+      "compatibilityProfile": "ai-sdk-evaluation-v4",
+      "confidenceSource": "selected-candidate-probability",
+      "calibration": "softmax",
+      "calibrated": false,
+      "contract": "turbojev.core.v4"
+    }
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "contract": "turbojev.native-execution-capabilities.v1",
+  "fixture": {
+    "fusedBatch": true,
+    "cooperativeCancellation": false,
+    "hardDeadlines": false,
+    "maxFusedItems": 64,
+    "estimatedFusedItemBytes": null
+  },
+  "llamacpp": {
+    "fusedBatch": false,
+    "cooperativeCancellation": false,
+    "hardDeadlines": false,
+    "maxFusedItems": null,
+    "estimatedFusedItemBytes": null
+  },
+  "llamacppOptIn": {
+    "fusedBatch": true,
+    "cooperativeCancellation": false,
+    "hardDeadlines": false,
+    "maxFusedItems": 8,
+    "estimatedFusedItemBytes": null
+  }
+}

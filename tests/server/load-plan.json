@@ -1,0 +1,25 @@
+{
+  "contract": "turbojev.server-load-plan.v1",
+  "baseUrl": "http://127.0.0.1:3217",
+  "route": "/v1/evaluate",
+  "method": "POST",
+  "concurrency": 4,
+  "totalRequests": 32,
+  "timeoutMs": 5000,
+  "headers": {
+    "X-TurboJev-Timeout-Ms": "4000"
+  },
+  "body": {
+    "state": "package missing",
+    "questions": {
+      "route": {
+        "type": "choice",
+        "instructions": "Which team should handle this?",
+        "criteria": {
+          "billing": "Billing",
+          "shipping": "Shipping"
+        }
+      }
+    }
+  }
+}

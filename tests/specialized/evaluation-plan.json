@@ -1,0 +1,34 @@
+{
+  "contract": "turbojev.specialization-evaluation.v1",
+  "id": "phase10-generic-vs-specialized-v1",
+  "benchmark_suite": "specialized-benchmark-v1",
+  "pairs": [
+    {
+      "generic_model": "open-weight/base-0.6b",
+      "specialized_model": "turbojev/0.6b-specialized-v1"
+    },
+    {
+      "generic_model": "open-weight/base-0.8b",
+      "specialized_model": "turbojev/0.8b-specialized-v1"
+    },
+    {
+      "generic_model": "open-weight/base-2b",
+      "specialized_model": "turbojev/2b-specialized-v1"
+    },
+    {
+      "generic_model": "open-weight/base-4b",
+      "specialized_model": "turbojev/4b-specialized-v1"
+    }
+  ],
+  "metrics": [
+    "accuracy",
+    "nll",
+    "brier",
+    "ece",
+    "latency",
+    "peak-memory",
+    "decisions-per-second",
+    "candidate-order-robustness",
+    "paraphrase-robustness"
+  ]
+}

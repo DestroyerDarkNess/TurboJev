@@ -1,0 +1,154 @@
+{
+  "contract": "turbojev.specialization-run.v1",
+  "id": "run-generic-0.6b-v1",
+  "plan_id": "phase10-smoke-eval-v1",
+  "benchmark_suite": "specialized-benchmark-v1",
+  "model": {
+    "id": "open-weight/base-0.6b",
+    "revision": "base-0.6b-fixture-rev",
+    "tokenizer_revision": "tok-0.6b-fixture-rev",
+    "prompt_ir": "turbojev.prompt-ir.v2",
+    "renderer_profile": "turbojev-specialized-v1",
+    "calibration": {
+      "method": "temperature-softmax",
+      "temperature": 1.0,
+      "fitted": false,
+      "ece_bins": 5
+    }
+  },
+  "environment": {
+    "backend": "fixture-reference-runtime",
+    "host": "fixture-cpu-8c",
+    "quantization": "fixture-fp16",
+    "execution_path": "independent-serial-full-vocabulary",
+    "runner_version": "0.20.0"
+  },
+  "observations": [
+    {
+      "id": "route-a-base",
+      "family_id": "route-a",
+      "case_id": "route-a",
+      "question_id": "route",
+      "variant": "baseline",
+      "candidate_keys": [
+        "billing",
+        "shipping",
+        "other"
+      ],
+      "logits": [
+        2.0,
+        1.0,
+        0.0
+      ],
+      "target_key": "shipping",
+      "weight": 1.0,
+      "latency_seconds": 0.024,
+      "peak_memory_bytes": 320000000
+    },
+    {
+      "id": "route-a-order",
+      "family_id": "route-a",
+      "case_id": "route-a",
+      "question_id": "route",
+      "variant": "candidate-order",
+      "candidate_keys": [
+        "shipping",
+        "billing",
+        "other"
+      ],
+      "logits": [
+        1.0,
+        2.0,
+        0.0
+      ],
+      "target_key": "shipping",
+      "weight": 1.0,
+      "latency_seconds": 0.025,
+      "peak_memory_bytes": 320000000
+    },
+    {
+      "id": "route-a-para",
+      "family_id": "route-a",
+      "case_id": "route-a",
+      "question_id": "route",
+      "variant": "paraphrase",
+      "candidate_keys": [
+        "billing",
+        "shipping",
+        "other"
+      ],
+      "logits": [
+        1.7,
+        1.6,
+        0.0
+      ],
+      "target_key": "shipping",
+      "weight": 1.0,
+      "latency_seconds": 0.023,
+      "peak_memory_bytes": 318000000
+    },
+    {
+      "id": "route-b-base",
+      "family_id": "route-b",
+      "case_id": "route-b",
+      "question_id": "route",
+      "variant": "baseline",
+      "candidate_keys": [
+        "billing",
+        "shipping",
+        "other"
+      ],
+      "logits": [
+        2.0,
+        1.0,
+        0.0
+      ],
+      "target_key": "billing",
+      "weight": 1.0,
+      "latency_seconds": 0.022,
+      "peak_memory_bytes": 319000000
+    },
+    {
+      "id": "route-b-order",
+      "family_id": "route-b",
+      "case_id": "route-b",
+      "question_id": "route",
+      "variant": "candidate-order",
+      "candidate_keys": [
+        "shipping",
+        "billing",
+        "other"
+      ],
+      "logits": [
+        2.2,
+        2.0,
+        0.0
+      ],
+      "target_key": "billing",
+      "weight": 1.0,
+      "latency_seconds": 0.024,
+      "peak_memory_bytes": 320000000
+    },
+    {
+      "id": "route-b-para",
+      "family_id": "route-b",
+      "case_id": "route-b",
+      "question_id": "route",
+      "variant": "paraphrase",
+      "candidate_keys": [
+        "billing",
+        "shipping",
+        "other"
+      ],
+      "logits": [
+        1.8,
+        2.0,
+        0.0
+      ],
+      "target_key": "billing",
+      "weight": 1.0,
+      "latency_seconds": 0.023,
+      "peak_memory_bytes": 318000000
+    }
+  ]
+}

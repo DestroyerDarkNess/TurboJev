@@ -1,0 +1,22 @@
+{
+  "contract": "turbojev.specialization-evaluation.v1",
+  "id": "phase10-smoke-eval-v1",
+  "benchmark_suite": "specialized-benchmark-v1",
+  "pairs": [
+    {
+      "generic_model": "open-weight/base-0.6b",
+      "specialized_model": "turbojev/0.6b-specialized-v1"
+    }
+  ],
+  "metrics": [
+    "accuracy",
+    "nll",
+    "brier",
+    "ece",
+    "latency",
+    "peak-memory",
+    "decisions-per-second",
+    "candidate-order-robustness",
+    "paraphrase-robustness"
+  ]
+}
