@@ -1,0 +1,29 @@
+[package]
+name = "turbojev-server"
+description = "Local bounded HTTP host for TurboJev decision inference"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+
+[features]
+default = []
+llamacpp = ["turbojev-host-native/llamacpp"]
+
+[dependencies]
+turbojev-host-native = { path = "../turbojev-host-native" }
+turbojev-schema = { path = "../turbojev-schema" }
+turbojev-server-protocol = { path = "../turbojev-server-protocol" }
+turbojev-server-execution = { path = "../turbojev-server-execution" }
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+
+[lints.rust]
+rust_2018_idioms = "deny"
+unsafe_code = "forbid"
+
+[lints.clippy]
+all = "warn"

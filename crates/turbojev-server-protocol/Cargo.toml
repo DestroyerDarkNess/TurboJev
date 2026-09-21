@@ -1,0 +1,25 @@
+[package]
+name = "turbojev-server-protocol"
+description = "Portable HTTP-facing protocol and batching semantics for TurboJev servers"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+
+[dependencies]
+turbojev-schema = { path = "../turbojev-schema" }
+turbojev-server-execution = { path = "../turbojev-server-execution" }
+turbojev-wire = { path = "../turbojev-wire" }
+turbojev-compat = { path = "../turbojev-compat" }
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+
+[lints.rust]
+rust_2018_idioms = "deny"
+unsafe_code = "forbid"
+
+[lints.clippy]
+all = "warn"

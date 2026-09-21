@@ -1,0 +1,15 @@
+[package]
+name = "turbojev-sequence"
+description = "Exact prefix-sharing candidate sequence scoring for TurboJev"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+
+[dependencies]
+thiserror.workspace = true
+
+[lints]
+workspace = true
