@@ -1,0 +1,36 @@
+[package]
+name = "turbojev-host-native"
+description = "Shared native host/session layer for TurboJev language bindings"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+
+[features]
+default = []
+llamacpp = ["dep:turbojev-runtime-llamacpp", "turbojev-runtime-llamacpp/ffi"]
+
+[dependencies]
+turbojev = { path = "../turbojev" }
+turbojev-schema = { path = "../turbojev-schema" }
+turbojev-wire = { path = "../turbojev-wire" }
+turbojev-compat = { path = "../turbojev-compat" }
+turbojev-engine = { path = "../turbojev-engine" }
+turbojev-backend = { path = "../turbojev-backend" }
+turbojev-backend-mock = { path = "../turbojev-backend-mock" }
+turbojev-runtime = { path = "../turbojev-runtime" }
+turbojev-runtime-qualification = { path = "../turbojev-runtime-qualification" }
+turbojev-runtime-llamacpp = { path = "../turbojev-runtime-llamacpp", optional = true }
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+indexmap.workspace = true
+
+[lints.rust]
+rust_2018_idioms = "deny"
+unsafe_code = "forbid"
+
+[lints.clippy]
+all = "warn"
