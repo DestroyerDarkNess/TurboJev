@@ -1,0 +1,29 @@
+[package]
+name = "turbojev-wasm"
+description = "TurboJev browser/WASM host binding"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+turbojev = { path = "../turbojev" }
+turbojev-runtime = { path = "../turbojev-runtime" }
+turbojev-prompt = { path = "../turbojev-prompt" }
+turbojev-backend = { path = "../turbojev-backend" }
+turbojev-engine = { path = "../turbojev-engine" }
+serde.workspace = true
+serde_json.workspace = true
+wasm-bindgen = "=0.2.100"
+wasm-bindgen-futures = "=0.4.50"
+js-sys = "=0.3.77"
+serde-wasm-bindgen = "=0.6.5"
+
+[lints.rust]
+rust_2018_idioms = "deny"
+unsafe_code = "forbid"

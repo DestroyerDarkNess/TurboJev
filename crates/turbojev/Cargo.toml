@@ -1,0 +1,41 @@
+[package]
+name = "turbojev"
+description = "Rust-first universal open-weight typed decision runtime"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+
+[dependencies]
+turbojev-backend = { path = "../turbojev-backend" }
+turbojev-backend-mock = { path = "../turbojev-backend-mock" }
+turbojev-backend-custom = { path = "../turbojev-backend-custom" }
+turbojev-calibration = { path = "../turbojev-calibration" }
+turbojev-core = { path = "../turbojev-core" }
+turbojev-engine = { path = "../turbojev-engine" }
+turbojev-model = { path = "../turbojev-model" }
+turbojev-specialized = { path = "../turbojev-specialized" }
+turbojev-training-data = { path = "../turbojev-training-data" }
+turbojev-specialized-artifact = { path = "../turbojev-specialized-artifact" }
+turbojev-specialized-eval = { path = "../turbojev-specialized-eval" }
+turbojev-prompt = { path = "../turbojev-prompt" }
+turbojev-projection = { path = "../turbojev-projection" }
+turbojev-schema = { path = "../turbojev-schema" }
+turbojev-tokenizer = { path = "../turbojev-tokenizer" }
+turbojev-wire = { path = "../turbojev-wire" }
+turbojev-compat = { path = "../turbojev-compat" }
+turbojev-conformance = { path = "../turbojev-conformance" }
+turbojev-runtime = { path = "../turbojev-runtime" }
+turbojev-sequence = { path = "../turbojev-sequence" }
+turbojev-runtime-conformance = { path = "../turbojev-runtime-conformance" }
+turbojev-runtime-qualification = { path = "../turbojev-runtime-qualification" }
+turbojev-runtime-projection = { path = "../turbojev-runtime-projection" }
+
+[lints]
+workspace = true
+
+[dev-dependencies]
+indexmap.workspace = true
+serde_json.workspace = true
