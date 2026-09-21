@@ -1,0 +1,1344 @@
+#include "turbojev_llama_shim.h"
+
+#include "llama.h"
+
+#include <algorithm>
+#include <cstring>
+#include <cmath>
+#include <functional>
+#include <map>
+#include <limits>
+#include <memory>
+#include <mutex>
+#include <string>
+#include <vector>
+
+struct tj_llama_runtime {
+    llama_model * model = nullptr;
+    llama_context * context = nullptr;
+    const llama_vocab * vocab = nullptr;
+    std::string chat_template;
+    size_t shared_prefix_len = 0;
+    std::vector<float> shared_prefix_logits;
+    bool shared_prefix_ready = false;
+    uint32_t n_ctx = 0;
+    uint32_t n_ctx_seq = 0;
+    uint32_t n_batch = 0;
+    uint32_t n_seq_max = 0;
+};
+
+namespace {
+
+std::once_flag backend_once;
+
+void init_backend_once() {
+    std::call_once(backend_once, [] { llama_backend_init(); });
+}
+
+void set_error(char * error, size_t capacity, const std::string & message) {
+    if (error == nullptr || capacity == 0) {
+        return;
+    }
+    const size_t count = std::min(capacity - 1, message.size());
+    std::memcpy(error, message.data(), count);
+    error[count] = '\0';
+}
+
+bool checked_i32(size_t value, int32_t & out) {
+    if (value > static_cast<size_t>(std::numeric_limits<int32_t>::max())) {
+        return false;
+    }
+    out = static_cast<int32_t>(value);
+    return true;
+}
+
+bool checked_pos(size_t value, llama_pos & out) {
+    if (value > static_cast<size_t>(std::numeric_limits<llama_pos>::max())) {
+        return false;
+    }
+    out = static_cast<llama_pos>(value);
+    return true;
+}
+
+int64_t copy_text(const std::string & value, char * out, size_t capacity) {
+    if (out == nullptr || capacity == 0) {
+        return static_cast<int64_t>(value.size());
+    }
+    if (capacity <= value.size()) {
+        return static_cast<int64_t>(value.size());
+    }
+    std::memcpy(out, value.data(), value.size());
+    out[value.size()] = '\0';
+    return static_cast<int64_t>(value.size());
+}
+
+bool render_chat(
+    tj_llama_runtime * runtime,
+    const char * system,
+    const char * user,
+    std::string & rendered,
+    std::string & failure) {
+    if (runtime == nullptr || runtime->model == nullptr || user == nullptr) {
+        failure = "invalid runtime or user message";
+        return false;
+    }
+    if (runtime->chat_template.empty()) {
+        failure = "GGUF model does not expose a llama.cpp-supported chat template";
+        return false;
+    }
+
+    std::vector<llama_chat_message> messages;
+    if (system != nullptr && system[0] != '\0') {
+        messages.push_back({"system", system});
+    }
+    messages.push_back({"user", user});
+
+    const int32_t needed = llama_chat_apply_template(
+        runtime->chat_template.c_str(), messages.data(), messages.size(), true, nullptr, 0);
+    if (needed < 0) {
+        failure = "llama_chat_apply_template failed while sizing output";
+        return false;
+    }
+    std::vector<char> buffer(static_cast<size_t>(needed) + 1, '\0');
+    const int32_t written = llama_chat_apply_template(
+        runtime->chat_template.c_str(), messages.data(), messages.size(), true,
+        buffer.data(), static_cast<int32_t>(buffer.size()));
+    if (written < 0) {
+        failure = "llama_chat_apply_template failed";
+        return false;
+    }
+    rendered.assign(buffer.data(), static_cast<size_t>(written));
+    return true;
+}
+
+bool tokenize(
+    tj_llama_runtime * runtime,
+    const std::string & text,
+    std::vector<llama_token> & tokens,
+    std::string & failure) {
+    int32_t text_len = 0;
+    if (!checked_i32(text.size(), text_len)) {
+        failure = "prompt exceeds llama.cpp int32 tokenization input limit";
+        return false;
+    }
+
+    const int32_t needed = llama_tokenize(
+        runtime->vocab, text.data(), text_len, nullptr, 0, true, true);
+    if (needed == std::numeric_limits<int32_t>::min()) {
+        failure = "llama_tokenize overflow";
+        return false;
+    }
+    const int32_t count = needed < 0 ? -needed : needed;
+    if (count <= 0) {
+        failure = "llama_tokenize returned no tokens";
+        return false;
+    }
+    tokens.resize(static_cast<size_t>(count));
+    const int32_t written = llama_tokenize(
+        runtime->vocab, text.data(), text_len, tokens.data(), count, true, true);
+    if (written < 0 || written > count) {
+        failure = "llama_tokenize failed";
+        return false;
+    }
+    tokens.resize(static_cast<size_t>(written));
+    return true;
+}
+
+bool copy_tokens(
+    const uint32_t * source,
+    size_t count,
+    std::vector<llama_token> & out,
+    std::string & failure) {
+    if (source == nullptr && count != 0) {
+        failure = "token pointer is null";
+        return false;
+    }
+    if (count > static_cast<size_t>(std::numeric_limits<int32_t>::max())) {
+        failure = "token sequence is too large for llama.cpp";
+        return false;
+    }
+    out.resize(count);
+    for (size_t i = 0; i < count; ++i) {
+        if (source[i] > static_cast<uint32_t>(std::numeric_limits<int32_t>::max())) {
+            failure = "token id exceeds llama.cpp range";
+            return false;
+        }
+        out[i] = static_cast<llama_token>(source[i]);
+    }
+    return true;
+}
+
+bool gather_candidate_logits(
+    tj_llama_runtime * runtime,
+    const float * logits,
+    const uint32_t * candidate_tokens,
+    size_t candidate_count,
+    float * out_logits,
+    std::string & failure) {
+    if (runtime == nullptr || runtime->vocab == nullptr || logits == nullptr
+        || candidate_tokens == nullptr || candidate_count < 2 || out_logits == nullptr) {
+        failure = "invalid candidate-logit arguments";
+        return false;
+    }
+    const int32_t vocab_size = llama_vocab_n_tokens(runtime->vocab);
+    if (vocab_size <= 0) {
+        failure = "llama.cpp vocabulary is empty";
+        return false;
+    }
+    for (size_t i = 0; i < candidate_count; ++i) {
+        if (candidate_tokens[i] >= static_cast<uint32_t>(vocab_size)) {
+            failure = "candidate token exceeds vocabulary size";
+            return false;
+        }
+        out_logits[i] = logits[candidate_tokens[i]];
+    }
+    return true;
+}
+
+
+struct sequence_trie_node {
+    std::map<uint32_t, size_t> children;
+    int64_t terminal = -1;
+};
+
+bool build_sequence_trie(
+    tj_llama_runtime * runtime,
+    const uint32_t * candidate_tokens,
+    const size_t * candidate_offsets,
+    size_t candidate_count,
+    std::vector<sequence_trie_node> & nodes,
+    std::string & failure) {
+    if (runtime == nullptr || runtime->vocab == nullptr || candidate_tokens == nullptr
+        || candidate_offsets == nullptr || candidate_count < 2 || candidate_offsets[0] != 0) {
+        failure = "invalid candidate sequence arguments";
+        return false;
+    }
+    const int32_t vocab_size = llama_vocab_n_tokens(runtime->vocab);
+    if (vocab_size <= 0) {
+        failure = "llama.cpp vocabulary is empty";
+        return false;
+    }
+    nodes.clear();
+    nodes.push_back(sequence_trie_node{});
+    for (size_t candidate = 0; candidate < candidate_count; ++candidate) {
+        const size_t begin = candidate_offsets[candidate];
+        const size_t end = candidate_offsets[candidate + 1];
+        if (end <= begin || (candidate > 0 && begin < candidate_offsets[candidate - 1])) {
+            failure = "candidate sequence offsets are invalid";
+            return false;
+        }
+        size_t node = 0;
+        for (size_t offset = begin; offset < end; ++offset) {
+            if (nodes[node].terminal >= 0) {
+                failure = "candidate sequence codebook is not prefix-free";
+                return false;
+            }
+            const uint32_t token = candidate_tokens[offset];
+            if (token >= static_cast<uint32_t>(vocab_size)) {
+                failure = "candidate sequence token exceeds vocabulary size";
+                return false;
+            }
+            auto found = nodes[node].children.find(token);
+            if (found == nodes[node].children.end()) {
+                const size_t child = nodes.size();
+                nodes.push_back(sequence_trie_node{});
+                nodes[node].children.emplace(token, child);
+                node = child;
+            } else {
+                node = found->second;
+            }
+        }
+        if (nodes[node].terminal >= 0) {
+            failure = "duplicate candidate sequence";
+            return false;
+        }
+        if (!nodes[node].children.empty()) {
+            failure = "candidate sequence codebook is not prefix-free";
+            return false;
+        }
+        nodes[node].terminal = static_cast<int64_t>(candidate);
+    }
+    return true;
+}
+
+bool full_vocab_logsumexp(const std::vector<float> & logits, float & out, std::string & failure) {
+    if (logits.empty()) {
+        failure = "empty vocabulary logits";
+        return false;
+    }
+    float maximum = -std::numeric_limits<float>::infinity();
+    for (float value : logits) {
+        if (!std::isfinite(value)) {
+            failure = "non-finite vocabulary logit";
+            return false;
+        }
+        maximum = std::max(maximum, value);
+    }
+    double sum = 0.0;
+    for (float value : logits) {
+        sum += std::exp(static_cast<double>(value - maximum));
+    }
+    if (!std::isfinite(sum) || sum <= 0.0) {
+        failure = "invalid vocabulary logsumexp";
+        return false;
+    }
+    out = maximum + static_cast<float>(std::log(sum));
+    return true;
+}
+
+bool score_sequence_trie(
+    tj_llama_runtime * runtime,
+    llama_seq_id work_seq,
+    size_t base_len,
+    const std::vector<float> & root_logits,
+    const uint32_t * candidate_tokens,
+    const size_t * candidate_offsets,
+    size_t candidate_count,
+    float * out_scores,
+    std::string & failure) {
+    if (runtime == nullptr || runtime->context == nullptr || out_scores == nullptr) {
+        failure = "invalid sequence scoring runtime";
+        return false;
+    }
+    llama_memory_t memory = llama_get_memory(runtime->context);
+    if (memory == nullptr) {
+        failure = "llama.cpp context does not expose sequence memory";
+        return false;
+    }
+    std::vector<sequence_trie_node> nodes;
+    if (!build_sequence_trie(
+            runtime, candidate_tokens, candidate_offsets, candidate_count, nodes, failure)) {
+        return false;
+    }
+    const int32_t vocab_size = llama_vocab_n_tokens(runtime->vocab);
+    if (root_logits.size() != static_cast<size_t>(vocab_size)) {
+        failure = "root vocabulary logits have the wrong size";
+        return false;
+    }
+    for (size_t i = 0; i < candidate_count; ++i) {
+        out_scores[i] = -std::numeric_limits<float>::infinity();
+    }
+
+    std::function<bool(size_t, size_t, float, const std::vector<float> &)> visit;
+    visit = [&](size_t node_index, size_t depth, float cumulative, const std::vector<float> & logits) -> bool {
+        float log_z = 0.0f;
+        if (!full_vocab_logsumexp(logits, log_z, failure)) {
+            return false;
+        }
+        const auto & node = nodes[node_index];
+        for (const auto & [token, child_index] : node.children) {
+            const float score = cumulative + logits[token] - log_z;
+            const auto & child = nodes[child_index];
+            if (child.terminal >= 0) {
+                out_scores[static_cast<size_t>(child.terminal)] = score;
+            }
+            if (!child.children.empty()) {
+                const size_t position_size = base_len + depth;
+                llama_pos position = 0;
+                if (!checked_pos(position_size, position)) {
+                    failure = "candidate sequence exceeds llama.cpp position range";
+                    return false;
+                }
+                if (runtime->n_ctx > 0 && position_size >= static_cast<size_t>(runtime->n_ctx)) {
+                    failure = "candidate sequence exceeds llama.cpp context window";
+                    return false;
+                }
+                llama_batch batch = llama_batch_init(1, 0, 1);
+                batch.token[0] = static_cast<llama_token>(token);
+                batch.pos[0] = position;
+                batch.n_seq_id[0] = 1;
+                batch.seq_id[0][0] = work_seq;
+                batch.logits[0] = 1;
+                const int32_t status = llama_decode(runtime->context, batch);
+                llama_batch_free(batch);
+                if (status != 0) {
+                    failure = "llama_decode failed while traversing candidate sequence trie";
+                    return false;
+                }
+                const float * child_logits_ptr = llama_get_logits_ith(runtime->context, -1);
+                if (child_logits_ptr == nullptr) {
+                    failure = "llama_get_logits_ith returned null during candidate sequence scoring";
+                    return false;
+                }
+                std::vector<float> child_logits(
+                    child_logits_ptr, child_logits_ptr + static_cast<size_t>(vocab_size));
+                if (!visit(child_index, depth + 1, score, child_logits)) {
+                    return false;
+                }
+                const size_t remove_from_size = base_len + depth;
+                llama_pos remove_from = 0;
+                if (!checked_pos(remove_from_size, remove_from)) {
+                    failure = "candidate sequence backtrack position overflow";
+                    return false;
+                }
+                llama_memory_seq_rm(memory, work_seq, remove_from, -1);
+            }
+        }
+        return true;
+    };
+
+    if (!visit(0, 0, 0.0f, root_logits)) {
+        return false;
+    }
+    for (size_t i = 0; i < candidate_count; ++i) {
+        if (!std::isfinite(out_scores[i])) {
+            failure = "candidate sequence did not receive a finite score";
+            return false;
+        }
+    }
+    return true;
+}
+
+} // namespace
+
+uint32_t tj_llama_abi_version(void) {
+    return TURBOJEV_LLAMA_SHIM_ABI_VERSION;
+}
+
+tj_llama_runtime * tj_llama_open(
+    const char * model_path,
+    const tj_llama_config * config,
+    char * error,
+    size_t error_capacity) {
+    if (model_path == nullptr || config == nullptr) {
+        set_error(error, error_capacity, "model_path and config are required");
+        return nullptr;
+    }
+    init_backend_once();
+
+    auto runtime = std::make_unique<tj_llama_runtime>();
+    llama_model_params model_params = llama_model_default_params();
+    model_params.n_gpu_layers = config->n_gpu_layers;
+    runtime->model = llama_model_load_from_file(model_path, model_params);
+    if (runtime->model == nullptr) {
+        set_error(error, error_capacity, "llama_model_load_from_file failed");
+        return nullptr;
+    }
+
+    runtime->vocab = llama_model_get_vocab(runtime->model);
+    if (runtime->vocab == nullptr) {
+        set_error(error, error_capacity, "model has no vocabulary");
+        llama_model_free(runtime->model);
+        return nullptr;
+    }
+
+    const char * chat_template = llama_model_chat_template(runtime->model, nullptr);
+    if (chat_template != nullptr) {
+        runtime->chat_template = chat_template;
+    }
+
+    llama_context_params context_params = llama_context_default_params();
+    if (config->n_ctx > 0) {
+        context_params.n_ctx = config->n_ctx;
+    }
+    if (config->n_batch > 0) {
+        context_params.n_batch = config->n_batch;
+    }
+    const uint32_t requested_sequences = config->n_seq_max > 0
+        ? config->n_seq_max
+        : context_params.n_seq_max;
+    // Sequence 0 is the immutable prefix; at least one branch is required for
+    // cached-serial compatibility. v0.8 uses any additional sequences for
+    // bounded parallel suffix batches.
+    context_params.n_seq_max = std::max<uint32_t>(requested_sequences, 2u);
+    context_params.no_perf = true;
+    runtime->context = llama_init_from_model(runtime->model, context_params);
+    if (runtime->context == nullptr) {
+        set_error(error, error_capacity, "llama_init_from_model failed");
+        llama_model_free(runtime->model);
+        return nullptr;
+    }
+    // Query effective values after context creation. llama.cpp may adjust
+    // requested context/batch/sequence capacities for the selected backend.
+    runtime->n_ctx = llama_n_ctx(runtime->context);
+    runtime->n_ctx_seq = llama_n_ctx_seq(runtime->context);
+    runtime->n_batch = llama_n_batch(runtime->context);
+    runtime->n_seq_max = llama_n_seq_max(runtime->context);
+    if (config->n_threads > 0 || config->n_threads_batch > 0) {
+        const int32_t threads = config->n_threads > 0 ? config->n_threads : config->n_threads_batch;
+        const int32_t batch_threads = config->n_threads_batch > 0 ? config->n_threads_batch : threads;
+        llama_set_n_threads(runtime->context, threads, batch_threads);
+    }
+    return runtime.release();
+}
+
+void tj_llama_close(tj_llama_runtime * runtime) {
+    if (runtime == nullptr) {
+        return;
+    }
+    if (runtime->context != nullptr) {
+        llama_free(runtime->context);
+    }
+    if (runtime->model != nullptr) {
+        llama_model_free(runtime->model);
+    }
+    delete runtime;
+}
+
+int64_t tj_llama_model_desc(
+    tj_llama_runtime * runtime,
+    char * out,
+    size_t capacity,
+    char * error,
+    size_t error_capacity) {
+    if (runtime == nullptr || runtime->model == nullptr) {
+        set_error(error, error_capacity, "runtime is not initialized");
+        return -1;
+    }
+    char buffer[512] = {};
+    const int32_t length = llama_model_desc(runtime->model, buffer, sizeof(buffer));
+    if (length < 0) {
+        set_error(error, error_capacity, "llama_model_desc failed");
+        return -1;
+    }
+    return copy_text(std::string(buffer, static_cast<size_t>(length)), out, capacity);
+}
+
+int64_t tj_llama_encode_chat(
+    tj_llama_runtime * runtime,
+    const char * system,
+    const char * user,
+    const char * answer,
+    uint32_t * out_tokens,
+    size_t capacity,
+    char * error,
+    size_t error_capacity) {
+    std::string rendered;
+    std::string failure;
+    if (!render_chat(runtime, system, user, rendered, failure)) {
+        set_error(error, error_capacity, failure);
+        return -1;
+    }
+    if (answer != nullptr) {
+        rendered.append(answer);
+    }
+
+    std::vector<llama_token> tokens;
+    if (!tokenize(runtime, rendered, tokens, failure)) {
+        set_error(error, error_capacity, failure);
+        return -1;
+    }
+    if (out_tokens == nullptr || capacity == 0) {
+        return static_cast<int64_t>(tokens.size());
+    }
+    if (capacity < tokens.size()) {
+        set_error(error, error_capacity, "token output buffer is too small");
+        return -1;
+    }
+    for (size_t i = 0; i < tokens.size(); ++i) {
+        if (tokens[i] < 0) {
+            set_error(error, error_capacity, "llama.cpp produced a negative token id");
+            return -1;
+        }
+        out_tokens[i] = static_cast<uint32_t>(tokens[i]);
+    }
+    return static_cast<int64_t>(tokens.size());
+}
+
+int64_t tj_llama_decode_tokens(
+    tj_llama_runtime * runtime,
+    const uint32_t * tokens,
+    size_t token_count,
+    char * out_text,
+    size_t capacity,
+    char * error,
+    size_t error_capacity) {
+    if (runtime == nullptr || runtime->vocab == nullptr || (tokens == nullptr && token_count != 0)) {
+        set_error(error, error_capacity, "invalid decode arguments");
+        return -1;
+    }
+    if (token_count > static_cast<size_t>(std::numeric_limits<int32_t>::max())) {
+        set_error(error, error_capacity, "too many tokens to decode");
+        return -1;
+    }
+    std::vector<llama_token> native_tokens(token_count);
+    for (size_t i = 0; i < token_count; ++i) {
+        if (tokens[i] > static_cast<uint32_t>(std::numeric_limits<int32_t>::max())) {
+            set_error(error, error_capacity, "token id exceeds llama.cpp range");
+            return -1;
+        }
+        native_tokens[i] = static_cast<llama_token>(tokens[i]);
+    }
+
+    const int32_t needed = llama_detokenize(
+        runtime->vocab, native_tokens.data(), static_cast<int32_t>(native_tokens.size()),
+        nullptr, 0, false, false);
+    if (needed == std::numeric_limits<int32_t>::min()) {
+        set_error(error, error_capacity, "llama_detokenize overflow");
+        return -1;
+    }
+    const int32_t bytes_needed = needed < 0 ? -needed : needed;
+    if (out_text == nullptr || capacity == 0) {
+        return bytes_needed;
+    }
+    if (capacity <= static_cast<size_t>(bytes_needed)) {
+        set_error(error, error_capacity, "decode output buffer is too small");
+        return -1;
+    }
+    const int32_t written = llama_detokenize(
+        runtime->vocab, native_tokens.data(), static_cast<int32_t>(native_tokens.size()),
+        out_text, static_cast<int32_t>(capacity - 1), false, false);
+    if (written < 0) {
+        set_error(error, error_capacity, "llama_detokenize failed");
+        return -1;
+    }
+    out_text[written] = '\0';
+    return written;
+}
+
+int32_t tj_llama_score_next(
+    tj_llama_runtime * runtime,
+    const uint32_t * prompt_tokens,
+    size_t prompt_count,
+    const uint32_t * candidate_tokens,
+    size_t candidate_count,
+    float * out_logits,
+    char * error,
+    size_t error_capacity) {
+    if (runtime == nullptr || runtime->context == nullptr || runtime->vocab == nullptr
+        || prompt_tokens == nullptr || prompt_count == 0
+        || candidate_tokens == nullptr || candidate_count < 2 || out_logits == nullptr) {
+        set_error(error, error_capacity, "invalid scoring arguments");
+        return -1;
+    }
+
+    std::vector<llama_token> prompt;
+    std::string failure;
+    if (!copy_tokens(prompt_tokens, prompt_count, prompt, failure)) {
+        set_error(error, error_capacity, failure);
+        return -1;
+    }
+
+    llama_memory_t memory = llama_get_memory(runtime->context);
+    if (memory != nullptr) {
+        llama_memory_clear(memory, true);
+    }
+    runtime->shared_prefix_ready = false;
+    runtime->shared_prefix_len = 0;
+    runtime->shared_prefix_logits.clear();
+
+    llama_batch batch = llama_batch_get_one(prompt.data(), static_cast<int32_t>(prompt.size()));
+    const int32_t decode_status = llama_decode(runtime->context, batch);
+    if (decode_status != 0) {
+        set_error(error, error_capacity, "llama_decode failed");
+        return -1;
+    }
+
+    const float * logits = llama_get_logits_ith(runtime->context, -1);
+    if (logits == nullptr) {
+        set_error(error, error_capacity, "llama_get_logits_ith returned null");
+        return -1;
+    }
+    if (!gather_candidate_logits(
+            runtime, logits, candidate_tokens, candidate_count, out_logits, failure)) {
+        set_error(error, error_capacity, failure);
+        return -1;
+    }
+    return 0;
+}
+
+
+int32_t tj_llama_sequence_scores_supported(tj_llama_runtime * runtime) {
+    if (runtime == nullptr || runtime->context == nullptr || runtime->vocab == nullptr) {
+        return 0;
+    }
+    return llama_get_memory(runtime->context) != nullptr ? 1 : 0;
+}
+
+int32_t tj_llama_score_sequences(
+    tj_llama_runtime * runtime,
+    const uint32_t * prompt_tokens,
+    size_t prompt_count,
+    const uint32_t * candidate_tokens,
+    const size_t * candidate_offsets,
+    size_t candidate_count,
+    float * out_scores,
+    char * error,
+    size_t error_capacity) {
+    if (runtime == nullptr || runtime->context == nullptr || runtime->vocab == nullptr
+        || prompt_tokens == nullptr || prompt_count == 0 || candidate_tokens == nullptr
+        || candidate_offsets == nullptr || candidate_count < 2 || out_scores == nullptr) {
+        set_error(error, error_capacity, "invalid sequence scoring arguments");
+        return -1;
+    }
+    llama_memory_t memory = llama_get_memory(runtime->context);
+    if (memory == nullptr) {
+        set_error(error, error_capacity, "llama.cpp context does not expose sequence memory");
+        return -1;
+    }
+    std::vector<llama_token> prompt;
+    std::string failure;
+    if (!copy_tokens(prompt_tokens, prompt_count, prompt, failure)) {
+        set_error(error, error_capacity, failure);
+        return -1;
+    }
+    llama_memory_clear(memory, true);
+    runtime->shared_prefix_ready = false;
+    runtime->shared_prefix_len = 0;
+    runtime->shared_prefix_logits.clear();
+    llama_batch batch = llama_batch_get_one(prompt.data(), static_cast<int32_t>(prompt.size()));
+    if (llama_decode(runtime->context, batch) != 0) {
+        set_error(error, error_capacity, "llama_decode failed before sequence scoring");
+        return -1;
+    }
+    const float * root_ptr = llama_get_logits_ith(runtime->context, -1);
+    const int32_t vocab_size = llama_vocab_n_tokens(runtime->vocab);
+    if (root_ptr == nullptr || vocab_size <= 0) {
+        set_error(error, error_capacity, "missing root logits for sequence scoring");
+        return -1;
+    }
+    std::vector<float> root_logits(root_ptr, root_ptr + static_cast<size_t>(vocab_size));
+    if (!score_sequence_trie(
+            runtime, 0, prompt_count, root_logits, candidate_tokens, candidate_offsets,
+            candidate_count, out_scores, failure)) {
+        set_error(error, error_capacity, failure);
+        return -1;
+    }
+    return 0;
+}
+
+int32_t tj_llama_multi_root_supported(tj_llama_runtime * runtime) {
+    if (runtime == nullptr || runtime->context == nullptr || runtime->vocab == nullptr
+        || runtime->n_seq_max < 2) {
+        return 0;
+    }
+    return llama_get_memory(runtime->context) != nullptr ? 1 : 0;
+}
+
+size_t tj_llama_max_multi_root_tasks(tj_llama_runtime * runtime) {
+    if (tj_llama_multi_root_supported(runtime) == 0) {
+        return 0;
+    }
+    return static_cast<size_t>(runtime->n_seq_max);
+}
+
+size_t tj_llama_max_multi_root_tokens(tj_llama_runtime * runtime) {
+    if (tj_llama_multi_root_supported(runtime) == 0) {
+        return 0;
+    }
+    size_t limit = std::numeric_limits<size_t>::max();
+    if (runtime->n_batch > 0) {
+        limit = std::min(limit, static_cast<size_t>(runtime->n_batch));
+    }
+    if (runtime->n_ctx > 0) {
+        limit = std::min(limit, static_cast<size_t>(runtime->n_ctx));
+    }
+    return limit == std::numeric_limits<size_t>::max() ? 0 : limit;
+}
+
+int32_t tj_llama_score_root_batch(
+    tj_llama_runtime * runtime,
+    const uint32_t * prompt_tokens,
+    const size_t * prompt_offsets,
+    const uint32_t * candidate_tokens,
+    const size_t * candidate_offsets,
+    size_t task_count,
+    float * out_logits,
+    char * error,
+    size_t error_capacity) {
+    if (runtime == nullptr || runtime->context == nullptr || runtime->vocab == nullptr
+        || prompt_tokens == nullptr || prompt_offsets == nullptr || candidate_tokens == nullptr
+        || candidate_offsets == nullptr || task_count < 2 || out_logits == nullptr
+        || prompt_offsets[0] != 0 || candidate_offsets[0] != 0) {
+        set_error(error, error_capacity, "invalid multi-root scoring arguments");
+        return -1;
+    }
+    const size_t max_tasks = tj_llama_max_multi_root_tasks(runtime);
+    if (max_tasks < 2 || task_count > max_tasks) {
+        set_error(error, error_capacity, "multi-root task count exceeds llama.cpp sequence capacity");
+        return -1;
+    }
+    if (task_count > static_cast<size_t>(std::numeric_limits<llama_seq_id>::max())) {
+        set_error(error, error_capacity, "multi-root task count exceeds llama.cpp sequence-id range");
+        return -1;
+    }
+
+    size_t max_prompt = 0;
+    for (size_t task = 0; task < task_count; ++task) {
+        const size_t prompt_begin = prompt_offsets[task];
+        const size_t prompt_end = prompt_offsets[task + 1];
+        const size_t candidate_begin = candidate_offsets[task];
+        const size_t candidate_end = candidate_offsets[task + 1];
+        if (prompt_end <= prompt_begin || prompt_end < prompt_offsets[task]
+            || candidate_end < candidate_begin || candidate_end - candidate_begin < 2) {
+            set_error(error, error_capacity, "multi-root offsets or candidate counts are invalid");
+            return -1;
+        }
+        max_prompt = std::max(max_prompt, prompt_end - prompt_begin);
+    }
+
+    const size_t prompt_total = prompt_offsets[task_count];
+    const size_t candidate_total = candidate_offsets[task_count];
+    if (prompt_total == 0 || candidate_total == 0
+        || prompt_total > static_cast<size_t>(std::numeric_limits<int32_t>::max())) {
+        set_error(error, error_capacity, "multi-root token buffers are invalid");
+        return -1;
+    }
+    const size_t token_limit = tj_llama_max_multi_root_tokens(runtime);
+    if (token_limit > 0 && prompt_total > token_limit) {
+        set_error(error, error_capacity, "multi-root prompt tokens exceed configured batch/context capacity");
+        return -1;
+    }
+    if (runtime->n_ctx_seq > 0 && max_prompt > static_cast<size_t>(runtime->n_ctx_seq)) {
+        set_error(error, error_capacity, "one multi-root prompt exceeds effective per-sequence context capacity");
+        return -1;
+    }
+
+    llama_memory_t memory = llama_get_memory(runtime->context);
+    if (memory == nullptr) {
+        set_error(error, error_capacity, "llama.cpp context does not expose sequence memory");
+        return -1;
+    }
+    llama_memory_clear(memory, true);
+    runtime->shared_prefix_ready = false;
+    runtime->shared_prefix_len = 0;
+    runtime->shared_prefix_logits.clear();
+
+    llama_batch batch = llama_batch_init(static_cast<int32_t>(prompt_total), 0, 1);
+    std::vector<int32_t> root_output_indices(task_count, -1);
+    size_t flat = 0;
+    bool valid = true;
+    std::string failure;
+    for (size_t task = 0; task < task_count && valid; ++task) {
+        const size_t begin = prompt_offsets[task];
+        const size_t end = prompt_offsets[task + 1];
+        const llama_seq_id seq = static_cast<llama_seq_id>(task);
+        for (size_t local = 0; begin + local < end; ++local, ++flat) {
+            const uint32_t token = prompt_tokens[begin + local];
+            if (token > static_cast<uint32_t>(std::numeric_limits<llama_token>::max())) {
+                failure = "multi-root prompt token id exceeds llama.cpp range";
+                valid = false;
+                break;
+            }
+            llama_pos pos = 0;
+            if (!checked_pos(local, pos)) {
+                failure = "multi-root prompt position exceeds llama.cpp range";
+                valid = false;
+                break;
+            }
+            batch.token[flat] = static_cast<llama_token>(token);
+            batch.pos[flat] = pos;
+            batch.n_seq_id[flat] = 1;
+            batch.seq_id[flat][0] = seq;
+            const bool wants_logits = begin + local + 1 == end;
+            batch.logits[flat] = wants_logits ? 1 : 0;
+            if (wants_logits) {
+                root_output_indices[task] = static_cast<int32_t>(flat);
+            }
+        }
+    }
+    if (!valid) {
+        llama_batch_free(batch);
+        llama_memory_clear(memory, true);
+        set_error(error, error_capacity, failure);
+        return -1;
+    }
+
+    const int32_t decode_status = llama_decode(runtime->context, batch);
+    if (decode_status != 0) {
+        llama_batch_free(batch);
+        llama_memory_clear(memory, true);
+        set_error(error, error_capacity, "llama_decode failed while scoring independent roots");
+        return -1;
+    }
+
+    bool gathered = true;
+    for (size_t task = 0; task < task_count; ++task) {
+        const int32_t batch_token_index = root_output_indices[task];
+        if (batch_token_index < 0) {
+            failure = "missing multi-root output token index";
+            gathered = false;
+            break;
+        }
+        const float * logits = llama_get_logits_ith(runtime->context, batch_token_index);
+        if (logits == nullptr) {
+            failure = "llama_get_logits_ith returned null for a multi-root output";
+            gathered = false;
+            break;
+        }
+        const size_t candidate_begin = candidate_offsets[task];
+        const size_t candidate_count = candidate_offsets[task + 1] - candidate_begin;
+        if (!gather_candidate_logits(
+                runtime,
+                logits,
+                candidate_tokens + candidate_begin,
+                candidate_count,
+                out_logits + candidate_begin,
+                failure)) {
+            gathered = false;
+            break;
+        }
+    }
+
+    llama_batch_free(batch);
+    // The operation owns every root sequence. Clearing after output extraction
+    // guarantees no request can leak KV state into a subsequent independent call.
+    llama_memory_clear(memory, true);
+    if (!gathered) {
+        set_error(error, error_capacity, failure);
+        return -1;
+    }
+    return 0;
+}
+
+int32_t tj_llama_shared_prefix_supported(tj_llama_runtime * runtime) {
+    if (runtime == nullptr || runtime->context == nullptr) {
+        return 0;
+    }
+    return llama_get_memory(runtime->context) != nullptr ? 1 : 0;
+}
+
+int32_t tj_llama_parallel_suffix_supported(tj_llama_runtime * runtime) {
+    if (runtime == nullptr || runtime->context == nullptr || runtime->n_seq_max < 3) {
+        return 0;
+    }
+    return llama_get_memory(runtime->context) != nullptr ? 1 : 0;
+}
+
+size_t tj_llama_max_parallel_tasks(tj_llama_runtime * runtime) {
+    if (tj_llama_parallel_suffix_supported(runtime) == 0) {
+        return 0;
+    }
+    return static_cast<size_t>(runtime->n_seq_max - 1u);
+}
+
+size_t tj_llama_max_parallel_suffix_tokens(tj_llama_runtime * runtime) {
+    if (runtime == nullptr || !runtime->shared_prefix_ready) {
+        return 0;
+    }
+    size_t limit = std::numeric_limits<size_t>::max();
+    if (runtime->n_batch > 0) {
+        limit = std::min(limit, static_cast<size_t>(runtime->n_batch));
+    }
+    if (runtime->n_ctx > 0) {
+        const size_t n_ctx = static_cast<size_t>(runtime->n_ctx);
+        if (runtime->shared_prefix_len >= n_ctx) {
+            return 0;
+        }
+        limit = std::min(limit, n_ctx - runtime->shared_prefix_len);
+    }
+    return limit == std::numeric_limits<size_t>::max() ? 0 : limit;
+}
+
+int32_t tj_llama_prefill_shared(
+    tj_llama_runtime * runtime,
+    const uint32_t * prefix_tokens,
+    size_t prefix_count,
+    char * error,
+    size_t error_capacity) {
+    if (runtime == nullptr || runtime->context == nullptr || runtime->vocab == nullptr
+        || prefix_tokens == nullptr || prefix_count == 0) {
+        set_error(error, error_capacity, "invalid shared-prefix arguments");
+        return -1;
+    }
+    llama_memory_t memory = llama_get_memory(runtime->context);
+    if (memory == nullptr) {
+        set_error(error, error_capacity, "llama.cpp context does not expose reusable sequence memory");
+        return -1;
+    }
+
+    std::vector<llama_token> prefix;
+    std::string failure;
+    if (!copy_tokens(prefix_tokens, prefix_count, prefix, failure)) {
+        set_error(error, error_capacity, failure);
+        return -1;
+    }
+
+    llama_memory_clear(memory, true);
+    runtime->shared_prefix_ready = false;
+    runtime->shared_prefix_len = 0;
+    runtime->shared_prefix_logits.clear();
+
+    llama_batch batch = llama_batch_get_one(prefix.data(), static_cast<int32_t>(prefix.size()));
+    const int32_t decode_status = llama_decode(runtime->context, batch);
+    if (decode_status != 0) {
+        set_error(error, error_capacity, "llama_decode failed while prefilling shared prefix");
+        return -1;
+    }
+
+    const float * logits = llama_get_logits_ith(runtime->context, -1);
+    if (logits == nullptr) {
+        set_error(error, error_capacity, "llama_get_logits_ith returned null after shared prefill");
+        return -1;
+    }
+    const int32_t vocab_size = llama_vocab_n_tokens(runtime->vocab);
+    if (vocab_size <= 0) {
+        set_error(error, error_capacity, "llama.cpp vocabulary is empty");
+        return -1;
+    }
+    runtime->shared_prefix_logits.assign(logits, logits + vocab_size);
+    runtime->shared_prefix_len = prefix_count;
+    runtime->shared_prefix_ready = true;
+    return 0;
+}
+
+int32_t tj_llama_score_suffix(
+    tj_llama_runtime * runtime,
+    const uint32_t * suffix_tokens,
+    size_t suffix_count,
+    const uint32_t * candidate_tokens,
+    size_t candidate_count,
+    float * out_logits,
+    char * error,
+    size_t error_capacity) {
+    if (runtime == nullptr || runtime->context == nullptr || runtime->vocab == nullptr
+        || !runtime->shared_prefix_ready
+        || (suffix_tokens == nullptr && suffix_count != 0)
+        || candidate_tokens == nullptr || candidate_count < 2 || out_logits == nullptr) {
+        set_error(error, error_capacity, "invalid shared-suffix scoring arguments");
+        return -1;
+    }
+
+    std::string failure;
+    if (suffix_count == 0) {
+        if (runtime->shared_prefix_logits.empty()) {
+            set_error(error, error_capacity, "shared prefix has no retained logits");
+            return -1;
+        }
+        if (!gather_candidate_logits(
+                runtime, runtime->shared_prefix_logits.data(), candidate_tokens,
+                candidate_count, out_logits, failure)) {
+            set_error(error, error_capacity, failure);
+            return -1;
+        }
+        return 0;
+    }
+
+    llama_memory_t memory = llama_get_memory(runtime->context);
+    if (memory == nullptr) {
+        set_error(error, error_capacity, "llama.cpp context does not expose reusable sequence memory");
+        return -1;
+    }
+
+    std::vector<llama_token> suffix;
+    if (!copy_tokens(suffix_tokens, suffix_count, suffix, failure)) {
+        set_error(error, error_capacity, failure);
+        return -1;
+    }
+    llama_pos start_pos = 0;
+    if (!checked_pos(runtime->shared_prefix_len, start_pos)) {
+        set_error(error, error_capacity, "shared prefix exceeds llama.cpp position range");
+        return -1;
+    }
+    const size_t max_position = static_cast<size_t>(std::numeric_limits<llama_pos>::max());
+    if (suffix.size() > max_position - runtime->shared_prefix_len) {
+        set_error(error, error_capacity, "shared prefix plus suffix exceeds llama.cpp position range");
+        return -1;
+    }
+
+    // Sequence 0 remains the immutable prefix. Sequence 1 is recreated for each
+    // serial suffix so one task can never contaminate the next task's cache.
+    llama_memory_seq_rm(memory, 1, -1, -1);
+    llama_memory_seq_cp(memory, 0, 1, 0, -1);
+
+    llama_batch batch = llama_batch_init(static_cast<int32_t>(suffix.size()), 0, 1);
+    for (size_t i = 0; i < suffix.size(); ++i) {
+        batch.token[i] = suffix[i];
+        batch.pos[i] = start_pos + static_cast<llama_pos>(i);
+        batch.n_seq_id[i] = 1;
+        batch.seq_id[i][0] = 1;
+        batch.logits[i] = (i + 1 == suffix.size()) ? 1 : 0;
+    }
+
+    const int32_t decode_status = llama_decode(runtime->context, batch);
+    if (decode_status != 0) {
+        llama_batch_free(batch);
+        llama_memory_seq_rm(memory, 1, -1, -1);
+        set_error(error, error_capacity, "llama_decode failed while scoring shared suffix");
+        return -1;
+    }
+    const float * logits = llama_get_logits_ith(runtime->context, -1);
+    if (logits == nullptr) {
+        llama_batch_free(batch);
+        llama_memory_seq_rm(memory, 1, -1, -1);
+        set_error(error, error_capacity, "llama_get_logits_ith returned null after shared suffix");
+        return -1;
+    }
+    const bool gathered = gather_candidate_logits(
+        runtime, logits, candidate_tokens, candidate_count, out_logits, failure);
+    llama_batch_free(batch);
+    llama_memory_seq_rm(memory, 1, -1, -1);
+    if (!gathered) {
+        set_error(error, error_capacity, failure);
+        return -1;
+    }
+    return 0;
+}
+
+int32_t tj_llama_score_suffix_sequences(
+    tj_llama_runtime * runtime,
+    const uint32_t * suffix_tokens,
+    size_t suffix_count,
+    const uint32_t * candidate_tokens,
+    const size_t * candidate_offsets,
+    size_t candidate_count,
+    float * out_scores,
+    char * error,
+    size_t error_capacity) {
+    if (runtime == nullptr || runtime->context == nullptr || runtime->vocab == nullptr
+        || !runtime->shared_prefix_ready || (suffix_tokens == nullptr && suffix_count != 0)
+        || candidate_tokens == nullptr || candidate_offsets == nullptr || candidate_count < 2
+        || out_scores == nullptr) {
+        set_error(error, error_capacity, "invalid shared-prefix sequence scoring arguments");
+        return -1;
+    }
+    llama_memory_t memory = llama_get_memory(runtime->context);
+    if (memory == nullptr) {
+        set_error(error, error_capacity, "llama.cpp context does not expose sequence memory");
+        return -1;
+    }
+    std::string failure;
+    llama_memory_seq_rm(memory, 1, -1, -1);
+    llama_memory_seq_cp(memory, 0, 1, 0, -1);
+    size_t base_len = runtime->shared_prefix_len;
+    std::vector<float> root_logits;
+
+    if (suffix_count == 0) {
+        root_logits = runtime->shared_prefix_logits;
+    } else {
+        std::vector<llama_token> suffix;
+        if (!copy_tokens(suffix_tokens, suffix_count, suffix, failure)) {
+            llama_memory_seq_rm(memory, 1, -1, -1);
+            set_error(error, error_capacity, failure);
+            return -1;
+        }
+        if (runtime->n_ctx > 0 && base_len + suffix.size() > static_cast<size_t>(runtime->n_ctx)) {
+            llama_memory_seq_rm(memory, 1, -1, -1);
+            set_error(error, error_capacity, "shared prefix plus suffix exceeds context window");
+            return -1;
+        }
+        llama_batch batch = llama_batch_init(static_cast<int32_t>(suffix.size()), 0, 1);
+        for (size_t i = 0; i < suffix.size(); ++i) {
+            llama_pos pos = 0;
+            if (!checked_pos(base_len + i, pos)) {
+                llama_batch_free(batch);
+                llama_memory_seq_rm(memory, 1, -1, -1);
+                set_error(error, error_capacity, "shared suffix position overflow");
+                return -1;
+            }
+            batch.token[i] = suffix[i];
+            batch.pos[i] = pos;
+            batch.n_seq_id[i] = 1;
+            batch.seq_id[i][0] = 1;
+            batch.logits[i] = (i + 1 == suffix.size()) ? 1 : 0;
+        }
+        const int32_t status = llama_decode(runtime->context, batch);
+        llama_batch_free(batch);
+        if (status != 0) {
+            llama_memory_seq_rm(memory, 1, -1, -1);
+            set_error(error, error_capacity, "llama_decode failed before shared sequence scoring");
+            return -1;
+        }
+        const float * root_ptr = llama_get_logits_ith(runtime->context, -1);
+        const int32_t vocab_size = llama_vocab_n_tokens(runtime->vocab);
+        if (root_ptr == nullptr || vocab_size <= 0) {
+            llama_memory_seq_rm(memory, 1, -1, -1);
+            set_error(error, error_capacity, "missing shared root logits for sequence scoring");
+            return -1;
+        }
+        root_logits.assign(root_ptr, root_ptr + static_cast<size_t>(vocab_size));
+        base_len += suffix.size();
+    }
+
+    const bool ok = score_sequence_trie(
+        runtime, 1, base_len, root_logits, candidate_tokens, candidate_offsets,
+        candidate_count, out_scores, failure);
+    llama_memory_seq_rm(memory, 1, -1, -1);
+    if (!ok) {
+        set_error(error, error_capacity, failure);
+        return -1;
+    }
+    return 0;
+}
+
+int32_t tj_llama_score_suffix_batch(
+    tj_llama_runtime * runtime,
+    const uint32_t * suffix_tokens,
+    const size_t * suffix_offsets,
+    const uint32_t * candidate_tokens,
+    const size_t * candidate_offsets,
+    size_t task_count,
+    float * out_logits,
+    char * error,
+    size_t error_capacity) {
+    if (runtime == nullptr || runtime->context == nullptr || runtime->vocab == nullptr
+        || !runtime->shared_prefix_ready || suffix_offsets == nullptr
+        || candidate_offsets == nullptr || candidate_tokens == nullptr || out_logits == nullptr
+        || task_count < 2) {
+        set_error(error, error_capacity, "invalid parallel shared-suffix arguments");
+        return -1;
+    }
+    const size_t max_parallel = tj_llama_max_parallel_tasks(runtime);
+    if (max_parallel < 2 || task_count > max_parallel) {
+        set_error(error, error_capacity, "parallel suffix task count exceeds llama.cpp sequence capacity");
+        return -1;
+    }
+    if (task_count > static_cast<size_t>(std::numeric_limits<llama_seq_id>::max() - 1)) {
+        set_error(error, error_capacity, "parallel suffix task count exceeds llama.cpp sequence-id range");
+        return -1;
+    }
+    if (suffix_offsets[0] != 0 || candidate_offsets[0] != 0) {
+        set_error(error, error_capacity, "parallel suffix offsets must start at zero");
+        return -1;
+    }
+
+    size_t max_suffix = 0;
+    for (size_t task = 0; task < task_count; ++task) {
+        if (suffix_offsets[task + 1] < suffix_offsets[task]
+            || candidate_offsets[task + 1] < candidate_offsets[task]) {
+            set_error(error, error_capacity, "parallel suffix offsets must be monotonic");
+            return -1;
+        }
+        const size_t candidate_count = candidate_offsets[task + 1] - candidate_offsets[task];
+        if (candidate_count < 2) {
+            set_error(error, error_capacity, "each parallel suffix task requires at least two candidates");
+            return -1;
+        }
+        max_suffix = std::max(max_suffix, suffix_offsets[task + 1] - suffix_offsets[task]);
+    }
+
+    const size_t suffix_total = suffix_offsets[task_count];
+    if (suffix_total != 0 && suffix_tokens == nullptr) {
+        set_error(error, error_capacity, "parallel suffix token buffer is null");
+        return -1;
+    }
+    if (suffix_total > static_cast<size_t>(std::numeric_limits<int32_t>::max())) {
+        set_error(error, error_capacity, "parallel suffix token count exceeds llama.cpp batch range");
+        return -1;
+    }
+    if (runtime->n_batch > 0 && suffix_total > static_cast<size_t>(runtime->n_batch)) {
+        set_error(error, error_capacity, "parallel suffix token count exceeds configured n_batch");
+        return -1;
+    }
+    if (runtime->n_ctx > 0) {
+        const size_t n_ctx = static_cast<size_t>(runtime->n_ctx);
+        if (runtime->shared_prefix_len > n_ctx || max_suffix > n_ctx - runtime->shared_prefix_len) {
+            set_error(error, error_capacity, "shared prefix plus suffix exceeds configured n_ctx");
+            return -1;
+        }
+        // The unified context must have room for the shared prefix plus all new
+        // branch suffix tokens submitted in this decode call.
+        if (suffix_total > n_ctx - runtime->shared_prefix_len) {
+            set_error(error, error_capacity, "parallel suffix batch exceeds available context capacity");
+            return -1;
+        }
+    }
+
+    llama_memory_t memory = llama_get_memory(runtime->context);
+    if (memory == nullptr) {
+        set_error(error, error_capacity, "llama.cpp context does not expose reusable sequence memory");
+        return -1;
+    }
+
+    auto cleanup_branches = [&]() {
+        for (size_t task = 0; task < task_count; ++task) {
+            const llama_seq_id seq = static_cast<llama_seq_id>(task + 1);
+            llama_memory_seq_rm(memory, seq, -1, -1);
+        }
+    };
+
+    for (size_t task = 0; task < task_count; ++task) {
+        const llama_seq_id seq = static_cast<llama_seq_id>(task + 1);
+        llama_memory_seq_rm(memory, seq, -1, -1);
+        llama_memory_seq_cp(memory, 0, seq, 0, -1);
+    }
+
+    llama_batch batch{};
+    std::vector<int32_t> suffix_output_indices(task_count, -1);
+    bool batch_allocated = false;
+    if (suffix_total > 0) {
+        batch = llama_batch_init(static_cast<int32_t>(suffix_total), 0, 1);
+        batch_allocated = true;
+        size_t flat_index = 0;
+        llama_pos start_pos = 0;
+        if (!checked_pos(runtime->shared_prefix_len, start_pos)) {
+            cleanup_branches();
+            llama_batch_free(batch);
+            set_error(error, error_capacity, "shared prefix exceeds llama.cpp position range");
+            return -1;
+        }
+
+        for (size_t task = 0; task < task_count; ++task) {
+            const size_t begin = suffix_offsets[task];
+            const size_t end = suffix_offsets[task + 1];
+            const llama_seq_id seq = static_cast<llama_seq_id>(task + 1);
+            for (size_t local = 0; begin + local < end; ++local, ++flat_index) {
+                const uint32_t token = suffix_tokens[begin + local];
+                if (token > static_cast<uint32_t>(std::numeric_limits<llama_token>::max())) {
+                    cleanup_branches();
+                    llama_batch_free(batch);
+                    set_error(error, error_capacity, "parallel suffix token id exceeds llama.cpp range");
+                    return -1;
+                }
+                batch.token[flat_index] = static_cast<llama_token>(token);
+                batch.pos[flat_index] = start_pos + static_cast<llama_pos>(local);
+                batch.n_seq_id[flat_index] = 1;
+                batch.seq_id[flat_index][0] = seq;
+                const bool wants_logits = begin + local + 1 == end;
+                batch.logits[flat_index] = wants_logits ? 1 : 0;
+                if (wants_logits) {
+                    suffix_output_indices[task] = static_cast<int32_t>(flat_index);
+                }
+            }
+        }
+
+        const int32_t decode_status = llama_decode(runtime->context, batch);
+        if (decode_status != 0) {
+            cleanup_branches();
+            llama_batch_free(batch);
+            set_error(error, error_capacity, "llama_decode failed while scoring parallel suffixes");
+            return -1;
+        }
+    }
+
+    std::string failure;
+    bool gathered_all = true;
+    for (size_t task = 0; task < task_count; ++task) {
+        const size_t suffix_count = suffix_offsets[task + 1] - suffix_offsets[task];
+        const size_t candidate_begin = candidate_offsets[task];
+        const size_t candidate_count = candidate_offsets[task + 1] - candidate_begin;
+        const float * logits = nullptr;
+        if (suffix_count == 0) {
+            if (runtime->shared_prefix_logits.empty()) {
+                failure = "shared prefix has no retained logits";
+                gathered_all = false;
+                break;
+            }
+            logits = runtime->shared_prefix_logits.data();
+        } else {
+            const int32_t batch_token_index = suffix_output_indices[task];
+            if (batch_token_index < 0) {
+                failure = "missing parallel suffix output token index";
+                gathered_all = false;
+                break;
+            }
+            logits = llama_get_logits_ith(runtime->context, batch_token_index);
+            if (logits == nullptr) {
+                failure = "llama_get_logits_ith returned null for a parallel suffix";
+                gathered_all = false;
+                break;
+            }
+        }
+        if (!gather_candidate_logits(
+                runtime,
+                logits,
+                candidate_tokens + candidate_begin,
+                candidate_count,
+                out_logits + candidate_begin,
+                failure)) {
+            gathered_all = false;
+            break;
+        }
+    }
+
+    if (batch_allocated) {
+        llama_batch_free(batch);
+    }
+    cleanup_branches();
+    if (!gathered_all) {
+        set_error(error, error_capacity, failure);
+        return -1;
+    }
+    return 0;
+}
+
