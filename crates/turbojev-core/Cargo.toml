@@ -1,0 +1,24 @@
+[package]
+name = "turbojev-core"
+description = "Backend-neutral decision orchestration for TurboJev"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+
+[dependencies]
+indexmap.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+turbojev-backend = { path = "../turbojev-backend" }
+turbojev-calibration = { path = "../turbojev-calibration" }
+turbojev-engine = { path = "../turbojev-engine" }
+turbojev-schema = { path = "../turbojev-schema" }
+
+[dev-dependencies]
+turbojev-backend-mock = { path = "../turbojev-backend-mock" }
+
+[lints]
+workspace = true

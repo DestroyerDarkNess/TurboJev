@@ -1,0 +1,26 @@
+[package]
+name = "turbojev-capi"
+description = "Stable C ABI for TurboJev native sessions"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+
+[lib]
+crate-type = ["cdylib", "staticlib", "rlib"]
+
+[features]
+default = []
+llamacpp = ["turbojev-host-native/llamacpp"]
+
+[dependencies]
+turbojev-host-native = { path = "../turbojev-host-native" }
+
+[lints.rust]
+rust_2018_idioms = "deny"
+unsafe_op_in_unsafe_fn = "deny"
+
+[lints.clippy]
+all = "warn"

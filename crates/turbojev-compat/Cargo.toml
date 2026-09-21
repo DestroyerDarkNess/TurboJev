@@ -1,0 +1,18 @@
+[package]
+name = "turbojev-compat"
+description = "Wire compatibility profiles for TurboJev, TypeSafe System One and AI SDK evaluation"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+
+[dependencies]
+indexmap.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+turbojev-schema = { path = "../turbojev-schema" }
+
+[lints]
+workspace = true
