@@ -1,0 +1,53 @@
+[package]
+name = "turbojev-runtime-llamacpp"
+description = "Optional cross-platform llama.cpp/GGUF reference runtime adapter for TurboJev"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+
+[features]
+default = []
+# Links to the stable TurboJev C shim. The shim itself is built against llama.cpp
+# outside the portable core and can be compiled on any platform supported by llama.cpp.
+ffi = []
+
+[dependencies]
+turbojev-backend = { path = "../turbojev-backend" }
+turbojev-prompt = { path = "../turbojev-prompt" }
+turbojev-runtime = { path = "../turbojev-runtime" }
+turbojev-sequence = { path = "../turbojev-sequence" }
+thiserror.workspace = true
+serde_json.workspace = true
+
+[dev-dependencies]
+turbojev = { path = "../turbojev" }
+turbojev-runtime-conformance = { path = "../turbojev-runtime-conformance" }
+turbojev-tokenizer = { path = "../turbojev-tokenizer" }
+
+[lints.rust]
+rust_2018_idioms = "deny"
+unsafe_op_in_unsafe_fn = "deny"
+unused_lifetimes = "deny"
+unused_qualifications = "warn"
+
+[lints.clippy]
+all = "warn"
+
+[[example]]
+name = "reference_gguf"
+required-features = ["ffi"]
+
+[[example]]
+name = "shared_prefix_gguf"
+required-features = ["ffi"]
+
+[[example]]
+name = "parallel_suffix_gguf"
+required-features = ["ffi"]
+
+[[example]]
+name = "real_fused_qualification"
+required-features = ["ffi"]
