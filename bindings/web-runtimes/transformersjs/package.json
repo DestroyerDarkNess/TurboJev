@@ -1,0 +1,22 @@
+{
+  "name": "@turbojev/runtime-transformersjs",
+  "version": "0.28.2",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "src"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "node --test test/*.test.mjs"
+  },
+  "peerDependencies": {
+    "@huggingface/transformers": ">=4.0.0"
+  },
+  "devDependencies": {
+    "typescript": "5.9.2",
+    "@huggingface/transformers": "4.3.0"
+  }
+}

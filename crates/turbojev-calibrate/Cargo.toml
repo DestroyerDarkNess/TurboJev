@@ -1,0 +1,20 @@
+[package]
+name = "turbojev-calibrate"
+description = "Offline calibration fitting and reporting CLI for TurboJev"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+
+[[bin]]
+name = "turbojev-calibrate"
+path = "src/main.rs"
+
+[dependencies]
+serde_json.workspace = true
+turbojev-calibration = { path = "../turbojev-calibration" }
+
+[lints]
+workspace = true

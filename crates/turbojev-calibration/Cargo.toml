@@ -1,0 +1,16 @@
+[package]
+name = "turbojev-calibration"
+description = "Probability normalization, fitting and calibration metrics for TurboJev"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+
+[dependencies]
+serde.workspace = true
+thiserror.workspace = true
+
+[lints]
+workspace = true

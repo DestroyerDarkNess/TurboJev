@@ -1,0 +1,19 @@
+[package]
+name = "turbojev-benchmark"
+description = "Portable benchmark fixture and result protocol for TurboJev runtimes"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+turbojev-backend = { path = "../turbojev-backend" }
+turbojev-schema = { path = "../turbojev-schema" }
+thiserror.workspace = true
+
+[lints]
+workspace = true

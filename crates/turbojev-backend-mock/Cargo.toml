@@ -1,0 +1,19 @@
+[package]
+name = "turbojev-backend-mock"
+description = "Deterministic fixture backend for TurboJev tests and SDK development"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+
+[dependencies]
+indexmap.workspace = true
+turbojev-backend = { path = "../turbojev-backend" }
+
+[lints]
+workspace = true
+
+[dev-dependencies]
+serde_json.workspace = true

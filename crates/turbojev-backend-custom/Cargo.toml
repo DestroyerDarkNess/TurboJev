@@ -1,0 +1,18 @@
+[package]
+name = "turbojev-backend-custom"
+description = "Portable custom-runtime adapter for TurboJev"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+
+[dependencies]
+turbojev-backend = { path = "../turbojev-backend" }
+
+[lints]
+workspace = true
+
+[dev-dependencies]
+serde_json.workspace = true
