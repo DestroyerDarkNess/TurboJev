@@ -1,0 +1,1 @@
+module CTurboJev [system] { header "turbojev.h" link "turbojev_capi" export * }

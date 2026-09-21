@@ -1,0 +1,108 @@
+{
+  "contract": "turbojev.benchmark.v1",
+  "id": "reference-semantic-v1",
+  "cases": [
+    {
+      "id": "route-en",
+      "tags": ["choice", "english", "routing"],
+      "request": {
+        "state": "My package says delivered but it never arrived.",
+        "questions": {
+          "route": {
+            "type": "choice",
+            "instructions": "Which team should handle this request?",
+            "criteria": {
+              "billing": "Billing and payment support",
+              "shipping": "Delivery and logistics support",
+              "technical": "Technical product support",
+              "other": "None of the listed teams"
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "route-es",
+      "tags": ["choice", "spanish", "routing"],
+      "request": {
+        "state": "Después de restablecer mi contraseña todavía no puedo entrar a mi cuenta.",
+        "questions": {
+          "ruta": {
+            "type": "choice",
+            "instructions": "¿Qué equipo debe atender esta solicitud?",
+            "criteria": {
+              "acceso": "Problemas de acceso a la cuenta",
+              "facturacion": "Pagos, cobros y facturación",
+              "envios": "Entrega y logística",
+              "otro": "Ninguna de las anteriores"
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "policy-fr",
+      "tags": ["noul", "french", "policy"],
+      "request": {
+        "state": "La demande contient un numéro de carte bancaire complet.",
+        "questions": {
+          "contains_sensitive_payment_data": {
+            "type": "noul",
+            "instructions": "Le texte contient-il des données de paiement sensibles qui nécessitent une protection ?"
+          }
+        }
+      }
+    },
+    {
+      "id": "severity-ja",
+      "tags": ["score", "japanese", "severity"],
+      "request": {
+        "state": "本番環境の決済サービスが停止し、すべての顧客が購入できません。",
+        "questions": {
+          "severity": {
+            "type": "score",
+            "instructions": "現在の事業影響の深刻度を評価してください。",
+            "criteria": [
+              "影響なし",
+              "軽微な影響",
+              "重大な影響",
+              "致命的な影響"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "multi-question-structured",
+      "tags": ["structured-state", "multi-question", "choice", "noul", "score"],
+      "request": {
+        "state": {
+          "service": "checkout",
+          "regions_affected": 4,
+          "customer_success_rate": 0.0,
+          "started_minutes_ago": 18
+        },
+        "questions": {
+          "route": {
+            "type": "choice",
+            "instructions": "Which operational group should own the incident?",
+            "criteria": {
+              "payments": "Payment processing incidents",
+              "identity": "Authentication and account incidents",
+              "content": "Content delivery incidents"
+            }
+          },
+          "human_review": {
+            "type": "boolean",
+            "instructions": "Does this incident require immediate human review?"
+          },
+          "impact": {
+            "type": "score",
+            "instructions": "Rate current customer impact.",
+            "criteria": ["none", "minor", "major", "critical"]
+          }
+        }
+      }
+    }
+  ]
+}
