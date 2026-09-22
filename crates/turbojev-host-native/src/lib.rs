@@ -7,6 +7,8 @@
 //! accepts an already-resolved local model path (or a deterministic `fixture://` spec)
 //! and owns exactly one thread-affine model session.
 
+pub mod worker;
+
 use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};
@@ -176,6 +178,9 @@ fn default_gpu_layers() -> i32 {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct NativeLoadOptions {
+    /// Optional trusted local scorer, configured only at model load time.
+    #[serde(default)]
+    pub worker: Option<worker::WorkerOptions>,
     pub model: String,
     #[serde(default = "default_n_ctx")]
     pub n_ctx: u32,
@@ -232,6 +237,7 @@ type LlamaEngine = TurboJevEngine<LlamaBackend>;
 type FixtureEngine = TurboJevEngine<FixtureBackend>;
 
 enum NativeEngine {
+    Worker(TurboJevEngine<worker::WorkerBackend>),
     Fixture(FixtureEngine),
     #[cfg(feature = "llamacpp")]
     Llama(LlamaEngine),
@@ -248,6 +254,19 @@ impl NativeSession {
     /// Load from a typed configuration.
     pub fn open(options: NativeLoadOptions) -> Result<Self, HostError> {
         options.validate()?;
+        if let Some(worker_options) = &options.worker {
+            let backend = worker::WorkerBackend::open(worker_options)
+                .map_err(|e| HostError::Runtime(e.to_string()))?;
+            return Ok(Self {
+                engine: NativeEngine::Worker(
+                    TurboJevEngine::new(backend)
+                        .with_planning_policy(options.execution.policy.into())
+                        .with_execution_budget(execution_budget(options.execution)),
+                ),
+                model: options.model,
+                qualification_id: None,
+            });
+        }
         if options.model.starts_with("fixture://") {
             let mut builder = FixtureBackend::builder().model(options.model.clone());
             for (id, logits) in &options.fixture_logits {
@@ -315,6 +334,9 @@ impl NativeSession {
     /// than being duplicated around the concrete runtime session.
     pub fn evaluate(&self, request: EvaluationRequest) -> Result<EvaluationResponse, HostError> {
         match &self.engine {
+            NativeEngine::Worker(engine) => engine
+                .evaluate(request)
+                .map_err(|e| HostError::Core(e.to_string())),
             NativeEngine::Fixture(engine) => engine
                 .evaluate(request)
                 .map_err(|e| HostError::Core(e.to_string())),
@@ -332,6 +354,7 @@ impl NativeSession {
     /// independent single-token candidate roots that fit native limits are fused.
     pub fn execution_capabilities(&self) -> NativeExecutionCapabilities {
         match &self.engine {
+            NativeEngine::Worker(_) => NativeExecutionCapabilities::serial_only(),
             NativeEngine::Fixture(engine) => engine.backend().fused_capabilities().into(),
             #[cfg(feature = "llamacpp")]
             NativeEngine::Llama(engine) => engine.backend().fused_capabilities().into(),
@@ -341,6 +364,7 @@ impl NativeSession {
     /// Shape-aware fused eligibility for the concrete loaded session.
     pub fn can_evaluate_fused(&self, requests: &[EvaluationRequest]) -> Result<bool, HostError> {
         match &self.engine {
+            NativeEngine::Worker(_) => Ok(false),
             NativeEngine::Fixture(engine) => engine
                 .can_evaluate_fused(requests)
                 .map_err(|error| HostError::Core(error.to_string())),
@@ -362,6 +386,9 @@ impl NativeSession {
         requests: &[EvaluationRequest],
     ) -> Result<Vec<EvaluationResponse>, HostError> {
         match &self.engine {
+            NativeEngine::Worker(_) => Err(HostError::UnsupportedCapability(
+                "worker fused execution".into(),
+            )),
             NativeEngine::Fixture(engine) => engine
                 .evaluate_fused(requests)
                 .map_err(|error| HostError::Core(error.to_string())),
@@ -389,15 +416,7 @@ impl NativeSession {
         let profile = parse_profile(profile)?;
         let request = turbojev_compat::decode_request(profile, input)
             .map_err(|e| HostError::Compatibility(e.to_string()))?;
-        let response = match &self.engine {
-            NativeEngine::Fixture(engine) => engine
-                .evaluate(request.clone())
-                .map_err(|e| HostError::Core(e.to_string()))?,
-            #[cfg(feature = "llamacpp")]
-            NativeEngine::Llama(engine) => engine
-                .evaluate(request.clone())
-                .map_err(|e| HostError::Core(e.to_string()))?,
-        };
+        let response = self.evaluate(request.clone())?;
         turbojev_compat::encode_response(profile, &request, &response)
             .map_err(|e| HostError::Compatibility(e.to_string()))
     }
@@ -406,6 +425,9 @@ impl NativeSession {
     pub fn classify_json(&self, state: &str, options_json: &str) -> Result<String, HostError> {
         let options: Vec<String> = serde_json::from_str(options_json).map_err(HostError::Json)?;
         let result = match &self.engine {
+            NativeEngine::Worker(engine) => engine
+                .classify(state.to_owned(), options)
+                .map_err(|e| HostError::Core(e.to_string()))?,
             NativeEngine::Fixture(engine) => engine
                 .classify(state.to_owned(), options)
                 .map_err(|e| HostError::Core(e.to_string()))?,
@@ -422,10 +444,12 @@ impl NativeSession {
         serde_json::to_string(&serde_json::json!({
             "model": self.model,
             "runtime": match &self.engine {
+                NativeEngine::Worker(_) => "local-worker",
                 NativeEngine::Fixture(_) => "fixture",
                 #[cfg(feature = "llamacpp")]
                 NativeEngine::Llama(_) => "llama.cpp",
             },
+            "modalities": match &self.engine { NativeEngine::Worker(engine) => engine.backend().modalities().to_vec(), _ => vec!["text".to_owned()] },
             "contract": "turbojev.host-native.v1",
             "executionCapabilitiesContract": NATIVE_EXECUTION_CAPABILITIES_CONTRACT,
             "executionCapabilities": self.execution_capabilities(),
@@ -576,6 +600,7 @@ mod tests {
     #[test]
     fn fixture_session_uses_the_real_core() {
         let session = NativeSession::open(NativeLoadOptions {
+            worker: None,
             model: "fixture://host".into(),
             n_ctx: 64,
             n_batch: 64,
@@ -602,6 +627,7 @@ mod tests {
     #[test]
     fn fixture_fused_bridge_matches_independent_reference() {
         let session = NativeSession::open(NativeLoadOptions {
+            worker: None,
             model: "fixture://host-fused".into(),
             n_ctx: 64,
             n_batch: 64,

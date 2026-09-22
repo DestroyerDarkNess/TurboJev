@@ -1,3 +1,5 @@
+export { TurboJevRemote, mediaEvidence } from "./remote.js";
+export type { MediaEvidence, MediaModality } from "./remote.js";
 export interface BrowserRuntimeDescriptor {
     name: string;
     model: string;

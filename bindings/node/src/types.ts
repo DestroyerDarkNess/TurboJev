@@ -1,6 +1,7 @@
 export type PlanningPolicy = "auto" | "reference" | "deterministic-reuse";
 export interface LoadOptions {
   model: string;
+  worker?: { program: string; args?: string[]; timeoutSeconds?: number };
   cacheDir?: string;
   execution?: { policy?: PlanningPolicy; maxParallelTasks?: number; memoryBudgetBytes?: number; llamacppMultiRootFused?: boolean };
   prompt?: { profile?: string; systemInstruction?: string; bestMatchInstruction?: string };

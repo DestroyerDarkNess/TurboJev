@@ -61,7 +61,7 @@ jobs:
 
   publish-npm:
     needs: preflight
-    if: github.event_name == 'push' || inputs.publish == true
+    if: vars.RELEASE_ENABLED == 'true' && (github.event_name == 'push' || inputs.publish == true)
     runs-on: ubuntu-latest
     environment: release
     strategy:
@@ -89,7 +89,7 @@ jobs:
 
   publish-python:
     needs: preflight
-    if: github.event_name == 'push' || inputs.publish == true
+    if: vars.RELEASE_ENABLED == 'true' && (github.event_name == 'push' || inputs.publish == true)
     runs-on: ubuntu-latest
     environment: release
     permissions:
@@ -113,7 +113,7 @@ jobs:
 
   github-release:
     needs: preflight
-    if: github.event_name == 'push'
+    if: vars.RELEASE_ENABLED == 'true' && github.event_name == 'push'
     runs-on: ubuntu-latest
     permissions:
       contents: write

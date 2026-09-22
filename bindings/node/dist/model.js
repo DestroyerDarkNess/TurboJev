@@ -14,6 +14,8 @@ function hfUrl(spec) {
 }
 export async function resolveModel(options) {
     const source = options.model;
+    if (options.worker)
+        return source;
     if (source.startsWith("fixture://"))
         return source;
     if (source.startsWith("file://"))

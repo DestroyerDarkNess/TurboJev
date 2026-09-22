@@ -8,6 +8,8 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use thiserror::Error;
 
+pub mod media;
+
 /// Maximum number of questions accepted by the portable core in one request.
 pub const DEFAULT_MAX_QUESTIONS: usize = 256;
 
@@ -256,6 +258,9 @@ pub enum SchemaError {
     /// State must be string, object, or array and cannot be empty/null.
     #[error("state must be a non-empty string, object, or array")]
     InvalidState,
+    /// Explicit media evidence failed portable validation.
+    #[error("invalid media evidence: {0}")]
+    InvalidMedia(String),
     /// No questions were supplied.
     #[error("at least one question is required")]
     NoQuestions,
@@ -287,6 +292,7 @@ pub enum SchemaError {
 }
 
 fn validate_state(state: &Value) -> Result<(), SchemaError> {
+    media::MediaEvidence::from_state(state).map_err(SchemaError::InvalidMedia)?;
     let valid = match state {
         Value::String(value) => !value.trim().is_empty(),
         Value::Array(value) => !value.is_empty(),

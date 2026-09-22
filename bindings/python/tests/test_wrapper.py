@@ -11,6 +11,11 @@ class FakeNative:
 
 fake = types.ModuleType("turbojev._native"); fake.NativeEngine = FakeNative; sys.modules["turbojev._native"] = fake
 from turbojev import TurboJev
+from turbojev import LoadOptions
+
+def test_worker_configuration_reaches_native_load():
+    worker = {"program": "python", "args": ["scorer.py"]}
+    assert LoadOptions(model="akhilaaa3/Jev-Omni", worker=worker).to_wire()["worker"] == worker
 
 def test_wrapper_roundtrip():
     jev = TurboJev.load("fixture://test")

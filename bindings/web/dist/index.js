@@ -1,3 +1,4 @@
+export { TurboJevRemote, mediaEvidence } from "./remote.js";
 export class TurboJevWeb {
     #worker;
     #id = 1;

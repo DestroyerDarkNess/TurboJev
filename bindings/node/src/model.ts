@@ -14,6 +14,7 @@ function hfUrl(spec:string):string {
 }
 export async function resolveModel(options:LoadOptions):Promise<string> {
   const source=options.model;
+  if (options.worker) return source;
   if (source.startsWith("fixture://")) return source;
   if (source.startsWith("file://")) return fileURLToPath(source);
   if (!source.startsWith("http://") && !source.startsWith("https://") && !source.startsWith("hf://")) return resolve(source);

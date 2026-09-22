@@ -500,6 +500,14 @@ where
         plan: ExecutionPlan,
         capabilities: RuntimeCapabilities,
     ) -> Result<RuntimeBatch, RuntimeError> {
+        if batch
+            .state
+            .get("contract")
+            .and_then(serde_json::Value::as_str)
+            .is_some_and(|c| c.starts_with("turbojev.media."))
+        {
+            return Err(RuntimeError::Preparation("UNSUPPORTED_MODALITY: token-only runtime cannot process media; use a multimodal scorer".into()));
+        }
         let mut prepared = Vec::with_capacity(batch.tasks.len());
         for task in &batch.tasks {
             let prepared_task = self.prepare_task(&batch.state, task, capabilities)?;
@@ -1016,6 +1024,21 @@ mod tests {
             .tasks
             .iter()
             .all(|task| task.codebook_kind == CodebookKind::SingleToken));
+    }
+
+    #[test]
+    fn token_runtime_rejects_media_before_inference() {
+        let backend = RuntimeBackend::new(JsonRenderer, CharacterCodec, RecordingExecutor::new());
+        let batch = DecisionBatch {
+            state: serde_json::json!({"contract":"turbojev.media.v1", "modality":"image", "base64":"AA=="}),
+            tasks: vec![task("a", "What is shown?")],
+        };
+        assert!(backend
+            .score(&batch, ExecutionPlan::default())
+            .unwrap_err()
+            .to_string()
+            .contains("UNSUPPORTED_MODALITY"));
+        assert!(backend.executor().last_batch.lock().unwrap().is_none());
     }
 
     #[test]

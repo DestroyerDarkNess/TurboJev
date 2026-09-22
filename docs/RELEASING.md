@@ -1,5 +1,10 @@
 # Releasing TurboJev
 
+Publication is currently disabled unless repository variable `RELEASE_ENABLED`
+is `true`. Keep it unset while the [multimodal release gates](MULTIMODAL.md)
+and native packaging gates remain incomplete. The workflow is a scaffold;
+its existence does not establish registry or model compatibility.
+
 TurboJev releases are tag-driven. The release workflow checks that the tag
 version matches the Rust workspace, JavaScript packages, Python project, and
 .NET package. A release is started by pushing a tag such as `v0.28.3`.

@@ -1,6 +1,11 @@
 export type PlanningPolicy = "auto" | "reference" | "deterministic-reuse";
 export interface LoadOptions {
     model: string;
+    worker?: {
+        program: string;
+        args?: string[];
+        timeoutSeconds?: number;
+    };
     cacheDir?: string;
     execution?: {
         policy?: PlanningPolicy;

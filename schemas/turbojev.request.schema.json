@@ -10,7 +10,10 @@
     "state": {
       "oneOf": [
         { "type": "string", "minLength": 1 },
-        { "type": "object", "minProperties": 1 },
+        { "type": "object", "minProperties": 1,
+          "if": {"required": ["contract"], "properties": {"contract": {"type":"string", "pattern":"^turbojev\\.media\\."}}},
+          "then": {"$ref":"#/$defs/media"}
+        },
         { "type": "array", "minItems": 1 }
       ]
     },
@@ -22,6 +25,16 @@
     }
   },
   "$defs": {
+    "media": {
+      "type": "object", "additionalProperties": false,
+      "required": ["contract", "modality", "base64"],
+      "properties": {
+        "contract": {"const":"turbojev.media.v1"},
+        "text": {"type":"string"},
+        "modality": {"enum":["image","audio","video"]},
+        "base64": {"type":"string", "minLength":1, "maxLength":33554432}
+      }
+    },
     "choice": {
       "type": "object",
       "additionalProperties": false,

@@ -1458,6 +1458,7 @@ mod tests {
         ServerConfig {
             bind: DEFAULT_BIND.to_owned(),
             load: NativeLoadOptions {
+                worker: None,
                 model: "fixture://server".to_owned(),
                 n_ctx: 64,
                 n_batch: 64,

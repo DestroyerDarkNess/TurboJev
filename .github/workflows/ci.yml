@@ -141,6 +141,8 @@ jobs:
         with:
           python-version: '3.12'
       - run: python -m pip install pytest
+      - name: Multimodal input validation
+        run: python scripts/test_jev_omni_worker.py
       - name: Thin wrapper tests
         working-directory: bindings/python
         run: pytest -q
