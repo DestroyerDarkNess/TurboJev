@@ -24,6 +24,94 @@ python samples/run.py csharp
 python samples/run.py rust
 ```
 
+## Comandos por proyecto
+
+Todos los comandos se ejecutan desde la raíz del repositorio. El comando de
+build nativo prepara una sola vez las librerías para el lenguaje elegido.
+
+### `TurboJev-TS-node`
+
+```sh
+python samples/build.py native --download-model
+python samples/run.py ts
+python samples/run.py ts --text "I was charged twice."
+```
+
+El código del ejemplo está en `samples/TurboJev-TS-node/src/main.ts`. Para
+compilar solamente el proyecto después de preparar los artefactos:
+
+```sh
+npm run build --prefix samples/TurboJev-TS-node
+```
+
+### `TurboJev-Python`
+
+```sh
+python samples/build.py native --download-model
+python samples/run.py python
+python samples/run.py python --text "My order arrived damaged."
+```
+
+El launcher configura `PYTHONPATH` y las librerías nativas automáticamente.
+El ejemplo fuente está en `samples/TurboJev-Python/main.py`.
+
+### `TurboJev-csharp-NET`
+
+```sh
+python samples/build.py native --download-model
+python samples/run.py csharp
+python samples/run.py csharp --text "The application crashes on startup."
+```
+
+El proyecto .NET está en `samples/TurboJev-csharp-NET/Sample.csproj`. Para
+compilarlo directamente, después del build nativo:
+
+```sh
+dotnet build samples/TurboJev-csharp-NET/Sample.csproj -c Release -p:TurboJevRid=win-x64
+```
+
+Usa `linux-x64`, `linux-arm64`, `osx-x64` u otro RID compatible cuando ejecutes
+en esa plataforma.
+
+### `TurboJev-rust`
+
+```sh
+python samples/build.py native --download-model
+python samples/run.py rust
+python samples/run.py rust --text "Please send a replacement."
+```
+
+Para comprobar o compilar el crate desde Cargo:
+
+```sh
+cargo check -p turbojev-rust-sample --features native
+```
+
+El ejecutable enlazado con llama.cpp lo genera `python samples/build.py native`;
+`samples/run.py rust` lo ejecuta con la biblioteca correcta ya preparada.
+
+### `TurboJev-js-native`
+
+Este ejemplo corre en el navegador usando Rust/WASM y Transformers.js; no usa
+una DLL nativa. Sus comandos son:
+
+```sh
+python samples/build.py web
+python samples/run.py web
+```
+
+Para trabajar solamente dentro del proyecto web, desde
+`samples/TurboJev-js-native`:
+
+```sh
+npm install
+npm run prepare:runtime
+npm run build
+npm run dev
+```
+
+Abre la URL local de Vite, pulsa **Cargar modelo** y después **Evaluar mensaje**.
+
 The first build fetches pinned llama.cpp and optionally the SHA-256-verified 88 MB
 SmolLM2 Q2_K model. Later builds reuse downloads and compilation caches. Use
 `--debug` for faster Rust development builds. Use another model or message:
