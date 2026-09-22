@@ -39,12 +39,11 @@ workspace dependency metadata is ready for registry publication.
 5. The release workflow publishes the web packages and Python wheels, then
    attaches a source archive to the GitHub release.
 
-The web packages and Python wheel are the first automated registry targets.
-Node, .NET, and llama.cpp-backed Python packages need platform-native assets in
-the release artifact before they can be published as install-and-run packages.
-The workflow keeps those artifacts attached to the GitHub release while that
-matrix is completed; it does not publish a package that would install without
-its native library.
+The web packages and the platform wheel produced by the Linux job are the first
+automated registry targets. Node, .NET, and llama.cpp-backed Python packages
+remain release blockers until their platform-native assets are built, bundled,
+and covered by a real smoke test. The workflow deliberately does not publish a
+package that would install without its native library.
 
 ## Architecture policy
 
@@ -56,9 +55,10 @@ placed in the package's native asset directory:
 - Python: one wheel per Python ABI and platform
 - .NET: `runtimes/<rid>/native/`
 
-Windows x64, Linux x64, and macOS x64 are the initial release artifacts. ARM64
-and 32-bit Windows require dedicated runners or cross-compilers and should be
-added to the matrix only after a real-model smoke test passes for that target.
+The planned first native matrix targets Windows x64, Linux x64, and macOS x64.
+ARM64 and 32-bit Windows require dedicated runners or cross-compilers and
+should be added to the matrix only after a real-model smoke test passes for
+that target.
 
 ## Dry runs
 
