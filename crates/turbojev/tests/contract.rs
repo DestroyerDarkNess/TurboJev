@@ -36,7 +36,11 @@ fn public_contract_preserves_question_order_and_types() {
         .unwrap();
 
     assert_eq!(
-        response.answers.keys().map(String::as_str).collect::<Vec<_>>(),
+        response
+            .answers
+            .keys()
+            .map(String::as_str)
+            .collect::<Vec<_>>(),
         vec!["route", "ok", "severity"]
     );
     assert!(matches!(response.answers["route"], Answer::Choice { .. }));

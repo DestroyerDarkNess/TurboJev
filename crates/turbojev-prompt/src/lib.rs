@@ -176,8 +176,14 @@ mod tests {
             intent: DecisionIntent::BestMatch,
             instruction: None,
             candidates: vec![
-                Candidate { key: "a".into(), description: "uno".into() },
-                Candidate { key: "b".into(), description: "dos".into() },
+                Candidate {
+                    key: "a".into(),
+                    description: "uno".into(),
+                },
+                Candidate {
+                    key: "b".into(),
+                    description: "dos".into(),
+                },
             ],
         };
         let document = compile_document(

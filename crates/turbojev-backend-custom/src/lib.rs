@@ -150,8 +150,14 @@ mod tests {
                 intent: DecisionIntent::Criterion,
                 instruction: Some("route".into()),
                 candidates: vec![
-                    Candidate { key: "a".into(), description: "a".into() },
-                    Candidate { key: "b".into(), description: "b".into() },
+                    Candidate {
+                        key: "a".into(),
+                        description: "a".into(),
+                    },
+                    Candidate {
+                        key: "b".into(),
+                        description: "b".into(),
+                    },
                 ],
             }],
         };
@@ -163,9 +169,9 @@ mod tests {
 
     #[test]
     fn arbitrary_async_runtime_can_be_adapted_without_executor_dependency() {
-        let backend = AsyncCustomBackend::new(
-            BackendCapabilities::default(),
-            |batch: DecisionBatch, _| std::future::ready(Ok(BackendOutput {
+        let backend =
+            AsyncCustomBackend::new(BackendCapabilities::default(), |batch: DecisionBatch, _| {
+                std::future::ready(Ok(BackendOutput {
                     model: Some("host-owned-async-model".to_owned()),
                     scores: batch
                         .tasks
@@ -178,8 +184,8 @@ mod tests {
                         })
                         .collect(),
                     metrics: BackendMetrics::default(),
-                })),
-        );
+                }))
+            });
         let batch = DecisionBatch {
             state: serde_json::json!("state"),
             tasks: vec![DecisionTask {
@@ -187,13 +193,18 @@ mod tests {
                 intent: DecisionIntent::Criterion,
                 instruction: Some("route".to_owned()),
                 candidates: vec![
-                    Candidate { key: "a".to_owned(), description: "a".to_owned() },
-                    Candidate { key: "b".to_owned(), description: "b".to_owned() },
+                    Candidate {
+                        key: "a".to_owned(),
+                        description: "a".to_owned(),
+                    },
+                    Candidate {
+                        key: "b".to_owned(),
+                        description: "b".to_owned(),
+                    },
                 ],
             }],
         };
         let output = block_on(backend.score_async(&batch, ExecutionPlan::default())).unwrap();
         assert_eq!(output.model.as_deref(), Some("host-owned-async-model"));
     }
-
 }

@@ -181,7 +181,9 @@ impl DecisionModelContract {
     /// Validate non-empty contract identifiers and sensible numeric bounds.
     pub fn validate(&self) -> Result<(), ModelSpecError> {
         if self.contract != DECISION_MODEL_CONTRACT {
-            return Err(ModelSpecError::UnsupportedDecisionContract(self.contract.clone()));
+            return Err(ModelSpecError::UnsupportedDecisionContract(
+                self.contract.clone(),
+            ));
         }
         for (field, value) in [
             ("contract", self.contract.as_str()),
@@ -192,10 +194,18 @@ impl DecisionModelContract {
                 return Err(ModelSpecError::EmptyContractField(field));
             }
         }
-        if self.tokenizer_revision.as_ref().is_some_and(|value| value.trim().is_empty()) {
+        if self
+            .tokenizer_revision
+            .as_ref()
+            .is_some_and(|value| value.trim().is_empty())
+        {
             return Err(ModelSpecError::EmptyContractField("tokenizer_revision"));
         }
-        if self.calibration_profile.as_ref().is_some_and(|value| value.trim().is_empty()) {
+        if self
+            .calibration_profile
+            .as_ref()
+            .is_some_and(|value| value.trim().is_empty())
+        {
             return Err(ModelSpecError::EmptyContractField("calibration_profile"));
         }
         if self.max_context_tokens == Some(0) {
@@ -203,7 +213,9 @@ impl DecisionModelContract {
         }
         if let CandidateEncodingPolicy::Profile(profile) = &self.candidate_encoding {
             if profile.trim().is_empty() {
-                return Err(ModelSpecError::EmptyContractField("candidate_encoding.profile"));
+                return Err(ModelSpecError::EmptyContractField(
+                    "candidate_encoding.profile",
+                ));
             }
         }
         Ok(())
@@ -262,4 +274,3 @@ mod tests {
         contract.validate().unwrap();
     }
 }
-

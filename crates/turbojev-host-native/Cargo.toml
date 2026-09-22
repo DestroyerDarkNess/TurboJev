@@ -29,8 +29,8 @@ thiserror.workspace = true
 indexmap.workspace = true
 
 [lints.rust]
-rust_2018_idioms = "deny"
+rust_2018_idioms = { level = "deny", priority = -1 }
 unsafe_code = "forbid"
 
 [lints.clippy]
-all = "warn"
+all = { level = "warn", priority = -1 }

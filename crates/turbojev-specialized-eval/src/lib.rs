@@ -233,7 +233,9 @@ impl SpecializationRun {
         for observation in &self.observations {
             observation.validate()?;
             if !ids.insert(observation.id.as_str()) {
-                return Err(EvaluationError::DuplicateObservation(observation.id.clone()));
+                return Err(EvaluationError::DuplicateObservation(
+                    observation.id.clone(),
+                ));
             }
             match observation.variant {
                 VariantKind::CandidateOrder => candidate_order_count += 1,
@@ -558,7 +560,9 @@ fn verify_pair_alignment(
             || left.target_key != right.target_key
             || (left.weight - right.weight).abs() > 1e-12
         {
-            return Err(EvaluationError::ObservationSemanticMismatch(left.id.clone()));
+            return Err(EvaluationError::ObservationSemanticMismatch(
+                left.id.clone(),
+            ));
         }
     }
     Ok(())
@@ -706,7 +710,9 @@ impl SpecializationExperimentBundle {
             artifact.validate()?;
             let identity = (artifact.contract.as_str(), artifact.id.as_str());
             if !identities.insert(identity) {
-                return Err(EvaluationError::DuplicateBundleArtifact(artifact.id.clone()));
+                return Err(EvaluationError::DuplicateBundleArtifact(
+                    artifact.id.clone(),
+                ));
             }
         }
         Ok(())
@@ -778,9 +784,17 @@ pub enum EvaluationError {
     #[error("at least one external run is required")]
     NoRuns,
     #[error("run {run:?} targets plan {actual:?}, expected {expected:?}")]
-    PlanIdMismatch { run: String, expected: String, actual: String },
+    PlanIdMismatch {
+        run: String,
+        expected: String,
+        actual: String,
+    },
     #[error("run {run:?} targets benchmark {actual:?}, expected {expected:?}")]
-    BenchmarkMismatch { run: String, expected: String, actual: String },
+    BenchmarkMismatch {
+        run: String,
+        expected: String,
+        actual: String,
+    },
     #[error("multiple runs were supplied for model {0:?}")]
     DuplicateModelRun(String),
     #[error("missing external run for model {0:?}")]
@@ -922,8 +936,15 @@ mod tests {
                 specialized_model: "specialized".into(),
             }],
             metrics: vec![
-                "accuracy", "nll", "brier", "ece", "latency", "peak-memory",
-                "decisions-per-second", "candidate-order-robustness", "paraphrase-robustness",
+                "accuracy",
+                "nll",
+                "brier",
+                "ece",
+                "latency",
+                "peak-memory",
+                "decisions-per-second",
+                "candidate-order-robustness",
+                "paraphrase-robustness",
             ]
             .into_iter()
             .map(str::to_owned)
@@ -960,6 +981,9 @@ mod tests {
         digest.validate().unwrap();
         let mut bad = digest;
         bad.sha256 = "xyz".into();
-        assert!(matches!(bad.validate(), Err(EvaluationError::InvalidSha256(_))));
+        assert!(matches!(
+            bad.validate(),
+            Err(EvaluationError::InvalidSha256(_))
+        ));
     }
 }

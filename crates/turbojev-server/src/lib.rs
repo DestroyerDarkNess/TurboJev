@@ -48,15 +48,33 @@ const GENERIC_REQUEST_ID_HEADER: &str = "x-request-id";
 const FORWARDED_PROTO_HEADER: &str = "x-forwarded-proto";
 static REQUEST_SEQUENCE: AtomicU64 = AtomicU64::new(1);
 
-fn default_bind() -> String { DEFAULT_BIND.to_owned() }
-fn default_max_connections() -> usize { DEFAULT_MAX_CONNECTIONS }
-fn default_max_header_bytes() -> usize { DEFAULT_MAX_HEADER_BYTES }
-fn default_queue_capacity() -> usize { DEFAULT_QUEUE_CAPACITY }
-fn default_io_timeout_ms() -> u64 { DEFAULT_IO_TIMEOUT_MS }
-fn default_session_timeout_ms() -> u64 { DEFAULT_SESSION_TIMEOUT_MS }
-fn default_drain_timeout_ms() -> u64 { DEFAULT_DRAIN_TIMEOUT_MS }
-fn default_fairness_quantum() -> usize { DEFAULT_FAIRNESS_QUANTUM }
-fn default_max_fused_items() -> usize { DEFAULT_MAX_FUSED_ITEMS }
+fn default_bind() -> String {
+    DEFAULT_BIND.to_owned()
+}
+fn default_max_connections() -> usize {
+    DEFAULT_MAX_CONNECTIONS
+}
+fn default_max_header_bytes() -> usize {
+    DEFAULT_MAX_HEADER_BYTES
+}
+fn default_queue_capacity() -> usize {
+    DEFAULT_QUEUE_CAPACITY
+}
+fn default_io_timeout_ms() -> u64 {
+    DEFAULT_IO_TIMEOUT_MS
+}
+fn default_session_timeout_ms() -> u64 {
+    DEFAULT_SESSION_TIMEOUT_MS
+}
+fn default_drain_timeout_ms() -> u64 {
+    DEFAULT_DRAIN_TIMEOUT_MS
+}
+fn default_fairness_quantum() -> usize {
+    DEFAULT_FAIRNESS_QUANTUM
+}
+fn default_max_fused_items() -> usize {
+    DEFAULT_MAX_FUSED_ITEMS
+}
 
 /// Host-only transport controls. They never enter portable inference crates.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -133,11 +151,16 @@ pub struct DeploymentConfig {
     pub require_forwarded_https: bool,
 }
 
-fn default_true() -> bool { true }
+fn default_true() -> bool {
+    true
+}
 
 impl Default for DeploymentConfig {
     fn default() -> Self {
-        Self { mode: DeploymentMode::Loopback, require_forwarded_https: true }
+        Self {
+            mode: DeploymentMode::Loopback,
+            require_forwarded_https: true,
+        }
     }
 }
 
@@ -215,7 +238,9 @@ impl ServerLifecycle {
         }
     }
 
-    fn is_ready(&self) -> bool { self.phase() == LifecyclePhase::Ready }
+    fn is_ready(&self) -> bool {
+        self.phase() == LifecyclePhase::Ready
+    }
 
     fn begin_drain(&self) {
         let _ = self.0.compare_exchange(
@@ -227,7 +252,8 @@ impl ServerLifecycle {
     }
 
     fn mark_stopped(&self) {
-        self.0.store(LifecyclePhase::Stopped as u8, Ordering::Release);
+        self.0
+            .store(LifecyclePhase::Stopped as u8, Ordering::Release);
     }
 }
 
@@ -236,9 +262,15 @@ impl ServerLifecycle {
 pub struct ShutdownToken(Arc<AtomicBool>);
 
 impl ShutdownToken {
-    pub fn new() -> Self { Self::default() }
-    pub fn request(&self) { self.0.store(true, Ordering::Release); }
-    pub fn is_requested(&self) -> bool { self.0.load(Ordering::Acquire) }
+    pub fn new() -> Self {
+        Self::default()
+    }
+    pub fn request(&self) {
+        self.0.store(true, Ordering::Release);
+    }
+    pub fn is_requested(&self) -> bool {
+        self.0.load(Ordering::Acquire)
+    }
 }
 
 #[derive(Default)]
@@ -262,7 +294,9 @@ struct ServerMetrics(Arc<MetricsInner>);
 impl ServerMetrics {
     fn record_submit(&self, requests: usize) {
         self.0.submitted_jobs.fetch_add(1, Ordering::Relaxed);
-        self.0.submitted_requests.fetch_add(requests, Ordering::Relaxed);
+        self.0
+            .submitted_requests
+            .fetch_add(requests, Ordering::Relaxed);
         let current = self.0.inflight_jobs.fetch_add(1, Ordering::AcqRel) + 1;
         update_high_water(&self.0.inflight_high_water, current);
     }
@@ -274,7 +308,9 @@ impl ServerMetrics {
 
     fn record_complete(&self, requests: usize) {
         self.0.completed_jobs.fetch_add(1, Ordering::Relaxed);
-        self.0.completed_requests.fetch_add(requests, Ordering::Relaxed);
+        self.0
+            .completed_requests
+            .fetch_add(requests, Ordering::Relaxed);
         self.0.inflight_jobs.fetch_sub(1, Ordering::AcqRel);
     }
 
@@ -306,7 +342,8 @@ impl ServerMetrics {
 fn update_high_water(target: &AtomicUsize, candidate: usize) {
     let mut current = target.load(Ordering::Acquire);
     while candidate > current {
-        match target.compare_exchange_weak(current, candidate, Ordering::AcqRel, Ordering::Acquire) {
+        match target.compare_exchange_weak(current, candidate, Ordering::AcqRel, Ordering::Acquire)
+        {
             Ok(_) => break,
             Err(actual) => current = actual,
         }
@@ -336,7 +373,10 @@ impl JobControl {
         let deadline = Instant::now()
             .checked_add(timeout)
             .ok_or_else(|| ServerError::InvalidConfig("request timeout is too large".to_owned()))?;
-        Ok(Self { cancelled: Arc::new(AtomicBool::new(false)), deadline })
+        Ok(Self {
+            cancelled: Arc::new(AtomicBool::new(false)),
+            deadline,
+        })
     }
 
     fn cancel(&self) {
@@ -525,18 +565,23 @@ impl SessionBroker {
             reply,
             control: control.clone(),
         };
-        self.sender.try_send(WorkerCommand::Submit(job)).map_err(|error| {
-            self.metrics.record_rejected();
-            match error {
-                mpsc::TrySendError::Full(_) => ServerError::Busy,
-                mpsc::TrySendError::Disconnected(_) => ServerError::SessionUnavailable,
-            }
-        })?;
+        self.sender
+            .try_send(WorkerCommand::Submit(job))
+            .map_err(|error| {
+                self.metrics.record_rejected();
+                match error {
+                    mpsc::TrySendError::Full(_) => ServerError::Busy,
+                    mpsc::TrySendError::Disconnected(_) => ServerError::SessionUnavailable,
+                }
+            })?;
         match receiver.recv_timeout(timeout) {
             Ok(result) => result.map_err(map_worker_failure),
             Err(mpsc::RecvTimeoutError::Timeout) => {
                 control.cancel();
-                self.metrics.0.caller_deadlines.fetch_add(1, Ordering::Relaxed);
+                self.metrics
+                    .0
+                    .caller_deadlines
+                    .fetch_add(1, Ordering::Relaxed);
                 Err(ServerError::RequestDeadline)
             }
             Err(mpsc::RecvTimeoutError::Disconnected) => Err(ServerError::SessionUnavailable),
@@ -599,9 +644,14 @@ fn run_scheduler<E>(
             }
         }
 
-        let Some(mut job) = pending.pop_front() else { continue };
+        let Some(mut job) = pending.pop_front() else {
+            continue;
+        };
         if job.control.is_cancelled() {
-            metrics.0.cancelled_before_execution.fetch_add(job.remaining(), Ordering::Relaxed);
+            metrics
+                .0
+                .cancelled_before_execution
+                .fetch_add(job.remaining(), Ordering::Relaxed);
             metrics.record_failed();
             let _ = job.reply.send(Err(WorkerFailure {
                 code: "REQUEST_CANCELLED".to_owned(),
@@ -610,7 +660,10 @@ fn run_scheduler<E>(
             continue;
         }
         if job.control.deadline_expired() {
-            metrics.0.cancelled_before_execution.fetch_add(job.remaining(), Ordering::Relaxed);
+            metrics
+                .0
+                .cancelled_before_execution
+                .fetch_add(job.remaining(), Ordering::Relaxed);
             metrics.record_failed();
             let _ = job.reply.send(Err(WorkerFailure {
                 code: "REQUEST_DEADLINE_EXCEEDED".to_owned(),
@@ -692,10 +745,9 @@ fn run_scheduler<E>(
                         "REQUEST_DEADLINE_EXCEEDED".to_owned(),
                         "request deadline expired before the next scheduler turn".to_owned(),
                     ),
-                    TurnError::Contract(error) => (
-                        "EXECUTION_CONTRACT_ERROR".to_owned(),
-                        error.to_string(),
-                    ),
+                    TurnError::Contract(error) => {
+                        ("EXECUTION_CONTRACT_ERROR".to_owned(), error.to_string())
+                    }
                     TurnError::Executor(error) => (error.code().to_owned(), error.to_string()),
                 };
                 metrics.record_failed();
@@ -717,11 +769,17 @@ impl ServerApp {
     pub fn open(config: &ServerConfig) -> Result<Self, ServerError> {
         config.validate()?;
         let broker = SessionBroker::start(config.load.clone(), &config.transport)?;
-        Ok(Self { broker, limits: config.limits, lifecycle: ServerLifecycle::default() })
+        Ok(Self {
+            broker,
+            limits: config.limits,
+            lifecycle: ServerLifecycle::default(),
+        })
     }
 
     /// Stop admitting new inference work while allowing already-admitted jobs to finish.
-    pub fn begin_drain(&self) { self.lifecycle.begin_drain(); }
+    pub fn begin_drain(&self) {
+        self.lifecycle.begin_drain();
+    }
 
     pub fn handle(&self, method: &str, path: &str, body: &str) -> HttpResponse {
         self.handle_with_timeout(method, path, body, None)
@@ -750,30 +808,47 @@ impl ServerApp {
         timeout: Option<Duration>,
     ) -> Result<HttpResponse, ServerError> {
         match command {
-            ServerCommand::Health => Ok(HttpResponse::json(200, json!({
-                "status": "ok",
-                "lifecycle": self.lifecycle.phase().as_str(),
-                "_turbojev": {"contract": "turbojev.server-health.v1"}
-            }).to_string())),
+            ServerCommand::Health => Ok(HttpResponse::json(
+                200,
+                json!({
+                    "status": "ok",
+                    "lifecycle": self.lifecycle.phase().as_str(),
+                    "_turbojev": {"contract": "turbojev.server-health.v1"}
+                })
+                .to_string(),
+            )),
             ServerCommand::Ready => {
                 let ready = self.lifecycle.is_ready();
-                Ok(HttpResponse::json(if ready { 200 } else { 503 }, json!({
-                    "status": if ready { "ready" } else { "not-ready" },
-                    "lifecycle": self.lifecycle.phase().as_str(),
-                    "_turbojev": {"contract": "turbojev.server-readiness.v1"}
-                }).to_string()))
+                Ok(HttpResponse::json(
+                    if ready { 200 } else { 503 },
+                    json!({
+                        "status": if ready { "ready" } else { "not-ready" },
+                        "lifecycle": self.lifecycle.phase().as_str(),
+                        "_turbojev": {"contract": "turbojev.server-readiness.v1"}
+                    })
+                    .to_string(),
+                ))
             }
             ServerCommand::Models => {
                 let model = self.broker.info.as_ref().clone();
-                Ok(HttpResponse::json(200, json!({
-                    "object": "list",
-                    "data": [model],
-                    "_turbojev": {"contract": "turbojev.server-models.v1"}
-                }).to_string()))
+                Ok(HttpResponse::json(
+                    200,
+                    json!({
+                        "object": "list",
+                        "data": [model],
+                        "_turbojev": {"contract": "turbojev.server-models.v1"}
+                    })
+                    .to_string(),
+                ))
             }
-            ServerCommand::Metrics => Ok(HttpResponse::json(200, self.broker.metrics_json(self.lifecycle.phase()))),
+            ServerCommand::Metrics => Ok(HttpResponse::json(
+                200,
+                self.broker.metrics_json(self.lifecycle.phase()),
+            )),
             ServerCommand::Evaluate { profile, request } => {
-                if !self.lifecycle.is_ready() { return Err(ServerError::Draining); }
+                if !self.lifecycle.is_ready() {
+                    return Err(ServerError::Draining);
+                }
                 let result = self.broker.evaluate(vec![request.clone()], timeout)?;
                 let response = result
                     .responses
@@ -785,7 +860,9 @@ impl ServerApp {
                 Ok(HttpResponse::json(200, body))
             }
             ServerCommand::Batch { profile, requests } => {
-                if !self.lifecycle.is_ready() { return Err(ServerError::Draining); }
+                if !self.lifecycle.is_ready() {
+                    return Err(ServerError::Draining);
+                }
                 let result = self.broker.evaluate(requests.clone(), timeout)?;
                 let body = encode_batch_response_with_execution(
                     profile,
@@ -813,7 +890,10 @@ impl HttpResponse {
             status,
             body,
             headers: BTreeMap::from([
-                ("Content-Type".to_owned(), "application/json; charset=utf-8".to_owned()),
+                (
+                    "Content-Type".to_owned(),
+                    "application/json; charset=utf-8".to_owned(),
+                ),
                 ("Cache-Control".to_owned(), "no-store".to_owned()),
             ]),
         }
@@ -865,10 +945,13 @@ impl HttpServer {
                 Ok((mut stream, _peer)) => {
                     if !try_acquire(&active, config.transport.max_connections) {
                         let response = response_with_context(
-                            HttpResponse::json(503, stable_server_error(
-                                "SERVER_BUSY",
-                                "maximum concurrent connections reached",
-                            )),
+                            HttpResponse::json(
+                                503,
+                                stable_server_error(
+                                    "SERVER_BUSY",
+                                    "maximum concurrent connections reached",
+                                ),
+                            ),
                             &next_request_id(),
                             config.deployment.mode,
                         );
@@ -882,7 +965,8 @@ impl HttpServer {
                         .name("turbojev-http".to_owned())
                         .spawn(move || {
                             let _guard = ConnectionGuard(active_for_thread);
-                            let _ = handle_connection(&mut stream, &config_for_thread, &app_for_thread);
+                            let _ =
+                                handle_connection(&mut stream, &config_for_thread, &app_for_thread);
                         })
                         .map_err(ServerError::Spawn)?;
                 }
@@ -922,7 +1006,12 @@ fn try_acquire(active: &AtomicUsize, maximum: usize) -> bool {
         if current >= maximum {
             return false;
         }
-        match active.compare_exchange_weak(current, current + 1, Ordering::AcqRel, Ordering::Acquire) {
+        match active.compare_exchange_weak(
+            current,
+            current + 1,
+            Ordering::AcqRel,
+            Ordering::Acquire,
+        ) {
             Ok(_) => return true,
             Err(actual) => current = actual,
         }
@@ -934,7 +1023,9 @@ fn next_request_id() -> String {
     format!("tjreq-{sequence:016x}")
 }
 
-fn request_id_from_headers(headers: &BTreeMap<String, String>) -> Result<Option<String>, HttpParseError> {
+fn request_id_from_headers(
+    headers: &BTreeMap<String, String>,
+) -> Result<Option<String>, HttpParseError> {
     let value = headers
         .get(TURBOJEV_REQUEST_ID_HEADER)
         .or_else(|| headers.get(GENERIC_REQUEST_ID_HEADER));
@@ -976,10 +1067,9 @@ fn response_with_context(
     request_id: &str,
     deployment_mode: DeploymentMode,
 ) -> HttpResponse {
-    response.headers.insert(
-        "X-TurboJev-Request-Id".to_owned(),
-        request_id.to_owned(),
-    );
+    response
+        .headers
+        .insert("X-TurboJev-Request-Id".to_owned(), request_id.to_owned());
     response.headers.insert(
         "X-TurboJev-Deployment-Mode".to_owned(),
         deployment_mode.as_str().to_owned(),
@@ -987,7 +1077,11 @@ fn response_with_context(
     response
 }
 
-fn handle_connection(stream: &mut TcpStream, config: &ServerConfig, app: &ServerApp) -> Result<(), ServerError> {
+fn handle_connection(
+    stream: &mut TcpStream,
+    config: &ServerConfig,
+    app: &ServerApp,
+) -> Result<(), ServerError> {
     let timeout = Some(Duration::from_millis(config.transport.io_timeout_ms));
     stream.set_read_timeout(timeout).map_err(ServerError::Io)?;
     stream.set_write_timeout(timeout).map_err(ServerError::Io)?;
@@ -1000,7 +1094,10 @@ fn handle_connection(stream: &mut TcpStream, config: &ServerConfig, app: &Server
         Ok(request) => request,
         Err(error) => {
             let response = response_with_context(
-                HttpResponse::json(error.status(), stable_server_error(error.code(), &error.to_string())),
+                HttpResponse::json(
+                    error.status(),
+                    stable_server_error(error.code(), &error.to_string()),
+                ),
                 &fallback_request_id,
                 config.deployment.mode,
             );
@@ -1012,7 +1109,10 @@ fn handle_connection(stream: &mut TcpStream, config: &ServerConfig, app: &Server
         Ok(None) => fallback_request_id,
         Err(error) => {
             let response = response_with_context(
-                HttpResponse::json(error.status(), stable_server_error(error.code(), &error.to_string())),
+                HttpResponse::json(
+                    error.status(),
+                    stable_server_error(error.code(), &error.to_string()),
+                ),
                 &fallback_request_id,
                 config.deployment.mode,
             );
@@ -1021,29 +1121,30 @@ fn handle_connection(stream: &mut TcpStream, config: &ServerConfig, app: &Server
     };
     if let Err(error) = validate_deployment_headers(&request, &config.deployment) {
         let response = response_with_context(
-            HttpResponse::json(error.status(), stable_server_error(error.code(), &error.to_string())),
+            HttpResponse::json(
+                error.status(),
+                stable_server_error(error.code(), &error.to_string()),
+            ),
             &request_id,
             config.deployment.mode,
         );
         return write_http_response(stream, &response).map_err(ServerError::Io);
     }
-    let request_timeout = match request_timeout_from_headers(
-        &request.headers,
-        config.transport.session_timeout_ms,
-    ) {
-        Ok(timeout) => timeout,
-        Err(error) => {
-            let response = response_with_context(
-                HttpResponse::json(
-                    error.status(),
-                    stable_server_error(error.code(), &error.to_string()),
-                ),
-                &request_id,
-                config.deployment.mode,
-            );
-            return write_http_response(stream, &response).map_err(ServerError::Io);
-        }
-    };
+    let request_timeout =
+        match request_timeout_from_headers(&request.headers, config.transport.session_timeout_ms) {
+            Ok(timeout) => timeout,
+            Err(error) => {
+                let response = response_with_context(
+                    HttpResponse::json(
+                        error.status(),
+                        stable_server_error(error.code(), &error.to_string()),
+                    ),
+                    &request_id,
+                    config.deployment.mode,
+                );
+                return write_http_response(stream, &response).map_err(ServerError::Io);
+            }
+        };
     let response = response_with_context(
         app.handle_with_timeout(
             &request.method,
@@ -1073,7 +1174,11 @@ fn request_timeout_from_headers(
     Ok(Some(Duration::from_millis(requested.min(server_max_ms))))
 }
 
-fn read_http_request<R: Read>(reader: &mut R, max_header: usize, max_body: usize) -> Result<ParsedHttpRequest, HttpParseError> {
+fn read_http_request<R: Read>(
+    reader: &mut R,
+    max_header: usize,
+    max_body: usize,
+) -> Result<ParsedHttpRequest, HttpParseError> {
     let mut buffer = Vec::new();
     let header_end = loop {
         if buffer.len() > max_header {
@@ -1090,13 +1195,20 @@ fn read_http_request<R: Read>(reader: &mut R, max_header: usize, max_body: usize
         buffer.extend_from_slice(&chunk[..read]);
     };
 
-    let header_text = std::str::from_utf8(&buffer[..header_end]).map_err(|_| HttpParseError::InvalidHeaders)?;
+    let header_text =
+        std::str::from_utf8(&buffer[..header_end]).map_err(|_| HttpParseError::InvalidHeaders)?;
     let mut lines = header_text.split("\r\n");
     let request_line = lines.next().ok_or(HttpParseError::InvalidRequestLine)?;
     let mut request_parts = request_line.split_whitespace();
-    let method = request_parts.next().ok_or(HttpParseError::InvalidRequestLine)?;
-    let path = request_parts.next().ok_or(HttpParseError::InvalidRequestLine)?;
-    let version = request_parts.next().ok_or(HttpParseError::InvalidRequestLine)?;
+    let method = request_parts
+        .next()
+        .ok_or(HttpParseError::InvalidRequestLine)?;
+    let path = request_parts
+        .next()
+        .ok_or(HttpParseError::InvalidRequestLine)?;
+    let version = request_parts
+        .next()
+        .ok_or(HttpParseError::InvalidRequestLine)?;
     if request_parts.next().is_some() || !matches!(version, "HTTP/1.1" | "HTTP/1.0") {
         return Err(HttpParseError::InvalidRequestLine);
     }
@@ -1107,7 +1219,9 @@ fn read_http_request<R: Read>(reader: &mut R, max_header: usize, max_body: usize
     let mut content_length = None;
     let mut headers = BTreeMap::new();
     for line in lines {
-        if line.is_empty() { continue; }
+        if line.is_empty() {
+            continue;
+        }
         let (name, value) = line.split_once(':').ok_or(HttpParseError::InvalidHeaders)?;
         let name = name.trim().to_ascii_lowercase();
         let value = value.trim();
@@ -1118,7 +1232,11 @@ fn read_http_request<R: Read>(reader: &mut R, max_header: usize, max_body: usize
             if content_length.is_some() {
                 return Err(HttpParseError::DuplicateContentLength);
             }
-            content_length = Some(value.parse::<usize>().map_err(|_| HttpParseError::InvalidContentLength)?);
+            content_length = Some(
+                value
+                    .parse::<usize>()
+                    .map_err(|_| HttpParseError::InvalidContentLength)?,
+            );
         }
         headers.insert(name, value.to_owned());
     }
@@ -1126,6 +1244,8 @@ fn read_http_request<R: Read>(reader: &mut R, max_header: usize, max_body: usize
     if content_length > max_body {
         return Err(HttpParseError::BodyTooLarge);
     }
+    let method = method.to_owned();
+    let path = path.to_owned();
     let body_start = header_end + 4;
     while buffer.len() < body_start + content_length {
         let remaining = body_start + content_length - buffer.len();
@@ -1140,8 +1260,8 @@ fn read_http_request<R: Read>(reader: &mut R, max_header: usize, max_body: usize
         .map_err(|_| HttpParseError::InvalidBodyEncoding)?
         .to_owned();
     Ok(ParsedHttpRequest {
-        method: method.to_owned(),
-        path: path.to_owned(),
+        method,
+        path,
         headers,
         body,
     })
@@ -1157,7 +1277,11 @@ fn write_http_response<W: Write>(writer: &mut W, response: &HttpResponse) -> std
     for (name, value) in &response.headers {
         write!(writer, "{}: {}\r\n", name, value)?;
     }
-    write!(writer, "Content-Length: {}\r\nConnection: close\r\n\r\n", response.body.len())?;
+    write!(
+        writer,
+        "Content-Length: {}\r\nConnection: close\r\n\r\n",
+        response.body.len()
+    )?;
     writer.write_all(response.body.as_bytes())?;
     writer.flush()
 }
@@ -1183,14 +1307,18 @@ fn protocol_error_response(error: &ProtocolError) -> HttpResponse {
 }
 
 fn server_error_response(error: &ServerError) -> HttpResponse {
-    HttpResponse::json(error.status(), stable_server_error(error.code(), &error.to_string()))
+    HttpResponse::json(
+        error.status(),
+        stable_server_error(error.code(), &error.to_string()),
+    )
 }
 
 fn stable_server_error(code: &str, message: &str) -> String {
     json!({
         "error": {"code": code, "message": message},
         "_turbojev": {"contract": SERVER_ERROR_CONTRACT}
-    }).to_string()
+    })
+    .to_string()
 }
 
 #[derive(Debug, Error)]
@@ -1295,7 +1423,10 @@ impl ServerError {
         match self {
             Self::InvalidConfig(_) | Self::Protocol(_) => 400,
             Self::Busy | Self::Draining | Self::SessionUnavailable => 503,
-            Self::SessionTimeout | Self::DrainTimeout | Self::RequestDeadline | Self::RequestCancelled => 504,
+            Self::SessionTimeout
+            | Self::DrainTimeout
+            | Self::RequestDeadline
+            | Self::RequestCancelled => 504,
             Self::Spawn(_) | Self::Io(_) | Self::Session { .. } | Self::EmptyWorkerResponse => 500,
         }
     }
@@ -1371,10 +1502,7 @@ mod tests {
 
     #[test]
     fn timeout_header_is_parsed_and_clamped() {
-        let headers = BTreeMap::from([(
-            REQUEST_TIMEOUT_HEADER.to_owned(),
-            "5000".to_owned(),
-        )]);
+        let headers = BTreeMap::from([(REQUEST_TIMEOUT_HEADER.to_owned(), "5000".to_owned())]);
         assert_eq!(
             request_timeout_from_headers(&headers, 1000).unwrap(),
             Some(Duration::from_millis(1000)),
@@ -1399,10 +1527,7 @@ mod tests {
         let response = app.handle("POST", "/v1/batch", body);
         assert_eq!(response.status, 200);
         let value: Value = serde_json::from_str(&response.body).unwrap();
-        assert_eq!(
-            value["_turbojev"]["crossRequestExecution"],
-            "fused-batch"
-        );
+        assert_eq!(value["_turbojev"]["crossRequestExecution"], "fused-batch");
     }
 
     #[test]
@@ -1428,7 +1553,10 @@ mod tests {
             GENERIC_REQUEST_ID_HEADER.to_owned(),
             "edge-req:abc_123".to_owned(),
         )]);
-        assert_eq!(request_id_from_headers(&safe).unwrap().as_deref(), Some("edge-req:abc_123"));
+        assert_eq!(
+            request_id_from_headers(&safe).unwrap().as_deref(),
+            Some("edge-req:abc_123")
+        );
     }
 
     #[test]
@@ -1456,7 +1584,10 @@ mod tests {
             body: request.body.clone(),
         };
         assert!(validate_deployment_headers(&secure, &deployment).is_ok());
-        let probe = ParsedHttpRequest { path: "/readyz".to_owned(), ..request };
+        let probe = ParsedHttpRequest {
+            path: "/readyz".to_owned(),
+            ..request
+        };
         assert!(validate_deployment_headers(&probe, &deployment).is_ok());
     }
 

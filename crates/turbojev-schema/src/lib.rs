@@ -80,10 +80,7 @@ pub enum Question {
 
 impl Question {
     /// Construct a choice question.
-    pub fn choice(
-        instructions: impl Into<String>,
-        criteria: IndexMap<String, String>,
-    ) -> Self {
+    pub fn choice(instructions: impl Into<String>, criteria: IndexMap<String, String>) -> Self {
         Self::Choice {
             instructions: instructions.into(),
             criteria,
@@ -308,11 +305,7 @@ fn validate_identifier(kind: &'static str, value: &str) -> Result<(), SchemaErro
     }
 }
 
-fn validate_nonempty(
-    field: &'static str,
-    question: &str,
-    value: &str,
-) -> Result<(), SchemaError> {
+fn validate_nonempty(field: &'static str, question: &str, value: &str) -> Result<(), SchemaError> {
     if value.trim().is_empty() {
         Err(SchemaError::EmptyText {
             field,

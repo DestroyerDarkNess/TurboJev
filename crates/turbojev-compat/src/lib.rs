@@ -110,7 +110,10 @@ fn request_to_profile(profile: WireProfile, request: &EvaluationRequest) -> Valu
     let mut questions = Map::new();
     for (id, question) in &request.questions {
         let value = match question {
-            Question::Choice { instructions, criteria } => json!({
+            Question::Choice {
+                instructions,
+                criteria,
+            } => json!({
                 "type": "choice",
                 "instructions": instructions,
                 "criteria": criteria,
@@ -119,7 +122,10 @@ fn request_to_profile(profile: WireProfile, request: &EvaluationRequest) -> Valu
                 "type": if profile == WireProfile::AiSdkEvaluationV4 { "boolean" } else { "noul" },
                 "instructions": instructions,
             }),
-            Question::Score { instructions, criteria } => json!({
+            Question::Score {
+                instructions,
+                criteria,
+            } => json!({
                 "type": "score",
                 "instructions": instructions,
                 "criteria": criteria,
@@ -159,7 +165,11 @@ fn typesafe_response(response: &EvaluationResponse) -> Value {
 
 fn typesafe_answer(answer: &Answer) -> Value {
     match answer {
-        Answer::Choice { choice, confidence, probabilities } => json!({
+        Answer::Choice {
+            choice,
+            confidence,
+            probabilities,
+        } => json!({
             "type": "choice",
             "choice": choice,
             "confidence": confidence,
@@ -169,7 +179,12 @@ fn typesafe_answer(answer: &Answer) -> Value {
             "type": "noul",
             "noul": noul,
         }),
-        Answer::Score { score, confidence, probabilities, legend } => json!({
+        Answer::Score {
+            score,
+            confidence,
+            probabilities,
+            legend,
+        } => json!({
             "type": "score",
             "score": score,
             "confidence": confidence,
@@ -192,14 +207,29 @@ fn ai_sdk_response(
             .get(id)
             .ok_or_else(|| CompatError::MissingAnswer(id.clone()))?;
         let value = match (question, answer) {
-            (Question::Choice { .. }, Answer::Choice { choice, confidence: c, probabilities }) => {
+            (
+                Question::Choice { .. },
+                Answer::Choice {
+                    choice,
+                    confidence: c,
+                    probabilities,
+                },
+            ) => {
                 confidence.insert(id.clone(), json!(c));
                 json!({ "choice": choice, "probabilities": probabilities })
             }
             (Question::Noul { .. }, Answer::Noul { noul }) => {
                 json!({ "probability": noul })
             }
-            (Question::Score { .. }, Answer::Score { score, confidence: c, probabilities, .. }) => {
+            (
+                Question::Score { .. },
+                Answer::Score {
+                    score,
+                    confidence: c,
+                    probabilities,
+                    ..
+                },
+            ) => {
                 confidence.insert(id.clone(), json!(c));
                 json!({ "score": score, "probabilities": probabilities })
             }
@@ -337,12 +367,23 @@ mod tests {
                     legend: indexmap!{"0".into()=>"bajo".into(),"1".into()=>"alto".into()},
                 },
             },
-            usage: Usage { decisions: 3, input_tokens: Some(42), generated_tokens: 0 },
+            usage: Usage {
+                decisions: 3,
+                input_tokens: Some(42),
+                generated_tokens: 0,
+            },
             metadata: EngineMetadata {
-                backend: "fixture".into(), calibration: "softmax".into(), calibrated: false,
+                backend: "fixture".into(),
+                calibration: "softmax".into(),
+                calibrated: false,
                 confidence_method: "selected-candidate-probability".into(),
                 contract: "turbojev.core.v4".into(),
-                execution: ExecutionMetadata { prefix_reuse:"none".into(), scheduling:"serial".into(), parallel_task_limit: 1, projection:"full-vocabulary".into() },
+                execution: ExecutionMetadata {
+                    prefix_reuse: "none".into(),
+                    scheduling: "serial".into(),
+                    parallel_task_limit: 1,
+                    projection: "full-vocabulary".into(),
+                },
             },
         }
     }
@@ -351,14 +392,20 @@ mod tests {
     fn ai_sdk_boolean_round_trip_uses_boolean_request_and_probability_answer() {
         let req = request();
         let encoded = encode_request(WireProfile::AiSdkEvaluationV4, &req).unwrap();
-        assert!(encoded.contains("\\\"type\\\":\\\"boolean\\\"") || encoded.contains("\"type\":\"boolean\""));
+        assert!(
+            encoded.contains("\\\"type\\\":\\\"boolean\\\"")
+                || encoded.contains("\"type\":\"boolean\"")
+        );
         let decoded = decode_request(WireProfile::AiSdkEvaluationV4, &encoded).unwrap();
         assert_eq!(decoded, req);
 
         let output = encode_response(WireProfile::AiSdkEvaluationV4, &req, &response()).unwrap();
         let value: Value = serde_json::from_str(&output).unwrap();
         assert_eq!(value["answers"]["ok"]["probability"], json!(0.8));
-        assert_eq!(value["providerMetadata"]["typesafe"]["confidence"]["route"], json!(0.9));
+        assert_eq!(
+            value["providerMetadata"]["typesafe"]["confidence"]["route"],
+            json!(0.9)
+        );
     }
 
     #[test]

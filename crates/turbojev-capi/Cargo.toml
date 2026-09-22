@@ -19,8 +19,8 @@ llamacpp = ["turbojev-host-native/llamacpp"]
 turbojev-host-native = { path = "../turbojev-host-native" }
 
 [lints.rust]
-rust_2018_idioms = "deny"
+rust_2018_idioms = { level = "deny", priority = -1 }
 unsafe_op_in_unsafe_fn = "deny"
 
 [lints.clippy]
-all = "warn"
+all = { level = "warn", priority = -1 }

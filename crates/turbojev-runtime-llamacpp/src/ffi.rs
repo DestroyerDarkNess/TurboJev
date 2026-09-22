@@ -196,15 +196,9 @@ impl FfiLlamaCpp {
             )));
         }
 
-        let raw = unsafe {
-            tj_llama_open(
-                path.as_ptr(),
-                &config,
-                error.as_mut_ptr(),
-                error.len(),
-            )
-        };
-        let handle = NonNull::new(raw).ok_or_else(|| native_error(&error, "failed to open model"))?;
+        let raw = unsafe { tj_llama_open(path.as_ptr(), &config, error.as_mut_ptr(), error.len()) };
+        let handle =
+            NonNull::new(raw).ok_or_else(|| native_error(&error, "failed to open model"))?;
         let native_parallel_tasks = unsafe { tj_llama_max_parallel_tasks(handle.as_ptr()) };
         let native_multi_root_tasks = unsafe { tj_llama_max_multi_root_tasks(handle.as_ptr()) };
         let mut runtime = Self {
@@ -229,7 +223,6 @@ impl FfiLlamaCpp {
         self.estimated_parallel_task_bytes = (bytes > 0).then_some(bytes);
         self
     }
-
 
     /// Enable the experimental llama.cpp multi-root fused path for this loaded
     /// runtime. It is disabled by default because conformance must be proven on
@@ -382,8 +375,9 @@ impl LlamaCppApi for FfiLlamaCpp {
             return Err(native_error(&error, "token decode failed"));
         }
         bytes.truncate(written as usize);
-        String::from_utf8(bytes)
-            .map_err(|error| LlamaCppError::Tokenization(format!("decoded bytes are not UTF-8: {error}")))
+        String::from_utf8(bytes).map_err(|error| {
+            LlamaCppError::Tokenization(format!("decoded bytes are not UTF-8: {error}"))
+        })
     }
 
     fn score_next_token(
@@ -392,7 +386,9 @@ impl LlamaCppApi for FfiLlamaCpp {
         candidate_token_ids: &[TokenId],
     ) -> Result<Vec<f32>, LlamaCppError> {
         if prompt_tokens.is_empty() {
-            return Err(LlamaCppError::InvalidInput("prompt tokens are empty".into()));
+            return Err(LlamaCppError::InvalidInput(
+                "prompt tokens are empty".into(),
+            ));
         }
         if candidate_token_ids.len() < 2 {
             return Err(LlamaCppError::InvalidInput(
@@ -456,7 +452,9 @@ impl LlamaCppApi for FfiLlamaCpp {
     }
 
     fn max_multi_root_tasks(&self) -> Option<usize> {
-        self.multi_root_enabled.then_some(self.max_multi_root_tasks).flatten()
+        self.multi_root_enabled
+            .then_some(self.max_multi_root_tasks)
+            .flatten()
     }
 
     fn max_multi_root_tokens(&self) -> Option<usize> {
@@ -638,7 +636,11 @@ impl LlamaCppApi for FfiLlamaCpp {
         let (flat, offsets) = flatten_sequences(candidate_sequences)?;
         let mut scores = vec![0.0f32; candidate_sequences.len()];
         let mut error = vec![0 as c_char; ERROR_CAPACITY];
-        let suffix_ptr = if suffix_tokens.is_empty() { std::ptr::null() } else { suffix_tokens.as_ptr() };
+        let suffix_ptr = if suffix_tokens.is_empty() {
+            std::ptr::null()
+        } else {
+            suffix_tokens.as_ptr()
+        };
         let status = unsafe {
             tj_llama_score_suffix_sequences(
                 self.handle.as_ptr(),
@@ -653,7 +655,10 @@ impl LlamaCppApi for FfiLlamaCpp {
             )
         };
         if status != 0 {
-            return Err(native_error(&error, "shared-prefix sequence scoring failed"));
+            return Err(native_error(
+                &error,
+                "shared-prefix sequence scoring failed",
+            ));
         }
         Ok(scores)
     }
@@ -716,7 +721,10 @@ impl LlamaCppApi for FfiLlamaCpp {
             )
         };
         if status != 0 {
-            return Err(native_error(&error, "parallel shared-suffix scoring failed"));
+            return Err(native_error(
+                &error,
+                "parallel shared-suffix scoring failed",
+            ));
         }
 
         let mut rows = Vec::with_capacity(tasks.len());
@@ -760,8 +768,7 @@ fn flatten_sequences(
 fn optional_c_string(value: Option<&str>) -> Result<Option<CString>, LlamaCppError> {
     value
         .map(|value| {
-            CString::new(value)
-                .map_err(|_| LlamaCppError::InvalidInput("text contains NUL".into()))
+            CString::new(value).map_err(|_| LlamaCppError::InvalidInput("text contains NUL".into()))
         })
         .transpose()
 }
@@ -771,7 +778,9 @@ fn native_error(buffer: &[c_char], fallback: &str) -> LlamaCppError {
         return LlamaCppError::Native(fallback.to_owned());
     }
     let ptr = buffer.as_ptr();
-    let message = unsafe { CStr::from_ptr(ptr) }.to_string_lossy().into_owned();
+    let message = unsafe { CStr::from_ptr(ptr) }
+        .to_string_lossy()
+        .into_owned();
     if message.is_empty() {
         LlamaCppError::Native(fallback.to_owned())
     } else {

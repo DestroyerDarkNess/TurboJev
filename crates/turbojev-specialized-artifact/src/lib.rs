@@ -61,10 +61,14 @@ impl CodebookDiscoveryConfig {
     pub fn validate(&self) -> Result<(), ArtifactError> {
         require_text("codebook.profile", &self.profile)?;
         if self.max_tokens_per_code == 0 {
-            return Err(ArtifactError::InvalidPositive("codebook.max_tokens_per_code"));
+            return Err(ArtifactError::InvalidPositive(
+                "codebook.max_tokens_per_code",
+            ));
         }
         if self.candidate_set_attempts == 0 {
-            return Err(ArtifactError::InvalidPositive("codebook.candidate_set_attempts"));
+            return Err(ArtifactError::InvalidPositive(
+                "codebook.candidate_set_attempts",
+            ));
         }
         Ok(())
     }
@@ -117,11 +121,9 @@ where
     }
 
     fn discover(&self, request: CandidateCodeRequest<'_>) -> Result<Vec<String>, ArtifactError> {
-        let symbol_sets = candidate_symbol_sets(
-            request.required_codes,
-            self.config.candidate_set_attempts,
-        )
-        .map_err(|error| ArtifactError::Codebook(error.to_string()))?;
+        let symbol_sets =
+            candidate_symbol_sets(request.required_codes, self.config.candidate_set_attempts)
+                .map_err(|error| ArtifactError::Codebook(error.to_string()))?;
 
         for symbols in symbol_sets {
             let document = compile_document(request.evidence, request.task, &symbols)
@@ -282,7 +284,10 @@ impl ModelBoundTrainingDataset {
             for (field, value) in [
                 ("record.id", record.id.as_str()),
                 ("record.source_record_id", record.source_record_id.as_str()),
-                ("record.source_example_id", record.source_example_id.as_str()),
+                (
+                    "record.source_example_id",
+                    record.source_example_id.as_str(),
+                ),
                 ("record.question_id", record.question_id.as_str()),
                 ("record.language", record.language.as_str()),
                 ("record.target_key", record.target_key.as_str()),
@@ -408,10 +413,12 @@ where
             .iter()
             .map(|option| option.code.clone())
             .collect::<Vec<_>>();
-        let verified = verify_candidate_boundary(codec, &messages, &symbols, 1)
-            .map_err(|error| ArtifactError::Boundary {
-                record: source.id.clone(),
-                message: error.to_string(),
+        let verified =
+            verify_candidate_boundary(codec, &messages, &symbols, 1).map_err(|error| {
+                ArtifactError::Boundary {
+                    record: source.id.clone(),
+                    message: error.to_string(),
+                }
             })?;
         ensure_single_token_objective(source.id.as_str(), recipe.objective, &verified)?;
 
@@ -516,7 +523,9 @@ where
     require_text("codec.profile", codec.profile())?;
     if let CandidateEncodingPolicy::Profile(expected) = &recipe.candidate_encoding {
         if materialized.candidate_code_profile.as_str() != expected.as_str() {
-            return Err(ArtifactError::ProvenanceMismatch("candidate_encoding.profile"));
+            return Err(ArtifactError::ProvenanceMismatch(
+                "candidate_encoding.profile",
+            ));
         }
     }
     Ok(())
@@ -617,8 +626,7 @@ fn validate_calibration_provenance(
     if profile.model_id.as_deref() != Some(model_id) {
         return Err(ArtifactError::CalibrationMismatch("model_id"));
     }
-    if profile.tokenizer_revision.as_deref()
-        != Some(recipe.base_model.tokenizer_revision.as_str())
+    if profile.tokenizer_revision.as_deref() != Some(recipe.base_model.tokenizer_revision.as_str())
     {
         return Err(ArtifactError::CalibrationMismatch("tokenizer_revision"));
     }
@@ -706,7 +714,9 @@ pub enum ArtifactError {
     Codec(String),
     #[error("candidate-code discovery failed: {0}")]
     Codebook(String),
-    #[error("no exact single-token codebook for {example:?}/{question:?} with {candidates} candidates")]
+    #[error(
+        "no exact single-token codebook for {example:?}/{question:?} with {candidates} candidates"
+    )]
     NoSingleTokenCodebook {
         example: String,
         question: String,
@@ -887,8 +897,8 @@ mod tests {
     #[test]
     fn runtime_compatibility_accepts_exact_specialized_contract() {
         let recipe = recipe();
-        let manifest = build_specialized_manifest(&recipe, "specialized-v1", "sha256:abc", None)
-            .unwrap();
+        let manifest =
+            build_specialized_manifest(&recipe, "specialized-v1", "sha256:abc", None).unwrap();
         validate_runtime_compatibility(
             &manifest,
             &SpecializedRuntimeIdentity {
@@ -924,8 +934,14 @@ mod tests {
             intent: DecisionIntent::Criterion,
             instruction: Some("route?".into()),
             candidates: vec![
-                Candidate { key: "a".into(), description: "A semantic".into() },
-                Candidate { key: "b".into(), description: "B semantic".into() },
+                Candidate {
+                    key: "a".into(),
+                    description: "A semantic".into(),
+                },
+                Candidate {
+                    key: "b".into(),
+                    description: "B semantic".into(),
+                },
             ],
         };
         let codes = provider

@@ -25,8 +25,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         "Which option best matches the supplied evidence?",
     ));
     let backend = llamacpp_backend(renderer, runtime);
-    let jev = TurboJev::new(backend)
-        .with_planning_policy(PlanningPolicy::DeterministicReuse);
+    let jev = TurboJev::new(backend).with_planning_policy(PlanningPolicy::DeterministicReuse);
 
     let request = EvaluationRequest {
         model: None,
@@ -41,7 +40,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     "Which team should handle this request?",
                     [
                         ("billing".to_owned(), "Billing or payment issue".to_owned()),
-                        ("shipping".to_owned(), "Delivery or logistics issue".to_owned()),
+                        (
+                            "shipping".to_owned(),
+                            "Delivery or logistics issue".to_owned(),
+                        ),
                         ("technical".to_owned(), "Technical product issue".to_owned()),
                     ]
                     .into_iter()

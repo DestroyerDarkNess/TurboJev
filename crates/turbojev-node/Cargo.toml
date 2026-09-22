@@ -24,8 +24,8 @@ napi-derive = "=3.0.0"
 napi-build = "=2.2.1"
 
 [lints.rust]
-rust_2018_idioms = "deny"
-unsafe_code = "forbid"
+rust_2018_idioms = { level = "deny", priority = -1 }
+unsafe_code = "deny"
 
 [lints.clippy]
-all = "warn"
+all = { level = "warn", priority = -1 }

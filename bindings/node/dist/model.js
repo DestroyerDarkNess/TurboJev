@@ -3,6 +3,7 @@ import { basename, join, resolve } from "node:path";
 import { pipeline } from "node:stream/promises";
 import { Readable } from "node:stream";
 import { createHash } from "node:crypto";
+import { fileURLToPath } from "node:url";
 function hfUrl(spec) {
     const body = spec.slice(5);
     const parts = body.split("/");
@@ -16,7 +17,7 @@ export async function resolveModel(options) {
     if (source.startsWith("fixture://"))
         return source;
     if (source.startsWith("file://"))
-        return new URL(source).pathname;
+        return fileURLToPath(source);
     if (!source.startsWith("http://") && !source.startsWith("https://") && !source.startsWith("hf://"))
         return resolve(source);
     const url = source.startsWith("hf://") ? hfUrl(source) : source;

@@ -176,16 +176,12 @@ pub fn resolve_route(method: &str, path: &str) -> Result<ServerRoute, ProtocolEr
         "/readyz" => ServerRoute::Ready,
         "/v1/models" => ServerRoute::Models,
         "/v1/server/metrics" => ServerRoute::Metrics,
-        "/v1/evaluate" | "/v1/openrouter/evaluate" => {
-            ServerRoute::Evaluate(ApiProfile::TurboJev)
-        }
+        "/v1/evaluate" | "/v1/openrouter/evaluate" => ServerRoute::Evaluate(ApiProfile::TurboJev),
         "/v1/systemone" => ServerRoute::Evaluate(ApiProfile::TypeSafeSystemOneV1),
         "/v1/ai-sdk/evaluate" | "/v1/vercel/evaluate" => {
             ServerRoute::Evaluate(ApiProfile::AiSdkEvaluationV4)
         }
-        "/v1/batch" | "/v1/openrouter/evaluate/batch" => {
-            ServerRoute::Batch(ApiProfile::TurboJev)
-        }
+        "/v1/batch" | "/v1/openrouter/evaluate/batch" => ServerRoute::Batch(ApiProfile::TurboJev),
         "/v1/systemone/batch" => ServerRoute::Batch(ApiProfile::TypeSafeSystemOneV1),
         "/v1/ai-sdk/evaluate/batch" | "/v1/vercel/evaluate/batch" => {
             ServerRoute::Batch(ApiProfile::AiSdkEvaluationV4)
@@ -270,9 +266,8 @@ pub fn encode_evaluation_response(
     response: &EvaluationResponse,
 ) -> Result<String, ProtocolError> {
     match profile {
-        ApiProfile::TurboJev => {
-            turbojev_wire::encode_response(response).map_err(|error| ProtocolError::Encode(error.to_string()))
-        }
+        ApiProfile::TurboJev => turbojev_wire::encode_response(response)
+            .map_err(|error| ProtocolError::Encode(error.to_string())),
         ApiProfile::TypeSafeSystemOneV1 | ApiProfile::AiSdkEvaluationV4 => {
             turbojev_compat::encode_response(profile.wire_profile(), request, response)
                 .map_err(|error| ProtocolError::Encode(error.to_string()))
@@ -286,12 +281,7 @@ pub fn encode_batch_response(
     requests: &[EvaluationRequest],
     responses: &[EvaluationResponse],
 ) -> Result<String, ProtocolError> {
-    encode_batch_response_with_execution(
-        profile,
-        requests,
-        responses,
-        CrossRequestMode::Serial,
-    )
+    encode_batch_response_with_execution(profile, requests, responses, CrossRequestMode::Serial)
 }
 
 /// Encode an ordered batch while truthfully reporting how independent requests
@@ -383,9 +373,7 @@ impl ProtocolError {
             | Self::DecodeBatch(_)
             | Self::EmptyBatch
             | Self::InvalidBatchItem { .. } => 400,
-            Self::Encode(_)
-            | Self::EncodeJson(_)
-            | Self::ResponseCountMismatch { .. } => 500,
+            Self::Encode(_) | Self::EncodeJson(_) | Self::ResponseCountMismatch { .. } => 500,
         }
     }
 
@@ -447,8 +435,8 @@ mod tests {
 
     #[test]
     fn method_is_rejected_before_body_parsing() {
-        let error = decode_command("GET", "/v1/evaluate", "not-json", ServerLimits::default())
-            .unwrap_err();
+        let error =
+            decode_command("GET", "/v1/evaluate", "not-json", ServerLimits::default()).unwrap_err();
         assert_eq!(error.status(), 405);
         assert_eq!(error.code(), "METHOD_NOT_ALLOWED");
     }

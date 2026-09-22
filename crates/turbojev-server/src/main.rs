@@ -14,14 +14,20 @@ fn main() {
 fn run() -> Result<(), Box<dyn std::error::Error>> {
     let mut args = std::env::args_os().skip(1);
     let first = args.next();
-    if matches!(first.as_deref().and_then(|value| value.to_str()), Some("--help" | "-h")) {
+    if matches!(
+        first.as_deref().and_then(|value| value.to_str()),
+        Some("--help" | "-h")
+    ) {
         println!("Usage: turbojev-server --config <server.json>");
         return Ok(());
     }
     if first.as_deref().and_then(|value| value.to_str()) != Some("--config") {
         return Err("expected --config <server.json>".into());
     }
-    let path = args.next().map(PathBuf::from).ok_or("missing config path")?;
+    let path = args
+        .next()
+        .map(PathBuf::from)
+        .ok_or("missing config path")?;
     if args.next().is_some() {
         return Err("unexpected extra arguments".into());
     }

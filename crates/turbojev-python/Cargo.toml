@@ -22,8 +22,8 @@ turbojev-host-native = { path = "../turbojev-host-native" }
 pyo3 = { version = "=0.23.4", features = ["extension-module"] }
 
 [lints.rust]
-rust_2018_idioms = "deny"
+rust_2018_idioms = { level = "deny", priority = -1 }
 unsafe_code = "forbid"
 
 [lints.clippy]
-all = "warn"
+all = { level = "warn", priority = -1 }

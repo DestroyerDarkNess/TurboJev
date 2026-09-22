@@ -22,7 +22,10 @@ pub struct Tolerance {
 
 impl Default for Tolerance {
     fn default() -> Self {
-        Self { probability_abs: 1e-6, score_abs: 1e-6 }
+        Self {
+            probability_abs: 1e-6,
+            score_abs: 1e-6,
+        }
     }
 }
 
@@ -76,11 +79,18 @@ pub fn compare_responses(
     let mut max_score_delta = 0.0f64;
 
     for (id, expected) in &reference.answers {
-        let actual = candidate.answers.get(id).ok_or_else(|| ConformanceError::MissingAnswer(id.clone()))?;
+        let actual = candidate
+            .answers
+            .get(id)
+            .ok_or_else(|| ConformanceError::MissingAnswer(id.clone()))?;
         let parity = compare_answer(id, expected, actual)?;
-        if parity.decision_agrees { agreements += 1; }
+        if parity.decision_agrees {
+            agreements += 1;
+        }
         max_probability_delta = max_probability_delta.max(parity.max_probability_delta);
-        if let Some(delta) = parity.score_delta { max_score_delta = max_score_delta.max(delta); }
+        if let Some(delta) = parity.score_delta {
+            max_score_delta = max_score_delta.max(delta);
+        }
         details.push(parity);
     }
 
@@ -103,14 +113,23 @@ pub fn compare_responses(
 pub fn validate_response(response: &EvaluationResponse) -> Result<(), ConformanceError> {
     for (id, answer) in &response.answers {
         match answer {
-            Answer::Choice { choice, probabilities, .. } => {
+            Answer::Choice {
+                choice,
+                probabilities,
+                ..
+            } => {
                 validate_distribution(id, probabilities)?;
                 if !probabilities.contains_key(choice) {
                     return Err(ConformanceError::SelectedChoiceMissing(id.clone()));
                 }
             }
             Answer::Noul { noul } => validate_probability(id, *noul)?,
-            Answer::Score { score, probabilities, legend, .. } => {
+            Answer::Score {
+                score,
+                probabilities,
+                legend,
+                ..
+            } => {
                 validate_distribution(id, probabilities)?;
                 if probabilities.len() != legend.len() {
                     return Err(ConformanceError::LegendMismatch(id.clone()));
@@ -124,11 +143,23 @@ pub fn validate_response(response: &EvaluationResponse) -> Result<(), Conformanc
     Ok(())
 }
 
-fn compare_answer(id: &str, expected: &Answer, actual: &Answer) -> Result<QuestionParity, ConformanceError> {
+fn compare_answer(
+    id: &str,
+    expected: &Answer,
+    actual: &Answer,
+) -> Result<QuestionParity, ConformanceError> {
     match (expected, actual) {
         (
-            Answer::Choice { choice: a, probabilities: pa, .. },
-            Answer::Choice { choice: b, probabilities: pb, .. },
+            Answer::Choice {
+                choice: a,
+                probabilities: pa,
+                ..
+            },
+            Answer::Choice {
+                choice: b,
+                probabilities: pb,
+                ..
+            },
         ) => Ok(QuestionParity {
             id: id.to_owned(),
             decision_agrees: a == b,
@@ -142,11 +173,21 @@ fn compare_answer(id: &str, expected: &Answer, actual: &Answer) -> Result<Questi
             score_delta: None,
         }),
         (
-            Answer::Score { score: a, probabilities: pa, .. },
-            Answer::Score { score: b, probabilities: pb, .. },
+            Answer::Score {
+                score: a,
+                probabilities: pa,
+                ..
+            },
+            Answer::Score {
+                score: b,
+                probabilities: pb,
+                ..
+            },
         ) => {
-            let winner_a = distribution_argmax(pa).ok_or_else(|| ConformanceError::EmptyDistribution(id.to_owned()))?;
-            let winner_b = distribution_argmax(pb).ok_or_else(|| ConformanceError::EmptyDistribution(id.to_owned()))?;
+            let winner_a = distribution_argmax(pa)
+                .ok_or_else(|| ConformanceError::EmptyDistribution(id.to_owned()))?;
+            let winner_b = distribution_argmax(pb)
+                .ok_or_else(|| ConformanceError::EmptyDistribution(id.to_owned()))?;
             Ok(QuestionParity {
                 id: id.to_owned(),
                 decision_agrees: winner_a == winner_b,
@@ -168,7 +209,9 @@ fn distribution_delta(
     }
     let mut delta = 0.0f64;
     for (key, av) in a {
-        let bv = b.get(key).ok_or_else(|| ConformanceError::CandidateSetMismatch(id.to_owned()))?;
+        let bv = b
+            .get(key)
+            .ok_or_else(|| ConformanceError::CandidateSetMismatch(id.to_owned()))?;
         validate_probability(id, *av)?;
         validate_probability(id, *bv)?;
         delta = delta.max((av - bv).abs());
@@ -176,7 +219,10 @@ fn distribution_delta(
     Ok(delta)
 }
 
-fn validate_distribution(id: &str, probabilities: &IndexMap<String, f64>) -> Result<(), ConformanceError> {
+fn validate_distribution(
+    id: &str,
+    probabilities: &IndexMap<String, f64>,
+) -> Result<(), ConformanceError> {
     if probabilities.len() < 2 {
         return Err(ConformanceError::EmptyDistribution(id.to_owned()));
     }
@@ -186,26 +232,37 @@ fn validate_distribution(id: &str, probabilities: &IndexMap<String, f64>) -> Res
         total += value;
     }
     if (total - 1.0).abs() > 1e-6 {
-        return Err(ConformanceError::DistributionNotNormalized { id: id.to_owned(), total });
+        return Err(ConformanceError::DistributionNotNormalized {
+            id: id.to_owned(),
+            total,
+        });
     }
     Ok(())
 }
 
 fn validate_probability(id: &str, value: f64) -> Result<(), ConformanceError> {
     if !value.is_finite() || !(0.0..=1.0).contains(&value) {
-        Err(ConformanceError::InvalidProbability { id: id.to_owned(), value })
+        Err(ConformanceError::InvalidProbability {
+            id: id.to_owned(),
+            value,
+        })
     } else {
         Ok(())
     }
 }
 
 fn distribution_argmax(values: &IndexMap<String, f64>) -> Option<&str> {
-    values.iter().max_by(|(_, a), (_, b)| a.total_cmp(b)).map(|(key, _)| key.as_str())
+    values
+        .iter()
+        .max_by(|(_, a), (_, b)| a.total_cmp(b))
+        .map(|(key, _)| key.as_str())
 }
 
 fn validate_tolerance(tolerance: Tolerance) -> Result<(), ConformanceError> {
-    if !tolerance.probability_abs.is_finite() || tolerance.probability_abs < 0.0
-        || !tolerance.score_abs.is_finite() || tolerance.score_abs < 0.0
+    if !tolerance.probability_abs.is_finite()
+        || tolerance.probability_abs < 0.0
+        || !tolerance.score_abs.is_finite()
+        || tolerance.score_abs < 0.0
     {
         Err(ConformanceError::InvalidTolerance)
     } else {
@@ -266,11 +323,23 @@ mod tests {
                     probabilities: indexmap!{"a".into()=>1.0-p,"b".into()=>p},
                 }
             },
-            usage: Usage { decisions:1, input_tokens:None, generated_tokens:0 },
+            usage: Usage {
+                decisions: 1,
+                input_tokens: None,
+                generated_tokens: 0,
+            },
             metadata: EngineMetadata {
-                backend:"test".into(), calibration:"softmax".into(), calibrated:false,
-                confidence_method:"selected-candidate-probability".into(),
-                contract:"v".into(), execution:ExecutionMetadata{prefix_reuse:"none".into(),scheduling:"serial".into(),parallel_task_limit:1,projection:"full-vocabulary".into()}
+                backend: "test".into(),
+                calibration: "softmax".into(),
+                calibrated: false,
+                confidence_method: "selected-candidate-probability".into(),
+                contract: "v".into(),
+                execution: ExecutionMetadata {
+                    prefix_reuse: "none".into(),
+                    scheduling: "serial".into(),
+                    parallel_task_limit: 1,
+                    projection: "full-vocabulary".into(),
+                },
             },
         }
     }
@@ -279,7 +348,15 @@ mod tests {
     fn catches_numerical_drift_but_reports_decision_agreement() {
         let a = response("b", 0.9);
         let b = response("b", 0.88);
-        let report = compare_responses(&a, &b, Tolerance { probability_abs:0.01, score_abs:1e-6 }).unwrap();
+        let report = compare_responses(
+            &a,
+            &b,
+            Tolerance {
+                probability_abs: 0.01,
+                score_abs: 1e-6,
+            },
+        )
+        .unwrap();
         assert_eq!(report.decision_agreements, 1);
         assert!(!report.passed);
     }

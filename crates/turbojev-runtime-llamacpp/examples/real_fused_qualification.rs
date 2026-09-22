@@ -15,9 +15,16 @@ const SYSTEM: &str = "Apply the supplied criterion to the supplied evidence. Rep
 
 fn main() -> Result<(), Box<dyn Error>> {
     let mut args = std::env::args().skip(1);
-    let model = PathBuf::from(args.next().ok_or("usage: real_fused_qualification <model.gguf> <evidence.json> [rounds]")?);
+    let model = PathBuf::from(
+        args.next()
+            .ok_or("usage: real_fused_qualification <model.gguf> <evidence.json> [rounds]")?,
+    );
     let output = PathBuf::from(args.next().ok_or("missing evidence output path")?);
-    let rounds: usize = args.next().map(|value| value.parse()).transpose()?.unwrap_or(12);
+    let rounds: usize = args
+        .next()
+        .map(|value| value.parse())
+        .transpose()?
+        .unwrap_or(12);
     if args.next().is_some() || rounds == 0 {
         return Err("invalid qualification arguments".into());
     }
@@ -27,11 +34,13 @@ fn main() -> Result<(), Box<dyn Error>> {
         n_batch: 1024,
         n_seq_max: 8,
         n_gpu_layers: 0,
-        n_threads: 0,
-        n_threads_batch: 0,
+        n_threads: 4,
+        n_threads_batch: 4,
     };
-    let api = Arc::new(FfiLlamaCpp::open(model.to_str().ok_or("model path is not UTF-8")?, config)?
-        .with_multi_root_enabled(true));
+    let api = Arc::new(
+        FfiLlamaCpp::open(model.to_str().ok_or("model path is not UTF-8")?, config)?
+            .with_multi_root_enabled(true),
+    );
     if !api.multi_root_supported() {
         return Err("loaded llama.cpp context does not expose multi-root execution".into());
     }
@@ -57,9 +66,15 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
         let plans = vec![plan; batches.len()];
         if !executor.can_score_fused(&batches, &plans)? {
-            return Err(format!("round {round}: runtime rejected an eligible single-token multi-root probe").into());
+            return Err(format!(
+                "round {round}: runtime rejected an eligible single-token multi-root probe"
+            )
+            .into());
         }
-        let reference = batches.iter().map(|batch| executor.score(batch, plan)).collect::<Result<Vec<_>, _>>()?;
+        let reference = batches
+            .iter()
+            .map(|batch| executor.score(batch, plan))
+            .collect::<Result<Vec<_>, _>>()?;
         let fused = executor.score_fused(&batches, &plans)?;
         compare_outputs(
             &reference,
@@ -72,7 +87,10 @@ fn main() -> Result<(), Box<dyn Error>> {
         requests += batches.len() as u64;
 
         // A fused call must not leak sequence state into the next independent call.
-        let after = batches.iter().map(|batch| executor.score(batch, plan)).collect::<Result<Vec<_>, _>>()?;
+        let after = batches
+            .iter()
+            .map(|batch| executor.score(batch, plan))
+            .collect::<Result<Vec<_>, _>>()?;
         let mut isolation_abs = 0.0_f64;
         let mut isolation_rel = 0.0_f64;
         let mut isolation_argmax = 0_u64;
@@ -85,7 +103,11 @@ fn main() -> Result<(), Box<dyn Error>> {
             &mut isolation_argmax,
             &mut isolation_non_finite,
         );
-        if isolation_abs > 1e-5 || isolation_rel > 1e-5 || isolation_argmax != 0 || isolation_non_finite != 0 {
+        if isolation_abs > 1e-5
+            || isolation_rel > 1e-5
+            || isolation_argmax != 0
+            || isolation_non_finite != 0
+        {
             isolation_failures += 1;
         }
     }
@@ -107,13 +129,19 @@ fn main() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-fn build_batch(api: &FfiLlamaCpp, round: usize, request_index: usize) -> Result<RuntimeBatch, Box<dyn Error>> {
+fn build_batch(
+    api: &FfiLlamaCpp,
+    round: usize,
+    request_index: usize,
+) -> Result<RuntimeBatch, Box<dyn Error>> {
     let count = 2 + (request_index % 3);
     for symbols in candidate_symbol_sets(count, 64)? {
         let options = symbols
             .iter()
             .enumerate()
-            .map(|(index, symbol)| json!({"code": symbol, "description": format!("option-{index}")}))
+            .map(
+                |(index, symbol)| json!({"code": symbol, "description": format!("option-{index}")}),
+            )
             .collect::<Vec<_>>();
         let user = serde_json::to_string(&json!({
             "evidence": {"round": round, "request": request_index, "text": format!("qualification-{round}-{request_index}")},
@@ -134,7 +162,10 @@ fn build_batch(api: &FfiLlamaCpp, round: usize, request_index: usize) -> Result<
                 valid = false;
                 break;
             }
-            candidates.push(RuntimeCandidate { symbol: symbol.clone(), token_ids });
+            candidates.push(RuntimeCandidate {
+                symbol: symbol.clone(),
+                token_ids,
+            });
         }
         if valid {
             return Ok(RuntimeBatch {
@@ -184,8 +215,12 @@ fn compare_outputs(
                 let denom = f64::from(a.abs()).max(f64::from(b.abs())).max(1e-12);
                 *max_abs = (*max_abs).max(abs);
                 *max_rel = (*max_rel).max(abs / denom);
-                if left_best.map_or(true, |(_, value)| a > value) { left_best = Some((index, a)); }
-                if right_best.map_or(true, |(_, value)| b > value) { right_best = Some((index, b)); }
+                if left_best.map_or(true, |(_, value)| a > value) {
+                    left_best = Some((index, a));
+                }
+                if right_best.map_or(true, |(_, value)| b > value) {
+                    right_best = Some((index, b));
+                }
             }
             if left_best.map(|x| x.0) != right_best.map(|x| x.0) {
                 *argmax_mismatches += 1;

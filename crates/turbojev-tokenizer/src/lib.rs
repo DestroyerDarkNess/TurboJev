@@ -119,8 +119,7 @@ impl CandidateCodebook {
     pub const fn requires_sequence_scoring(&self) -> bool {
         matches!(
             self.kind,
-            CodebookKind::FixedLengthSequence { .. }
-                | CodebookKind::VariableLengthSequence { .. }
+            CodebookKind::FixedLengthSequence { .. } | CodebookKind::VariableLengthSequence { .. }
         )
     }
 }
@@ -151,7 +150,12 @@ fn generated_symbols(requested: usize) -> Vec<String> {
     for &a in ALPHABET {
         for &b in ALPHABET {
             for &c in ALPHABET {
-                result.push(format!("{}{}{}", char::from(a), char::from(b), char::from(c)));
+                result.push(format!(
+                    "{}{}{}",
+                    char::from(a),
+                    char::from(b),
+                    char::from(c)
+                ));
                 if result.len() >= target {
                     return result;
                 }
@@ -161,7 +165,6 @@ fn generated_symbols(requested: usize) -> Vec<String> {
 
     result
 }
-
 
 /// Produce deterministic complete candidate-code sets for runtime probing.
 ///
@@ -313,5 +316,4 @@ mod tests {
         assert!(first.iter().all(|set| set.len() == 4));
         assert_eq!(first[0], vec!["A", "B", "C", "D"]);
     }
-
 }

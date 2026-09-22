@@ -165,8 +165,9 @@ where
             });
         }
         let probabilities = self.calibrator.probabilities(logits)?;
-        let winner = argmax(&probabilities)
-            .ok_or_else(|| Error::Internal("classification produced no probabilities".to_owned()))?;
+        let winner = argmax(&probabilities).ok_or_else(|| {
+            Error::Internal("classification produced no probabilities".to_owned())
+        })?;
         let distribution = task
             .candidates
             .iter()
@@ -210,10 +211,7 @@ where
     /// Return whether this exact request group is eligible for true fused execution.
     /// This is shape-aware: a runtime may support fused batching globally while a
     /// particular request group must fall back to the independent reference path.
-    pub fn can_evaluate_fused(
-        &self,
-        requests: &[EvaluationRequest],
-    ) -> Result<bool, Error> {
+    pub fn can_evaluate_fused(&self, requests: &[EvaluationRequest]) -> Result<bool, Error> {
         if requests.len() < 2 {
             return Ok(false);
         }
@@ -234,14 +232,18 @@ where
             let batch = compile_decision_batch(request);
             let backend_capabilities = self.backend.capabilities();
             let hints = self.backend.resource_hints();
-            let plan = self.planner.plan_with_hints(backend_capabilities, hints, &batch);
+            let plan = self
+                .planner
+                .plan_with_hints(backend_capabilities, hints, &batch);
             if !backend_capabilities.supports(plan) {
                 return Ok(false);
             }
             batches.push(batch);
             plans.push(plan);
         }
-        self.backend.can_score_fused(&batches, &plans).map_err(Into::into)
+        self.backend
+            .can_score_fused(&batches, &plans)
+            .map_err(Into::into)
     }
 
     /// Evaluate multiple independent requests through one fused backend call.
@@ -273,7 +275,8 @@ where
             if requests.len() > maximum {
                 return Err(Error::InvalidFusedBatch(format!(
                     "fused evaluation received {} requests; backend maximum is {}",
-                    requests.len(), maximum
+                    requests.len(),
+                    maximum
                 )));
             }
         }
@@ -384,10 +387,7 @@ where
     }
 
     /// Evaluate a full typed decision request without blocking the host runtime.
-    pub async fn evaluate(
-        &self,
-        request: EvaluationRequest,
-    ) -> Result<EvaluationResponse, Error> {
+    pub async fn evaluate(&self, request: EvaluationRequest) -> Result<EvaluationResponse, Error> {
         request.validate()?;
         let batch = compile_decision_batch(&request);
         let (backend_output, indexed_scores, plan) = self.score_batch(&batch).await?;
@@ -845,19 +845,19 @@ mod tests {
             _plan: ExecutionPlan,
         ) -> turbojev_backend::BackendFuture<'a, Result<BackendOutput, BackendError>> {
             Box::pin(std::future::ready(Ok(BackendOutput {
-                    model: Some("async-open-model".to_owned()),
-                    scores: batch
-                        .tasks
-                        .iter()
-                        .map(|task| TaskScores {
-                            id: task.id.clone(),
-                            logits: (0..task.candidates.len())
-                                .map(|index| index as f32)
-                                .collect(),
-                        })
-                        .collect(),
-                    metrics: turbojev_backend::BackendMetrics::default(),
-                })))
+                model: Some("async-open-model".to_owned()),
+                scores: batch
+                    .tasks
+                    .iter()
+                    .map(|task| TaskScores {
+                        id: task.id.clone(),
+                        logits: (0..task.candidates.len())
+                            .map(|index| index as f32)
+                            .collect(),
+                    })
+                    .collect(),
+                metrics: turbojev_backend::BackendMetrics::default(),
+            })))
         }
     }
 
@@ -894,8 +894,7 @@ mod tests {
         let backend = FixtureBackend::builder()
             .with_logits("classification", vec![2.0, 1.0])
             .build();
-        let engine = TurboJevEngine::new(backend)
-            .with_planning_policy(PlanningPolicy::Reference);
+        let engine = TurboJevEngine::new(backend).with_planning_policy(PlanningPolicy::Reference);
         let result = engine.classify("hola", ["si", "no"]).unwrap();
         assert_eq!(result.choice, "si");
     }
@@ -929,5 +928,4 @@ mod tests {
         let fused = engine.evaluate_fused(&requests).unwrap();
         assert_eq!(fused, independent);
     }
-
 }

@@ -419,7 +419,11 @@ pub fn evaluate_calibration(
                 confidence = probability;
             }
         }
-        let correct = if prediction == example.target { 1.0 } else { 0.0 };
+        let correct = if prediction == example.target {
+            1.0
+        } else {
+            0.0
+        };
         let brier: f64 = probabilities
             .iter()
             .enumerate()
@@ -568,12 +572,36 @@ mod tests {
 
     fn overconfident_examples() -> Vec<CalibrationExample> {
         vec![
-            CalibrationExample { logits: vec![5.0, 0.0], target: 0, weight: 1.0 },
-            CalibrationExample { logits: vec![5.0, 0.0], target: 1, weight: 1.0 },
-            CalibrationExample { logits: vec![4.0, 0.0], target: 0, weight: 1.0 },
-            CalibrationExample { logits: vec![4.0, 0.0], target: 1, weight: 1.0 },
-            CalibrationExample { logits: vec![3.0, 0.0], target: 0, weight: 1.0 },
-            CalibrationExample { logits: vec![3.0, 0.0], target: 0, weight: 1.0 },
+            CalibrationExample {
+                logits: vec![5.0, 0.0],
+                target: 0,
+                weight: 1.0,
+            },
+            CalibrationExample {
+                logits: vec![5.0, 0.0],
+                target: 1,
+                weight: 1.0,
+            },
+            CalibrationExample {
+                logits: vec![4.0, 0.0],
+                target: 0,
+                weight: 1.0,
+            },
+            CalibrationExample {
+                logits: vec![4.0, 0.0],
+                target: 1,
+                weight: 1.0,
+            },
+            CalibrationExample {
+                logits: vec![3.0, 0.0],
+                target: 0,
+                weight: 1.0,
+            },
+            CalibrationExample {
+                logits: vec![3.0, 0.0],
+                target: 0,
+                weight: 1.0,
+            },
         ]
     }
 
@@ -605,7 +633,8 @@ mod tests {
 
     #[test]
     fn fitted_temperature_reduces_nll_for_overconfidence() {
-        let result = fit_temperature(&overconfident_examples(), TemperatureFitConfig::default()).unwrap();
+        let result =
+            fit_temperature(&overconfident_examples(), TemperatureFitConfig::default()).unwrap();
         assert!(result.temperature > 1.0);
         assert!(result.after.nll < result.before.nll);
     }
@@ -613,7 +642,9 @@ mod tests {
     #[test]
     fn profile_round_trip_contract_is_valid() {
         let dataset = CalibrationDataset::new("holdout-a", overconfident_examples());
-        let profile = fit_temperature_profile(&dataset, "profile-a", TemperatureFitConfig::default()).unwrap();
+        let profile =
+            fit_temperature_profile(&dataset, "profile-a", TemperatureFitConfig::default())
+                .unwrap();
         profile.validate().unwrap();
         let calibrator = TemperatureCalibrator::from_profile(&profile).unwrap();
         assert!(calibrator.is_fitted());

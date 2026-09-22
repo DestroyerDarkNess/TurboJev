@@ -21,6 +21,7 @@ turbojev-specialized = { path = "../turbojev-specialized" }
 
 [dev-dependencies]
 serde_json.workspace = true
+turbojev-model = { path = "../turbojev-model" }
 
 [lints]
 workspace = true

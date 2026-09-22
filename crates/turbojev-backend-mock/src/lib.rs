@@ -110,7 +110,6 @@ impl ScoringBackend for FixtureBackend {
     }
 }
 
-
 impl FusedScoringBackend for FixtureBackend {
     fn fused_capabilities(&self) -> FusedBackendCapabilities {
         FusedBackendCapabilities {
@@ -140,7 +139,8 @@ impl FusedScoringBackend for FixtureBackend {
             if batches.len() > maximum {
                 return Err(BackendError::InvalidInput(format!(
                     "fixture fused scoring received {} batches; maximum is {}",
-                    batches.len(), maximum
+                    batches.len(),
+                    maximum
                 )));
             }
         }
@@ -190,8 +190,14 @@ mod tests {
                 intent: DecisionIntent::Criterion,
                 instruction: Some("route".into()),
                 candidates: vec![
-                    Candidate { key: "a".into(), description: "a".into() },
-                    Candidate { key: "b".into(), description: "b".into() },
+                    Candidate {
+                        key: "a".into(),
+                        description: "a".into(),
+                    },
+                    Candidate {
+                        key: "b".into(),
+                        description: "b".into(),
+                    },
                 ],
             }],
         };
@@ -212,8 +218,14 @@ mod tests {
                 intent: DecisionIntent::Criterion,
                 instruction: Some("route".into()),
                 candidates: vec![
-                    Candidate { key: "a".into(), description: "a".into() },
-                    Candidate { key: "b".into(), description: "b".into() },
+                    Candidate {
+                        key: "a".into(),
+                        description: "a".into(),
+                    },
+                    Candidate {
+                        key: "b".into(),
+                        description: "b".into(),
+                    },
                 ],
             }],
         };
@@ -224,5 +236,4 @@ mod tests {
         assert_eq!(outputs[0].scores[0].logits, vec![1.0, 3.0]);
         assert_eq!(outputs[1].scores[0].logits, vec![1.0, 3.0]);
     }
-
 }

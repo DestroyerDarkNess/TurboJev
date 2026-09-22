@@ -8,6 +8,7 @@ import json
 import math
 import os
 import subprocess
+import sys
 import tempfile
 import time
 from pathlib import Path
@@ -195,10 +196,15 @@ def main() -> int:
     env["PYTHONPATH"] = str(args.python_root.resolve()) + (os.pathsep + env["PYTHONPATH"] if env.get("PYTHONPATH") else "")
     results: list[dict[str, Any]] = []
     results.append(run_case("node-ts", ["node", str(ROOT / "tests/e2e/node/run.mjs"), str(model), str(request), str(addon)], env))
-    results.append(run_case("python", ["python3", str(ROOT / "tests/e2e/python/run.py"), str(model), str(request)], env))
+    results.append(run_case("python", [sys.executable, str(ROOT / "tests/e2e/python/run.py"), str(model), str(request)], env))
     with tempfile.TemporaryDirectory(prefix="turbojev-e2e-") as td:
         exe = Path(td) / "turbojev-c-e2e"
         cc = ["cc", "-std=c11", "-Wall", "-Wextra", "-Werror", str(ROOT / "tests/e2e/c/main.c"), "-I", str(ROOT / "bindings/c/include"), "-L", str(libdir), "-lturbojev_capi", "-o", str(exe)]
+        if sys.platform == "win32":
+            exe = exe.with_suffix(".exe")
+            cc = ["cl", "/nologo", "/std:c11", "/W4", "/WX", str(ROOT / "tests/e2e/c/main.c"),
+                  "/I" + str(ROOT / "bindings/c/include"), "/Fo" + str(Path(td) / "main.obj"),
+                  "/Fe" + str(exe), "/link", "/LIBPATH:" + str(libdir), "turbojev_capi.dll.lib"]
         compile_result = run_process(cc, env)
         if compile_result["exitCode"] == 0:
             results.append(run_case("c", [str(exe), str(model), str(request)], env))

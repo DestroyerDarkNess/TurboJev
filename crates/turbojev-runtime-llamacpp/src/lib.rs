@@ -22,7 +22,9 @@ use turbojev_backend::{
     BackendMetrics, BackendResourceHints, CandidateProjection, ExecutionPlan,
     FusedBackendCapabilities, PrefixReuse, TaskScheduling,
 };
-use turbojev_prompt::{PromptCriterion, PromptDocument, PromptError, PromptRenderer, RenderedMessages};
+use turbojev_prompt::{
+    PromptCriterion, PromptDocument, PromptError, PromptRenderer, RenderedMessages,
+};
 use turbojev_runtime::{
     FusedRuntimeExecutor, PromptCodec, RuntimeBackend, RuntimeCapabilities, RuntimeError,
     RuntimeExecutor, RuntimeOutput, RuntimeTaskScores, TokenId,
@@ -31,7 +33,6 @@ use turbojev_sequence::{CandidateTrie, SequenceWork};
 
 #[cfg(feature = "ffi")]
 pub mod ffi;
-
 
 /// Caller-configured prompt profile for the reference GGUF adapter.
 ///
@@ -224,7 +225,8 @@ pub trait LlamaCppApi {
         _candidate_sequences: &[Vec<TokenId>],
     ) -> Result<Vec<f32>, LlamaCppError> {
         Err(LlamaCppError::Unsupported(
-            "exact multi-token sequence scoring is not implemented by this llama.cpp API".to_owned(),
+            "exact multi-token sequence scoring is not implemented by this llama.cpp API"
+                .to_owned(),
         ))
     }
 
@@ -312,7 +314,8 @@ pub trait LlamaCppApi {
         _candidate_sequences: &[Vec<TokenId>],
     ) -> Result<Vec<f32>, LlamaCppError> {
         Err(LlamaCppError::Unsupported(
-            "exact shared-prefix sequence scoring is not implemented by this llama.cpp API".to_owned(),
+            "exact shared-prefix sequence scoring is not implemented by this llama.cpp API"
+                .to_owned(),
         ))
     }
 
@@ -323,7 +326,8 @@ pub trait LlamaCppApi {
         _candidate_token_ids: &[TokenId],
     ) -> Result<Vec<f32>, LlamaCppError> {
         Err(LlamaCppError::Unsupported(
-            "candidate-only shared-prefix scoring is not implemented by this llama.cpp API".to_owned(),
+            "candidate-only shared-prefix scoring is not implemented by this llama.cpp API"
+                .to_owned(),
         ))
     }
 
@@ -473,11 +477,9 @@ impl<A: LlamaCppApi> RuntimeExecutor for LlamaCppExecutor<A> {
             (PrefixReuse::Shared, TaskScheduling::Serial) => {
                 self.score_shared(batch, plan.projection)
             }
-            (PrefixReuse::Shared, TaskScheduling::Parallel) => self.score_shared_parallel(
-                batch,
-                plan.parallel_task_limit,
-                plan.projection,
-            ),
+            (PrefixReuse::Shared, TaskScheduling::Parallel) => {
+                self.score_shared_parallel(batch, plan.parallel_task_limit, plan.projection)
+            }
             (PrefixReuse::None, TaskScheduling::Parallel) => Err(RuntimeError::Unsupported(
                 "llama.cpp parallel suffix execution requires a shared prefix".to_owned(),
             )),
@@ -559,7 +561,10 @@ impl<A: LlamaCppApi> FusedRuntimeExecutor for LlamaCppExecutor<A> {
             let mut input_tokens = 0usize;
             for task in &batch.tasks {
                 let mut full_prompt = Vec::with_capacity(
-                    batch.common_prefix.len().saturating_add(task.prompt_suffix.len()),
+                    batch
+                        .common_prefix
+                        .len()
+                        .saturating_add(task.prompt_suffix.len()),
                 );
                 full_prompt.extend_from_slice(&batch.common_prefix);
                 full_prompt.extend_from_slice(&task.prompt_suffix);
@@ -586,7 +591,8 @@ impl<A: LlamaCppApi> FusedRuntimeExecutor for LlamaCppExecutor<A> {
         if fused_logits.len() != roots.len() {
             return Err(RuntimeError::Inference(format!(
                 "llama.cpp returned {} multi-root rows for {} roots",
-                fused_logits.len(), roots.len()
+                fused_logits.len(),
+                roots.len()
             )));
         }
 
@@ -602,7 +608,10 @@ impl<A: LlamaCppApi> FusedRuntimeExecutor for LlamaCppExecutor<A> {
                 .zip(&fused_logits[begin..end])
                 .map(|((task, candidate_ids), logits)| {
                     validate_logits(&task.id, candidate_ids, logits)?;
-                    Ok(RuntimeTaskScores { id: task.id.clone(), logits: logits.clone() })
+                    Ok(RuntimeTaskScores {
+                        id: task.id.clone(),
+                        logits: logits.clone(),
+                    })
                 })
                 .collect::<Result<Vec<_>, RuntimeError>>()?;
             outputs.push(RuntimeOutput {
@@ -650,19 +659,23 @@ impl<A: LlamaCppApi> LlamaCppExecutor<A> {
             } else {
                 if projection != CandidateProjection::FullVocabulary {
                     return Err(RuntimeError::Unsupported(
-                        "exact multi-token scoring requires full-vocabulary normalization".to_owned(),
+                        "exact multi-token scoring requires full-vocabulary normalization"
+                            .to_owned(),
                     ));
                 }
                 if !self.api.sequence_scores_supported() {
                     return Err(RuntimeError::Unsupported(
-                        "loaded llama.cpp runtime does not expose exact sequence scoring".to_owned(),
+                        "loaded llama.cpp runtime does not expose exact sequence scoring"
+                            .to_owned(),
                     ));
                 }
                 let sequences = candidate_sequences(task);
                 let work = CandidateTrie::build(&sequences)
                     .map_err(|error| RuntimeError::Preparation(error.to_string()))?
                     .work();
-                let logits = self.api.score_sequences(&task.prompt_suffix, &sequences)
+                let logits = self
+                    .api
+                    .score_sequences(&task.prompt_suffix, &sequences)
                     .map_err(map_api_error)?;
                 validate_sequence_scores(&task.id, task.candidates.len(), &logits)?;
                 (logits, Some(work))
@@ -675,7 +688,10 @@ impl<A: LlamaCppApi> LlamaCppExecutor<A> {
                     &mut sequence_token_steps_saved,
                 );
             }
-            rows.push(RuntimeTaskScores { id: task.id.clone(), logits });
+            rows.push(RuntimeTaskScores {
+                id: task.id.clone(),
+                logits,
+            });
         }
         let total = started.elapsed().as_secs_f64();
         Ok(RuntimeOutput {
@@ -731,19 +747,23 @@ impl<A: LlamaCppApi> LlamaCppExecutor<A> {
             } else {
                 if projection != CandidateProjection::FullVocabulary {
                     return Err(RuntimeError::Unsupported(
-                        "exact multi-token scoring requires full-vocabulary normalization".to_owned(),
+                        "exact multi-token scoring requires full-vocabulary normalization"
+                            .to_owned(),
                     ));
                 }
                 if !self.api.sequence_scores_supported() {
                     return Err(RuntimeError::Unsupported(
-                        "loaded llama.cpp runtime does not expose exact sequence scoring".to_owned(),
+                        "loaded llama.cpp runtime does not expose exact sequence scoring"
+                            .to_owned(),
                     ));
                 }
                 let sequences = candidate_sequences(task);
                 let work = CandidateTrie::build(&sequences)
                     .map_err(|error| RuntimeError::Preparation(error.to_string()))?
                     .work();
-                let logits = self.api.score_suffix_sequences(&task.prompt_suffix, &sequences)
+                let logits = self
+                    .api
+                    .score_suffix_sequences(&task.prompt_suffix, &sequences)
                     .map_err(map_api_error)?;
                 validate_sequence_scores(&task.id, task.candidates.len(), &logits)?;
                 (logits, Some(work))
@@ -756,7 +776,10 @@ impl<A: LlamaCppApi> LlamaCppExecutor<A> {
                     &mut sequence_token_steps_saved,
                 );
             }
-            rows.push(RuntimeTaskScores { id: task.id.clone(), logits });
+            rows.push(RuntimeTaskScores {
+                id: task.id.clone(),
+                logits,
+            });
         }
         let scoring_seconds = scoring_started.elapsed().as_secs_f64();
         Ok(RuntimeOutput {
@@ -811,12 +834,8 @@ impl<A: LlamaCppApi> LlamaCppExecutor<A> {
         let suffix_token_limit = self.api.max_parallel_suffix_tokens();
         let mut start = 0usize;
         while start < batch.tasks.len() {
-            let end = bounded_parallel_end(
-                &batch.tasks,
-                start,
-                parallel_task_limit,
-                suffix_token_limit,
-            );
+            let end =
+                bounded_parallel_end(&batch.tasks, start, parallel_task_limit, suffix_token_limit);
             let chunk = &batch.tasks[start..end];
             let candidate_ids: Vec<Vec<TokenId>> = chunk
                 .iter()
@@ -827,11 +846,8 @@ impl<A: LlamaCppApi> LlamaCppExecutor<A> {
             }
 
             if chunk.len() == 1 {
-                let logits = self.score_suffix(
-                    &chunk[0].prompt_suffix,
-                    &candidate_ids[0],
-                    projection,
-                )?;
+                let logits =
+                    self.score_suffix(&chunk[0].prompt_suffix, &candidate_ids[0], projection)?;
                 validate_logits(&chunk[0].id, &candidate_ids[0], &logits)?;
                 rows.push(RuntimeTaskScores {
                     id: chunk[0].id.clone(),
@@ -859,9 +875,7 @@ impl<A: LlamaCppApi> LlamaCppExecutor<A> {
             }
             parallel_batches = parallel_batches.saturating_add(1);
             peak_parallel_tasks = peak_parallel_tasks.max(chunk.len());
-            for ((task, candidates), logits) in
-                chunk.iter().zip(&candidate_ids).zip(batch_logits)
-            {
+            for ((task, candidates), logits) in chunk.iter().zip(&candidate_ids).zip(batch_logits) {
                 validate_logits(&task.id, candidates, &logits)?;
                 rows.push(RuntimeTaskScores {
                     id: task.id.clone(),
@@ -899,9 +913,9 @@ impl<A: LlamaCppApi> LlamaCppExecutor<A> {
             CandidateProjection::FullVocabulary => {
                 self.api.score_next_token(prompt_tokens, candidate_ids)
             }
-            CandidateProjection::CandidatesOnly => {
-                self.api.score_next_token_selected(prompt_tokens, candidate_ids)
-            }
+            CandidateProjection::CandidatesOnly => self
+                .api
+                .score_next_token_selected(prompt_tokens, candidate_ids),
         };
         result.map_err(map_api_error)
     }
@@ -913,12 +927,12 @@ impl<A: LlamaCppApi> LlamaCppExecutor<A> {
         projection: CandidateProjection,
     ) -> Result<Vec<f32>, RuntimeError> {
         let result = match projection {
-            CandidateProjection::FullVocabulary => {
-                self.api.score_suffix_next_token(suffix_tokens, candidate_ids)
-            }
-            CandidateProjection::CandidatesOnly => {
-                self.api.score_suffix_next_token_selected(suffix_tokens, candidate_ids)
-            }
+            CandidateProjection::FullVocabulary => self
+                .api
+                .score_suffix_next_token(suffix_tokens, candidate_ids),
+            CandidateProjection::CandidatesOnly => self
+                .api
+                .score_suffix_next_token_selected(suffix_tokens, candidate_ids),
         };
         result.map_err(map_api_error)
     }
@@ -968,7 +982,6 @@ fn bounded_parallel_end(
     end.max(start + 1)
 }
 
-
 fn is_single_token_task(task: &turbojev_runtime::RuntimeTask) -> bool {
     task.candidates
         .iter()
@@ -1001,7 +1014,9 @@ fn validate_sequence_scores(
     if scores.len() != expected {
         return Err(RuntimeError::Inference(format!(
             "llama.cpp returned {} sequence scores for {} candidates in task {:?}",
-            scores.len(), expected, task_id
+            scores.len(),
+            expected,
+            task_id
         )));
     }
     if scores.iter().any(|value| !value.is_finite()) {
@@ -1100,9 +1115,7 @@ fn validate_llamacpp_plan(
     parallel_suffix_supported: bool,
     selective_output_head_supported: bool,
 ) -> Result<(), RuntimeError> {
-    if plan.projection == CandidateProjection::CandidatesOnly
-        && !selective_output_head_supported
-    {
+    if plan.projection == CandidateProjection::CandidatesOnly && !selective_output_head_supported {
         return Err(RuntimeError::Unsupported(
             "loaded llama.cpp runtime does not expose a parity-verified candidate-only projection"
                 .to_owned(),
@@ -1170,9 +1183,7 @@ mod tests {
 
     use turbojev_backend::{Candidate, DecisionBatch, DecisionIntent, DecisionTask};
     use turbojev_prompt::{PromptCriterion, PromptDocument, PromptError};
-    use turbojev_runtime_conformance::{
-        validate_runtime_output, verify_candidate_boundary,
-    };
+    use turbojev_runtime_conformance::{validate_runtime_output, verify_candidate_boundary};
 
     use super::*;
 
@@ -1197,9 +1208,13 @@ mod tests {
                 profile: "fixture-qwen-chat".into(),
                 prefix: vec![151_644, 8948],
                 answer_marker: vec![151_645, 77091],
-                symbols: [("A".into(), vec![32]), ("B".into(), vec![33]), ("C".into(), vec![34])]
-                    .into_iter()
-                    .collect(),
+                symbols: [
+                    ("A".into(), vec![32]),
+                    ("B".into(), vec![33]),
+                    ("C".into(), vec![34]),
+                ]
+                .into_iter()
+                .collect(),
                 shared_prefix: Arc::new(Mutex::new(Vec::new())),
                 parallel_batches: Arc::new(Mutex::new(Vec::new())),
                 parallel_suffix_token_limit: None,
@@ -1214,9 +1229,13 @@ mod tests {
                 profile: "fixture-llama-chat".into(),
                 prefix: vec![128_000, 128_006],
                 answer_marker: vec![128_009, 128_006],
-                symbols: [("A".into(), vec![32]), ("B".into(), vec![33]), ("C".into(), vec![34])]
-                    .into_iter()
-                    .collect(),
+                symbols: [
+                    ("A".into(), vec![32]),
+                    ("B".into(), vec![33]),
+                    ("C".into(), vec![34]),
+                ]
+                .into_iter()
+                .collect(),
                 shared_prefix: Arc::new(Mutex::new(Vec::new())),
                 parallel_batches: Arc::new(Mutex::new(Vec::new())),
                 parallel_suffix_token_limit: None,
@@ -1251,7 +1270,10 @@ mod tests {
             self
         }
 
-        fn fixture_full_logits(&self, prompt_tokens: &[TokenId]) -> Result<Vec<f32>, LlamaCppError> {
+        fn fixture_full_logits(
+            &self,
+            prompt_tokens: &[TokenId],
+        ) -> Result<Vec<f32>, LlamaCppError> {
             if prompt_tokens.is_empty() {
                 return Err(LlamaCppError::InvalidInput("empty prompt".into()));
             }
@@ -1275,9 +1297,9 @@ mod tests {
             candidate_token_ids
                 .iter()
                 .map(|token| {
-                    full.get(*token as usize)
-                        .copied()
-                        .ok_or_else(|| LlamaCppError::InvalidInput("fixture candidate token out of range".into()))
+                    full.get(*token as usize).copied().ok_or_else(|| {
+                        LlamaCppError::InvalidInput("fixture candidate token out of range".into())
+                    })
                 })
                 .collect()
         }
@@ -1352,7 +1374,9 @@ mod tests {
         fn decode_tokens(&self, tokens: &[TokenId]) -> Result<String, LlamaCppError> {
             self.symbols
                 .iter()
-                .find_map(|(symbol, candidate)| (candidate.as_slice() == tokens).then(|| symbol.clone()))
+                .find_map(|(symbol, candidate)| {
+                    (candidate.as_slice() == tokens).then(|| symbol.clone())
+                })
                 .ok_or_else(|| LlamaCppError::Tokenization("unknown fixture token sequence".into()))
         }
 
@@ -1461,7 +1485,9 @@ mod tests {
         ) -> Result<Vec<f32>, LlamaCppError> {
             let prefix = self.shared_prefix.lock().unwrap();
             if prefix.is_empty() {
-                return Err(LlamaCppError::InvalidInput("shared prefix was not prefetched".into()));
+                return Err(LlamaCppError::InvalidInput(
+                    "shared prefix was not prefetched".into(),
+                ));
             }
             let mut full = prefix.clone();
             full.extend_from_slice(suffix_tokens);
@@ -1552,9 +1578,18 @@ mod tests {
                 intent: DecisionIntent::Criterion,
                 instruction: Some("route request".into()),
                 candidates: vec![
-                    Candidate { key: "billing".into(), description: "billing".into() },
-                    Candidate { key: "shipping".into(), description: "shipping".into() },
-                    Candidate { key: "other".into(), description: "other".into() },
+                    Candidate {
+                        key: "billing".into(),
+                        description: "billing".into(),
+                    },
+                    Candidate {
+                        key: "shipping".into(),
+                        description: "shipping".into(),
+                    },
+                    Candidate {
+                        key: "other".into(),
+                        description: "other".into(),
+                    },
                 ],
             }],
         }
@@ -1597,14 +1632,17 @@ mod tests {
                 codebook_kind: turbojev_tokenizer::CodebookKind::SingleToken,
             }],
         };
-        let output = backend.executor().score(&prepared, reference_plan()).unwrap();
+        let output = backend
+            .executor()
+            .score(&prepared, reference_plan())
+            .unwrap();
         validate_runtime_output(&prepared, &output).unwrap();
         assert_eq!(output.scores[0].logits.len(), 3);
         assert!(output.scores[0].logits[1] > output.scores[0].logits[0]);
 
         // Also exercise the semantic backend composition end-to-end.
-        let semantic = turbojev_backend::ScoringBackend::score(&backend, &batch(), reference_plan())
-            .unwrap();
+        let semantic =
+            turbojev_backend::ScoringBackend::score(&backend, &batch(), reference_plan()).unwrap();
         assert_eq!(semantic.scores[0].logits.len(), 3);
         assert!(semantic.scores[0].logits[1] > semantic.scores[0].logits[0]);
     }
@@ -1618,9 +1656,7 @@ mod tests {
         ));
         let document = PromptDocument {
             evidence: serde_json::json!({"mensaje":"Mi paquete no llegó"}),
-            criterion: PromptCriterion::UserText(
-                "¿Qué equipo debe atender este caso?".to_owned(),
-            ),
+            criterion: PromptCriterion::UserText("¿Qué equipo debe atender este caso?".to_owned()),
             options: vec![
                 turbojev_prompt::PromptOption {
                     code: "A".to_owned(),
@@ -1638,7 +1674,9 @@ mod tests {
         let rendered = renderer.render(&document).unwrap();
         assert_eq!(rendered.profile, "es-reference-v1");
         assert!(rendered.user.contains("Mi paquete no llegó"));
-        assert!(rendered.user.contains("¿Qué equipo debe atender este caso?"));
+        assert!(rendered
+            .user
+            .contains("¿Qué equipo debe atender este caso?"));
         assert!(rendered.user.contains("Envíos"));
     }
 
@@ -1654,7 +1692,7 @@ mod tests {
 
     #[test]
     fn shared_prefix_matches_independent_reference_exactly() {
-        use turbojev_runtime_conformance::{verify_selective_projection, RuntimeTolerance};
+        use turbojev_runtime_conformance::{compare_runtime_outputs, RuntimeTolerance};
 
         let executor = LlamaCppExecutor::new(Arc::new(FamilyApi::qwen_style()));
         let candidates = vec![
@@ -1757,20 +1795,15 @@ mod tests {
             .collect(),
         };
 
-        let reference = turbojev::TurboJev::new(reference_backend(
-            Renderer,
-            FamilyApi::qwen_style(),
-        ))
-        .with_planning_policy(PlanningPolicy::Reference)
-        .evaluate(request.clone())
-        .unwrap();
-        let reused = turbojev::TurboJev::new(reference_backend(
-            Renderer,
-            FamilyApi::qwen_style(),
-        ))
-        .with_planning_policy(PlanningPolicy::DeterministicReuse)
-        .evaluate(request)
-        .unwrap();
+        let reference =
+            turbojev::TurboJev::new(reference_backend(Renderer, FamilyApi::qwen_style()))
+                .with_planning_policy(PlanningPolicy::Reference)
+                .evaluate(request.clone())
+                .unwrap();
+        let reused = turbojev::TurboJev::new(reference_backend(Renderer, FamilyApi::qwen_style()))
+            .with_planning_policy(PlanningPolicy::DeterministicReuse)
+            .evaluate(request)
+            .unwrap();
 
         assert_eq!(reference.answers, reused.answers);
         assert_eq!(reference.metadata.execution.prefix_reuse, "none");
@@ -1781,7 +1814,7 @@ mod tests {
 
     #[test]
     fn parallel_suffix_matches_reference_and_cached_serial_exactly() {
-        use turbojev_runtime_conformance::{verify_selective_projection, RuntimeTolerance};
+        use turbojev_runtime_conformance::{compare_runtime_outputs, RuntimeTolerance};
 
         let api = FamilyApi::qwen_style();
         let observed_batches = Arc::clone(&api.parallel_batches);
@@ -1935,9 +1968,7 @@ mod tests {
         };
 
         let response = turbojev::TurboJev::new(backend)
-            .with_execution_budget(
-                ExecutionBudget::unlimited().with_memory_budget_bytes(8 * 1024),
-            )
+            .with_execution_budget(ExecutionBudget::unlimited().with_memory_budget_bytes(8 * 1024))
             .evaluate(request)
             .unwrap();
 
@@ -2036,8 +2067,14 @@ mod tests {
                     intent: DecisionIntent::Criterion,
                     instruction: Some("first".into()),
                     candidates: vec![
-                        Candidate { key: "a".into(), description: "alpha".into() },
-                        Candidate { key: "b".into(), description: "beta".into() },
+                        Candidate {
+                            key: "a".into(),
+                            description: "alpha".into(),
+                        },
+                        Candidate {
+                            key: "b".into(),
+                            description: "beta".into(),
+                        },
                     ],
                 },
                 DecisionTask {
@@ -2045,8 +2082,14 @@ mod tests {
                     intent: DecisionIntent::Criterion,
                     instruction: Some("second".into()),
                     candidates: vec![
-                        Candidate { key: "a".into(), description: "alpha".into() },
-                        Candidate { key: "b".into(), description: "beta".into() },
+                        Candidate {
+                            key: "a".into(),
+                            description: "alpha".into(),
+                        },
+                        Candidate {
+                            key: "b".into(),
+                            description: "beta".into(),
+                        },
                     ],
                 },
             ],
@@ -2059,16 +2102,32 @@ mod tests {
             parallel_task_limit: 2,
             projection: CandidateProjection::CandidatesOnly,
         };
-        let optimized_request = ScoringBackend::score(&backend, &decision_batch, requested).unwrap();
+        let optimized_request =
+            ScoringBackend::score(&backend, &decision_batch, requested).unwrap();
 
         let effective = optimized_request.metrics.effective_plan.unwrap();
         assert_eq!(effective.prefix_reuse, PrefixReuse::Shared);
         assert_eq!(effective.scheduling, TaskScheduling::Serial);
         assert_eq!(effective.parallel_task_limit, 1);
         assert_eq!(effective.projection, CandidateProjection::FullVocabulary);
-        assert!(optimized_request.metrics.sequence_candidate_tokens.unwrap_or(0) > 0);
-        assert!(optimized_request.metrics.sequence_prefix_evaluations.unwrap_or(0) > 0);
-        assert!(optimized_request.metrics.sequence_token_steps_saved.is_some());
+        assert!(
+            optimized_request
+                .metrics
+                .sequence_candidate_tokens
+                .unwrap_or(0)
+                > 0
+        );
+        assert!(
+            optimized_request
+                .metrics
+                .sequence_prefix_evaluations
+                .unwrap_or(0)
+                > 0
+        );
+        assert!(optimized_request
+            .metrics
+            .sequence_token_steps_saved
+            .is_some());
 
         assert_eq!(reference.scores.len(), optimized_request.scores.len());
         for (left, right) in reference.scores.iter().zip(&optimized_request.scores) {
@@ -2082,36 +2141,34 @@ mod tests {
         use turbojev::engine::PlanningPolicy;
         use turbojev::schema::{EvaluationRequest, Question};
 
-        let response = turbojev::TurboJev::new(reference_backend(
-            Renderer,
-            FamilyApi::qwen_style(),
-        ))
-        .with_planning_policy(PlanningPolicy::Auto)
-        .evaluate(EvaluationRequest {
-            model: None,
-            state: serde_json::json!({"message":"package missing"}),
-            questions: [
-                (
-                    "route".to_owned(),
-                    Question::choice(
-                        "Which queue?",
-                        [
-                            ("billing".to_owned(), "billing".to_owned()),
-                            ("shipping".to_owned(), "shipping".to_owned()),
-                        ]
-                        .into_iter()
-                        .collect(),
-                    ),
-                ),
-                (
-                    "urgent".to_owned(),
-                    Question::noul("Does it require review?"),
-                ),
-            ]
-            .into_iter()
-            .collect(),
-        })
-        .unwrap();
+        let response =
+            turbojev::TurboJev::new(reference_backend(Renderer, FamilyApi::qwen_style()))
+                .with_planning_policy(PlanningPolicy::Auto)
+                .evaluate(EvaluationRequest {
+                    model: None,
+                    state: serde_json::json!({"message":"package missing"}),
+                    questions: [
+                        (
+                            "route".to_owned(),
+                            Question::choice(
+                                "Which queue?",
+                                [
+                                    ("billing".to_owned(), "billing".to_owned()),
+                                    ("shipping".to_owned(), "shipping".to_owned()),
+                                ]
+                                .into_iter()
+                                .collect(),
+                            ),
+                        ),
+                        (
+                            "urgent".to_owned(),
+                            Question::noul("Does it require review?"),
+                        ),
+                    ]
+                    .into_iter()
+                    .collect(),
+                })
+                .unwrap();
 
         assert_eq!(response.metadata.execution.projection, "candidates-only");
         assert_eq!(response.usage.generated_tokens, 0);
@@ -2121,8 +2178,14 @@ mod tests {
     fn multi_root_runtime_matches_independent_roots_and_rejects_multitoken_shape() {
         let executor = LlamaCppExecutor::new(Arc::new(FamilyApi::qwen_style()));
         let candidates = vec![
-            turbojev_runtime::RuntimeCandidate { symbol: "A".into(), token_ids: vec![32] },
-            turbojev_runtime::RuntimeCandidate { symbol: "B".into(), token_ids: vec![33] },
+            turbojev_runtime::RuntimeCandidate {
+                symbol: "A".into(),
+                token_ids: vec![32],
+            },
+            turbojev_runtime::RuntimeCandidate {
+                symbol: "B".into(),
+                token_ids: vec![33],
+            },
         ];
         let first = turbojev_runtime::RuntimeBatch {
             common_prefix: vec![1, 2],
@@ -2143,10 +2206,23 @@ mod tests {
             }],
         };
         let plan = ExecutionPlan::default();
-        assert!(executor.can_score_fused(&[first.clone(), second.clone()], &[plan, plan]).unwrap());
-        let fused = executor.score_fused(&[first.clone(), second.clone()], &[plan, plan]).unwrap();
-        let serial_first = executor.score(&first, plan).unwrap();
-        let serial_second = executor.score(&second, plan).unwrap();
+        assert!(executor
+            .can_score_fused(&[first.clone(), second.clone()], &[plan, plan])
+            .unwrap());
+        let fused = executor
+            .score_fused(&[first.clone(), second.clone()], &[plan, plan])
+            .unwrap();
+        let independent = |batch: &turbojev_runtime::RuntimeBatch| {
+            let mut full = batch.clone();
+            for task in &mut full.tasks {
+                task.prompt_suffix
+                    .splice(0..0, full.common_prefix.iter().copied());
+            }
+            full.common_prefix.clear();
+            executor.score(&full, plan).unwrap()
+        };
+        let serial_first = independent(&first);
+        let serial_second = independent(&second);
         assert_eq!(fused[0].scores, serial_first.scores);
         assert_eq!(fused[1].scores, serial_second.scores);
         assert_eq!(fused[0].metrics.fused_request_count, Some(2));
@@ -2158,14 +2234,22 @@ mod tests {
                 id: "multi".into(),
                 prompt_suffix: vec![2],
                 candidates: vec![
-                    turbojev_runtime::RuntimeCandidate { symbol: "A".into(), token_ids: vec![32, 32] },
-                    turbojev_runtime::RuntimeCandidate { symbol: "B".into(), token_ids: vec![32, 33] },
+                    turbojev_runtime::RuntimeCandidate {
+                        symbol: "A".into(),
+                        token_ids: vec![32, 32],
+                    },
+                    turbojev_runtime::RuntimeCandidate {
+                        symbol: "B".into(),
+                        token_ids: vec![32, 33],
+                    },
                 ],
-                codebook_kind: turbojev_tokenizer::CodebookKind::FixedLengthSequence { tokens_per_code: 2 },
+                codebook_kind: turbojev_tokenizer::CodebookKind::FixedLengthSequence {
+                    tokens_per_code: 2,
+                },
             }],
         };
-        assert!(!executor.can_score_fused(&[first, multi], &[plan, plan]).unwrap());
+        assert!(!executor
+            .can_score_fused(&[first, multi], &[plan, plan])
+            .unwrap());
     }
-
 }
-

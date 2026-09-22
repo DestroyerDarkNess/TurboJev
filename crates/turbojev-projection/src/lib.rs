@@ -156,10 +156,7 @@ pub fn project_candidates_f32(
     for row_index in 0..rows.candidate_count {
         let row = rows.row(row_index).expect("validated row index");
         let dot = dot_f32(hidden, row)?;
-        let bias = rows
-            .bias
-            .as_ref()
-            .map_or(0.0, |values| values[row_index]);
+        let bias = rows.bias.as_ref().map_or(0.0, |values| values[row_index]);
         let logit = dot * config.output_scale + bias;
         if !logit.is_finite() {
             return Err(ProjectionError::NonFiniteOutput { row: row_index });
@@ -260,7 +257,10 @@ pub fn gather_candidate_rows_f32(
             vocab_size,
         })?;
         if index >= vocab_size {
-            return Err(ProjectionError::TokenOutOfRange { token_id, vocab_size });
+            return Err(ProjectionError::TokenOutOfRange {
+                token_id,
+                vocab_size,
+            });
         }
         let start = index * hidden_size;
         gathered.extend_from_slice(&matrix[start..start + hidden_size]);
@@ -299,7 +299,11 @@ pub fn compare_logits(
     if !tolerance.is_finite() || tolerance < 0.0 {
         return Err(ProjectionError::InvalidTolerance(tolerance));
     }
-    if reference.iter().chain(candidate).any(|value| !value.is_finite()) {
+    if reference
+        .iter()
+        .chain(candidate)
+        .any(|value| !value.is_finite())
+    {
         return Err(ProjectionError::NonFiniteInput("logit vector"));
     }
 
@@ -364,10 +368,7 @@ mod tests {
     fn fixture_matrix() -> (Vec<f32>, Vec<f32>, Vec<f32>) {
         let hidden = vec![0.5, -1.25, 2.0, 0.75];
         let matrix = vec![
-            0.1, 0.2, 0.3, 0.4,
-            -0.5, 0.6, -0.7, 0.8,
-            1.0, 0.0, 0.25, -0.5,
-            0.33, -0.2, 0.75, 1.1,
+            0.1, 0.2, 0.3, 0.4, -0.5, 0.6, -0.7, 0.8, 1.0, 0.0, 0.25, -0.5, 0.33, -0.2, 0.75, 1.1,
             -1.0, 0.5, 0.5, -0.25,
         ];
         let bias = vec![0.0, 0.1, -0.2, 0.3, -0.4];
@@ -404,19 +405,12 @@ mod tests {
 
     #[test]
     fn output_scale_is_applied_before_bias() {
-        let rows = DenseCandidateRows::with_bias(
-            2,
-            2,
-            vec![1.0, 2.0, 3.0, 4.0],
-            Some(vec![5.0, 7.0]),
-        )
-        .unwrap();
-        let logits = project_candidates_f32(
-            &[2.0, 1.0],
-            &rows,
-            ProjectionConfig { output_scale: 0.5 },
-        )
-        .unwrap();
+        let rows =
+            DenseCandidateRows::with_bias(2, 2, vec![1.0, 2.0, 3.0, 4.0], Some(vec![5.0, 7.0]))
+                .unwrap();
+        let logits =
+            project_candidates_f32(&[2.0, 1.0], &rows, ProjectionConfig { output_scale: 0.5 })
+                .unwrap();
         assert_eq!(logits, vec![7.0, 12.0]);
     }
 

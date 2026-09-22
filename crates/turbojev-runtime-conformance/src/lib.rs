@@ -13,13 +13,13 @@ use std::collections::{HashMap, HashSet};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use turbojev_backend::{CandidateProjection, ExecutionPlan};
-use turbojev_prompt::RenderedMessages;
 use turbojev_projection::compare_logits as compare_projection_logits;
-use turbojev_sequence::CandidateTrie;
+use turbojev_prompt::RenderedMessages;
 use turbojev_runtime::{
     FusedRuntimeExecutor, PromptCodec, RuntimeBatch, RuntimeCapabilities, RuntimeError,
     RuntimeOutput, TokenId,
 };
+use turbojev_sequence::CandidateTrie;
 
 /// Absolute-logit tolerance for parity checks.
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
@@ -70,7 +70,6 @@ pub struct RuntimeParityReport {
     /// Per-task details.
     pub details: Vec<RuntimeTaskParity>,
 }
-
 
 /// Conformance report specific to candidate-only output projection.
 ///
@@ -123,14 +122,16 @@ pub fn verify_fused_runtime_executor<E: FusedRuntimeExecutor>(
     }
     if batches.len() < 2 || batches.len() != plans.len() {
         return Err(RuntimeConformanceError::InvalidConfiguration(
-            "fused runtime conformance requires matching arrays with at least two requests".to_owned(),
+            "fused runtime conformance requires matching arrays with at least two requests"
+                .to_owned(),
         ));
     }
     if let Some(maximum) = capabilities.max_fused_items {
         if batches.len() > maximum {
             return Err(RuntimeConformanceError::InvalidConfiguration(format!(
                 "fused conformance received {} requests; runtime maximum is {}",
-                batches.len(), maximum
+                batches.len(),
+                maximum
             )));
         }
     }
@@ -210,9 +211,7 @@ pub fn verify_candidate_boundary<C: PromptCodec>(
             });
         }
         if codec.decode(&suffix)? != *symbol {
-            return Err(RuntimeConformanceError::RoundTripMismatch(
-                symbol.clone(),
-            ));
+            return Err(RuntimeConformanceError::RoundTripMismatch(symbol.clone()));
         }
         if !seen_tokens.insert(suffix.clone()) {
             return Err(RuntimeConformanceError::TokenCollision(symbol.clone()));
@@ -315,9 +314,7 @@ pub fn validate_runtime_batch(
             .iter()
             .any(|candidate| candidate.token_ids.is_empty())
         {
-            return Err(RuntimeConformanceError::EmptyCandidateCode(
-                task.id.clone(),
-            ));
+            return Err(RuntimeConformanceError::EmptyCandidateCode(task.id.clone()));
         }
     }
     Ok(())
@@ -422,7 +419,6 @@ pub fn compare_runtime_outputs(
     })
 }
 
-
 /// Verify a true candidate-only projection against the full-vocabulary baseline.
 ///
 /// The candidate output must contain the same logits within `tolerance`, and
@@ -436,14 +432,11 @@ pub fn verify_selective_projection(
     tolerance: RuntimeTolerance,
 ) -> Result<SelectiveProjectionReport, RuntimeConformanceError> {
     let parity = compare_runtime_outputs(batch, reference, candidate, tolerance)?;
-    let expected_candidate_rows = batch
-        .tasks
-        .iter()
-        .try_fold(0usize, |total, task| {
-            total
-                .checked_add(task.candidates.len())
-                .ok_or(RuntimeConformanceError::CandidateRowCountOverflow)
-        })?;
+    let expected_candidate_rows = batch.tasks.iter().try_fold(0usize, |total, task| {
+        total
+            .checked_add(task.candidates.len())
+            .ok_or(RuntimeConformanceError::CandidateRowCountOverflow)
+    })?;
     let reported_candidate_rows = candidate
         .metrics
         .candidate_rows_projected
@@ -512,6 +505,15 @@ fn is_prefix_free(codes: &[VerifiedCandidateCode]) -> bool {
 /// Runtime adapter conformance failure.
 #[derive(Debug, Error, Clone, PartialEq)]
 pub enum RuntimeConformanceError {
+    /// Runtime returned the wrong number of sequence scores.
+    #[error("runtime returned {actual} sequence scores; expected {expected}")]
+    SequenceScoreCountMismatch { expected: usize, actual: usize },
+    /// Runtime emitted a non-finite sequence score.
+    #[error("runtime returned a non-finite sequence score")]
+    NonFiniteSequenceScore,
+    /// Exact sequence reference evaluation failed.
+    #[error("sequence reference failed: {0}")]
+    SequenceReference(String),
     /// Runtime bridge error from the codec.
     #[error(transparent)]
     Runtime(#[from] RuntimeError),
@@ -747,7 +749,6 @@ mod tests {
         assert_eq!(report.reported_candidate_rows, 2);
     }
 
-
     #[test]
     fn exact_sequence_conformance_uses_full_vocab_and_shared_prefixes() {
         let candidates = vec![vec![0, 1], vec![0, 2], vec![3, 1]];
@@ -756,7 +757,11 @@ mod tests {
                 [] => vec![3.0, 0.0, 0.0, 2.0],
                 [0] => vec![0.0, 2.5, 1.0, 0.0],
                 [3] => vec![0.0, 1.5, 0.0, 0.0],
-                _ => return Err(RuntimeError::Inference("unexpected reference prefix".to_owned())),
+                _ => {
+                    return Err(RuntimeError::Inference(
+                        "unexpected reference prefix".to_owned(),
+                    ))
+                }
             })
         };
         let trie = CandidateTrie::build(&candidates).unwrap();
@@ -770,7 +775,11 @@ mod tests {
                     [] => vec![3.0, 0.0, 0.0, 2.0],
                     [0] => vec![0.0, 2.5, 1.0, 0.0],
                     [3] => vec![0.0, 1.5, 0.0, 0.0],
-                    _ => return Err(RuntimeError::Inference("unexpected conformance prefix".to_owned())),
+                    _ => {
+                        return Err(RuntimeError::Inference(
+                            "unexpected conformance prefix".to_owned(),
+                        ))
+                    }
                 })
             },
         )
@@ -792,14 +801,18 @@ mod tests {
             RuntimeTolerance { logit_abs: 0.0 },
         )
         .unwrap_err();
-        assert_eq!(error, RuntimeConformanceError::MissingCandidateProjectionMetric);
+        assert_eq!(
+            error,
+            RuntimeConformanceError::MissingCandidateProjectionMetric
+        );
     }
-
 
     struct FusedFixtureExecutor;
 
     impl RuntimeExecutor for FusedFixtureExecutor {
-        fn name(&self) -> &'static str { "fused-fixture" }
+        fn name(&self) -> &'static str {
+            "fused-fixture"
+        }
 
         fn capabilities(&self) -> RuntimeCapabilities {
             RuntimeCapabilities {
@@ -824,7 +837,9 @@ mod tests {
                     .iter()
                     .map(|task| RuntimeTaskScores {
                         id: task.id.clone(),
-                        logits: (0..task.candidates.len()).map(|index| index as f32).collect(),
+                        logits: (0..task.candidates.len())
+                            .map(|index| index as f32)
+                            .collect(),
                     })
                     .collect(),
                 metrics: BackendMetrics::default(),
@@ -872,5 +887,4 @@ mod tests {
         assert_eq!(report.requests, 2);
         assert_eq!(report.max_logit_delta, 0.0);
     }
-
 }

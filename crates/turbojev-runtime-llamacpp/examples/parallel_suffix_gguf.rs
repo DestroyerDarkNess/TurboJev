@@ -60,7 +60,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     "Which team should handle this request?",
                     [
                         ("billing".to_owned(), "Billing or payment issue".to_owned()),
-                        ("shipping".to_owned(), "Delivery or logistics issue".to_owned()),
+                        (
+                            "shipping".to_owned(),
+                            "Delivery or logistics issue".to_owned(),
+                        ),
                         ("technical".to_owned(), "Technical product issue".to_owned()),
                     ]
                     .into_iter()

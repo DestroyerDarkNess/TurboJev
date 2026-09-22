@@ -101,7 +101,9 @@ impl SemanticTrainingDataset {
     /// Validate schema-level and typed-target invariants independent of a recipe.
     pub fn validate(&self) -> Result<(), TrainingDataError> {
         if self.contract != SEMANTIC_DATASET_CONTRACT {
-            return Err(TrainingDataError::UnsupportedContract(self.contract.clone()));
+            return Err(TrainingDataError::UnsupportedContract(
+                self.contract.clone(),
+            ));
         }
         require_text("dataset.id", &self.id)?;
         if self.examples.is_empty() {
@@ -159,7 +161,10 @@ impl SemanticTrainingDataset {
     }
 
     /// Validate that this source dataset satisfies the recipe's explicit data policy.
-    pub fn validate_against_recipe(&self, recipe: &TrainingRecipe) -> Result<(), TrainingDataError> {
+    pub fn validate_against_recipe(
+        &self,
+        recipe: &TrainingRecipe,
+    ) -> Result<(), TrainingDataError> {
         self.validate()?;
         recipe
             .validate()
@@ -178,8 +183,11 @@ impl SemanticTrainingDataset {
 
         let expected_languages: HashSet<&str> =
             recipe.data.languages.iter().map(String::as_str).collect();
-        let actual_languages: HashSet<&str> =
-            self.examples.iter().map(|example| example.language.as_str()).collect();
+        let actual_languages: HashSet<&str> = self
+            .examples
+            .iter()
+            .map(|example| example.language.as_str())
+            .collect();
 
         for language in &expected_languages {
             if !actual_languages.contains(language) {
@@ -188,12 +196,16 @@ impl SemanticTrainingDataset {
         }
         for language in &actual_languages {
             if !expected_languages.contains(language) {
-                return Err(TrainingDataError::UnexpectedLanguage((*language).to_owned()));
+                return Err(TrainingDataError::UnexpectedLanguage(
+                    (*language).to_owned(),
+                ));
             }
         }
 
         if recipe.data.require_contrastive_pairs && !has_contrastive_pair(&self.examples) {
-            return Err(TrainingDataError::MissingRequiredProperty("contrastive-pair"));
+            return Err(TrainingDataError::MissingRequiredProperty(
+                "contrastive-pair",
+            ));
         }
         if recipe.data.require_negative_no_match
             && !self
@@ -201,7 +213,9 @@ impl SemanticTrainingDataset {
                 .iter()
                 .any(|example| example.properties.negative_no_match)
         {
-            return Err(TrainingDataError::MissingRequiredProperty("negative-no-match"));
+            return Err(TrainingDataError::MissingRequiredProperty(
+                "negative-no-match",
+            ));
         }
         if recipe.data.require_adversarial_criteria
             && !self
@@ -209,7 +223,9 @@ impl SemanticTrainingDataset {
                 .iter()
                 .any(|example| example.properties.adversarial_criteria)
         {
-            return Err(TrainingDataError::MissingRequiredProperty("adversarial-criteria"));
+            return Err(TrainingDataError::MissingRequiredProperty(
+                "adversarial-criteria",
+            ));
         }
         if recipe.data.require_long_shared_state
             && !self
@@ -217,7 +233,9 @@ impl SemanticTrainingDataset {
                 .iter()
                 .any(|example| example.properties.long_shared_state)
         {
-            return Err(TrainingDataError::MissingRequiredProperty("long-shared-state"));
+            return Err(TrainingDataError::MissingRequiredProperty(
+                "long-shared-state",
+            ));
         }
         Ok(())
     }
@@ -350,15 +368,23 @@ impl MaterializedTrainingDataset {
     /// Validate internal provenance, target positions and record-weight accounting.
     pub fn validate(&self) -> Result<(), TrainingDataError> {
         if self.contract != MATERIALIZED_DATASET_CONTRACT {
-            return Err(TrainingDataError::UnsupportedContract(self.contract.clone()));
+            return Err(TrainingDataError::UnsupportedContract(
+                self.contract.clone(),
+            ));
         }
         for (field, value) in [
             ("materialized.id", self.id.as_str()),
             ("materialized.source_dataset", self.source_dataset.as_str()),
             ("materialized.recipe_id", self.recipe_id.as_str()),
             ("materialized.prompt_ir", self.prompt_ir.as_str()),
-            ("materialized.renderer_profile", self.renderer_profile.as_str()),
-            ("materialized.candidate_code_profile", self.candidate_code_profile.as_str()),
+            (
+                "materialized.renderer_profile",
+                self.renderer_profile.as_str(),
+            ),
+            (
+                "materialized.candidate_code_profile",
+                self.candidate_code_profile.as_str(),
+            ),
         ] {
             require_text(field, value)?;
         }
@@ -387,20 +413,28 @@ impl MaterializedTrainingDataset {
                 ));
             }
             if record.target_index >= record.document.options.len() {
-                return Err(TrainingDataError::MaterializedTargetOutOfRange(record.id.clone()));
+                return Err(TrainingDataError::MaterializedTargetOutOfRange(
+                    record.id.clone(),
+                ));
             }
             let option = &record.document.options[record.target_index];
             if option.key != record.target_key || option.code != record.target_code {
-                return Err(TrainingDataError::MaterializedTargetMismatch(record.id.clone()));
+                return Err(TrainingDataError::MaterializedTargetMismatch(
+                    record.id.clone(),
+                ));
             }
             let mut keys = HashSet::with_capacity(record.document.options.len());
             let mut codes = HashSet::with_capacity(record.document.options.len());
             for option in &record.document.options {
                 if !keys.insert(option.key.as_str()) {
-                    return Err(TrainingDataError::DuplicateMaterializedKey(record.id.clone()));
+                    return Err(TrainingDataError::DuplicateMaterializedKey(
+                        record.id.clone(),
+                    ));
                 }
                 if option.code.trim().is_empty() || !codes.insert(option.code.as_str()) {
-                    return Err(TrainingDataError::InvalidMaterializedCodes(record.id.clone()));
+                    return Err(TrainingDataError::InvalidMaterializedCodes(
+                        record.id.clone(),
+                    ));
                 }
             }
             total_weight += record.weight;
@@ -422,7 +456,9 @@ pub fn materialize_training_dataset<P: CandidateCodeProvider>(
     dataset.validate_against_recipe(recipe)?;
     require_text("candidate_code_provider.profile", code_provider.profile())?;
     if recipe.prompt_ir != PROMPT_IR_CONTRACT {
-        return Err(TrainingDataError::PromptIrMismatch(recipe.prompt_ir.clone()));
+        return Err(TrainingDataError::PromptIrMismatch(
+            recipe.prompt_ir.clone(),
+        ));
     }
 
     let output_id = output_id.into();
@@ -436,13 +472,14 @@ pub fn materialize_training_dataset<P: CandidateCodeProvider>(
         for task in &batch.tasks {
             source_decisions += 1;
             expected_total_weight += example.weight;
-            let target = example
-                .targets
-                .get(&task.id)
-                .ok_or_else(|| TrainingDataError::MissingTarget {
-                    example: example.id.clone(),
-                    question: task.id.clone(),
-                })?;
+            let target =
+                example
+                    .targets
+                    .get(&task.id)
+                    .ok_or_else(|| TrainingDataError::MissingTarget {
+                        example: example.id.clone(),
+                        question: task.id.clone(),
+                    })?;
             let target_key = target.semantic_key();
 
             let order_scope = format!("{}/{}/order", example.id, task.id);
@@ -468,7 +505,12 @@ pub fn materialize_training_dataset<P: CandidateCodeProvider>(
                         question: task.id.clone(),
                         message,
                     })?;
-                validate_codes(&example.id, &task.id, &base_codes, ordered_task.candidates.len())?;
+                validate_codes(
+                    &example.id,
+                    &task.id,
+                    &base_codes,
+                    ordered_task.candidates.len(),
+                )?;
 
                 let code_scope = format!("{}/{}/order-{order_variant}/code", example.id, task.id);
                 let code_permutations = deterministic_permutations(
@@ -615,11 +657,10 @@ fn deterministic_permutations(
     // random retry loop and is stable across platforms/Rust versions.
     let capacity = factorial_saturated(n);
     let non_identity = capacity - 1;
-    let seed_rank = 1
-        + (mix64(seed ^ stable_hash(scope.as_bytes())) % non_identity as u64) as usize;
+    let seed_rank =
+        1 + (mix64(seed ^ stable_hash(scope.as_bytes())) % non_identity as u64) as usize;
     for offset in 0..target - 1 {
-        let rank = 1
-            + (((seed_rank - 1) as u128 + offset as u128) % non_identity as u128) as usize;
+        let rank = 1 + (((seed_rank - 1) as u128 + offset as u128) % non_identity as u128) as usize;
         result.push(unrank_permutation(n, rank));
     }
     result
@@ -638,11 +679,7 @@ fn unrank_permutation(n: usize, mut rank: usize) -> Vec<usize> {
     let mut permutation = Vec::with_capacity(n);
     for remaining in (1..=n).rev() {
         let block = factorial_saturated(remaining - 1);
-        let index = if block == usize::MAX {
-            0
-        } else {
-            rank / block
-        };
+        let index = if block == usize::MAX { 0 } else { rank / block };
         if block != usize::MAX {
             rank %= block;
         }
@@ -707,13 +744,17 @@ pub enum TrainingDataError {
     UnknownTarget { example: String, question: String },
     #[error("example {example:?} question {question:?} target type does not match question type")]
     TargetTypeMismatch { example: String, question: String },
-    #[error("example {example:?} question {question:?} references unknown choice target {target:?}")]
+    #[error(
+        "example {example:?} question {question:?} references unknown choice target {target:?}"
+    )]
     UnknownChoiceTarget {
         example: String,
         question: String,
         target: String,
     },
-    #[error("example {example:?} question {question:?} score target {target} exceeds {levels} levels")]
+    #[error(
+        "example {example:?} question {question:?} score target {target} exceeds {levels} levels"
+    )]
     ScoreTargetOutOfRange {
         example: String,
         question: String,
@@ -895,10 +936,10 @@ mod tests {
 
     #[test]
     fn materialization_is_deterministic_and_conserves_weight() {
-        let first = materialize_training_dataset(&dataset(), &recipe(), &FixtureCodes, "mat-v1")
-            .unwrap();
-        let second = materialize_training_dataset(&dataset(), &recipe(), &FixtureCodes, "mat-v1")
-            .unwrap();
+        let first =
+            materialize_training_dataset(&dataset(), &recipe(), &FixtureCodes, "mat-v1").unwrap();
+        let second =
+            materialize_training_dataset(&dataset(), &recipe(), &FixtureCodes, "mat-v1").unwrap();
         assert_eq!(first, second);
         // 2 examples * (choice: 4x4 + boolean: 2x2) = 40 records.
         assert_eq!(first.records.len(), 40);
@@ -909,8 +950,8 @@ mod tests {
 
     #[test]
     fn every_target_tracks_semantics_after_both_permutations() {
-        let output = materialize_training_dataset(&dataset(), &recipe(), &FixtureCodes, "mat-v1")
-            .unwrap();
+        let output =
+            materialize_training_dataset(&dataset(), &recipe(), &FixtureCodes, "mat-v1").unwrap();
         for record in output.records {
             let option = &record.document.options[record.target_index];
             assert_eq!(option.key, record.target_key);

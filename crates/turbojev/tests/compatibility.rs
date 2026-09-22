@@ -44,10 +44,14 @@ fn one_canonical_result_projects_to_typesafe_and_ai_sdk_shapes() {
         &encode_response(WireProfile::AiSdkEvaluationV4, &request, &response).unwrap(),
     )
     .unwrap();
-    assert!(ai_sdk["answers"]["review"]["probability"].as_f64().is_some());
-    assert!(ai_sdk["providerMetadata"]["typesafe"]["confidence"]["route"]
+    assert!(ai_sdk["answers"]["review"]["probability"]
         .as_f64()
         .is_some());
+    assert!(
+        ai_sdk["providerMetadata"]["typesafe"]["confidence"]["route"]
+            .as_f64()
+            .is_some()
+    );
     assert_eq!(
         ai_sdk["providerMetadata"]["turbojev"]["confidenceSource"],
         "selected-candidate-probability"

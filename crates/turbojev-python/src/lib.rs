@@ -9,28 +9,50 @@ fn py_error(error: HostError) -> PyErr {
 }
 
 #[pyclass(name = "NativeEngine", unsendable)]
-pub struct PyNativeEngine { inner: Option<NativeSession> }
+pub struct PyNativeEngine {
+    inner: Option<NativeSession>,
+}
 
 #[pymethods]
 impl PyNativeEngine {
     #[staticmethod]
     fn load_json(options_json: &str) -> PyResult<Self> {
-        NativeSession::open_json(options_json).map(|inner| Self { inner: Some(inner) }).map_err(py_error)
+        NativeSession::open_json(options_json)
+            .map(|inner| Self { inner: Some(inner) })
+            .map_err(py_error)
     }
 
     fn evaluate_json(&self, request_json: &str) -> PyResult<String> {
-        self.inner.as_ref().ok_or_else(|| PyRuntimeError::new_err("engine is closed"))?.evaluate_json(request_json).map_err(py_error)
+        self.inner
+            .as_ref()
+            .ok_or_else(|| PyRuntimeError::new_err("engine is closed"))?
+            .evaluate_json(request_json)
+            .map_err(py_error)
     }
     fn evaluate_compatible_json(&self, profile: &str, request_json: &str) -> PyResult<String> {
-        self.inner.as_ref().ok_or_else(|| PyRuntimeError::new_err("engine is closed"))?.evaluate_compatible_json(profile, request_json).map_err(py_error)
+        self.inner
+            .as_ref()
+            .ok_or_else(|| PyRuntimeError::new_err("engine is closed"))?
+            .evaluate_compatible_json(profile, request_json)
+            .map_err(py_error)
     }
     fn classify_json(&self, state: &str, options_json: &str) -> PyResult<String> {
-        self.inner.as_ref().ok_or_else(|| PyRuntimeError::new_err("engine is closed"))?.classify_json(state, options_json).map_err(py_error)
+        self.inner
+            .as_ref()
+            .ok_or_else(|| PyRuntimeError::new_err("engine is closed"))?
+            .classify_json(state, options_json)
+            .map_err(py_error)
     }
     fn info_json(&self) -> PyResult<String> {
-        self.inner.as_ref().ok_or_else(|| PyRuntimeError::new_err("engine is closed"))?.info_json().map_err(py_error)
+        self.inner
+            .as_ref()
+            .ok_or_else(|| PyRuntimeError::new_err("engine is closed"))?
+            .info_json()
+            .map_err(py_error)
     }
-    fn close(&mut self) { self.inner.take(); }
+    fn close(&mut self) {
+        self.inner.take();
+    }
 }
 
 #[pymodule]

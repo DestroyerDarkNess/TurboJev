@@ -131,11 +131,8 @@ impl ExecutionPlanner {
             PlanningPolicy::Auto | PlanningPolicy::DeterministicReuse => PrefixReuse::None,
         };
 
-        let requested_parallel_limit = parallel_task_limit(
-            task_count,
-            self.budget,
-            resource_hints.normalized(),
-        );
+        let requested_parallel_limit =
+            parallel_task_limit(task_count, self.budget, resource_hints.normalized());
         let scheduling = match self.policy {
             PlanningPolicy::Auto
                 if multiple_tasks
@@ -217,8 +214,14 @@ mod tests {
                     intent: DecisionIntent::Criterion,
                     instruction: Some("judge".into()),
                     candidates: vec![
-                        Candidate { key: "no".into(), description: "no".into() },
-                        Candidate { key: "yes".into(), description: "yes".into() },
+                        Candidate {
+                            key: "no".into(),
+                            description: "no".into(),
+                        },
+                        Candidate {
+                            key: "yes".into(),
+                            description: "yes".into(),
+                        },
                     ],
                 })
                 .collect(),
@@ -246,8 +249,8 @@ mod tests {
 
     #[test]
     fn reference_mode_disables_reuse_and_parallelism() {
-        let plan = ExecutionPlanner::new(PlanningPolicy::Reference)
-            .plan(all_capabilities(), &batch(4));
+        let plan =
+            ExecutionPlanner::new(PlanningPolicy::Reference).plan(all_capabilities(), &batch(4));
         assert_eq!(plan.prefix_reuse, PrefixReuse::None);
         assert_eq!(plan.scheduling, TaskScheduling::Serial);
         assert_eq!(plan.parallel_task_limit, 1);
@@ -263,8 +266,8 @@ mod tests {
             multi_token_candidates: false,
             local_inference: true,
         };
-        let plan = ExecutionPlanner::new(PlanningPolicy::DeterministicReuse)
-            .plan(capabilities, &batch(4));
+        let plan =
+            ExecutionPlanner::new(PlanningPolicy::DeterministicReuse).plan(capabilities, &batch(4));
         assert_eq!(plan.prefix_reuse, PrefixReuse::Shared);
         assert_eq!(plan.scheduling, TaskScheduling::Serial);
         assert_eq!(plan.parallel_task_limit, 1);
@@ -277,11 +280,8 @@ mod tests {
             max_parallel_tasks: Some(3),
             estimated_parallel_task_bytes: None,
         };
-        let plan = ExecutionPlanner::default().plan_with_hints(
-            all_capabilities(),
-            hints,
-            &batch(9),
-        );
+        let plan =
+            ExecutionPlanner::default().plan_with_hints(all_capabilities(), hints, &batch(9));
         assert_eq!(plan.scheduling, TaskScheduling::Parallel);
         assert_eq!(plan.parallel_task_limit, 3);
     }
@@ -293,8 +293,11 @@ mod tests {
             max_parallel_tasks: Some(32),
             estimated_parallel_task_bytes: Some(4 * 1024 * 1024),
         };
-        let plan = ExecutionPlanner::with_budget(PlanningPolicy::Auto, budget)
-            .plan_with_hints(all_capabilities(), hints, &batch(20));
+        let plan = ExecutionPlanner::with_budget(PlanningPolicy::Auto, budget).plan_with_hints(
+            all_capabilities(),
+            hints,
+            &batch(20),
+        );
         assert_eq!(plan.scheduling, TaskScheduling::Parallel);
         assert_eq!(plan.parallel_task_limit, 4);
     }
@@ -306,8 +309,11 @@ mod tests {
             max_parallel_tasks: Some(32),
             estimated_parallel_task_bytes: Some(4096),
         };
-        let plan = ExecutionPlanner::with_budget(PlanningPolicy::Auto, budget)
-            .plan_with_hints(all_capabilities(), hints, &batch(20));
+        let plan = ExecutionPlanner::with_budget(PlanningPolicy::Auto, budget).plan_with_hints(
+            all_capabilities(),
+            hints,
+            &batch(20),
+        );
         assert_eq!(plan.scheduling, TaskScheduling::Serial);
         assert_eq!(plan.parallel_task_limit, 1);
         assert_eq!(plan.prefix_reuse, PrefixReuse::Shared);
@@ -320,8 +326,11 @@ mod tests {
             max_parallel_tasks: Some(4),
             estimated_parallel_task_bytes: None,
         };
-        let plan = ExecutionPlanner::with_budget(PlanningPolicy::Auto, budget)
-            .plan_with_hints(all_capabilities(), hints, &batch(20));
+        let plan = ExecutionPlanner::with_budget(PlanningPolicy::Auto, budget).plan_with_hints(
+            all_capabilities(),
+            hints,
+            &batch(20),
+        );
         assert_eq!(plan.parallel_task_limit, 4);
     }
 }

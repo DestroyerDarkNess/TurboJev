@@ -15,8 +15,14 @@ static char *read_all(const char *path) {
 int main(int argc, char **argv) {
     if (argc != 3) { fprintf(stderr, "usage: %s <model> <request.json>\n", argv[0]); return 2; }
     char options[8192];
-    if (strchr(argv[1], '"') || strlen(argv[1]) > 7000) { fprintf(stderr, "unsupported model path\n"); return 2; }
-    snprintf(options, sizeof options, "{\"model\":\"%s\",\"nGpuLayers\":0}", argv[1]);
+    char escaped[7100]; size_t used = 0;
+    for (const unsigned char *p = (const unsigned char *)argv[1]; *p; ++p) {
+        if (*p < 32 || used + 2 >= sizeof escaped) { fprintf(stderr, "unsupported model path\n"); return 2; }
+        if (*p == '\\' || *p == '"') escaped[used++] = '\\';
+        escaped[used++] = (char)*p;
+    }
+    escaped[used] = '\0';
+    snprintf(options, sizeof options, "{\"model\":\"%s\",\"nGpuLayers\":0}", escaped);
     char *request = read_all(argv[2]); if (!request) { fprintf(stderr, "cannot read request\n"); return 2; }
     tj_engine *engine = NULL; char *out = NULL;
     int32_t rc = tj_engine_open_json(options, &engine);

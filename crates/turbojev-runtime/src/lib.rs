@@ -341,8 +341,7 @@ where
                 *plan,
                 self.max_tokens_per_code,
                 self.candidate_set_attempts,
-            )
-            .map_err(map_runtime_error)?;
+            )?;
             let runtime_batch = self
                 .prepare_batch(batch, *plan, capabilities)
                 .map_err(map_runtime_error)?;
@@ -363,10 +362,7 @@ where
         batches: &[DecisionBatch],
         plans: &[ExecutionPlan],
     ) -> Result<Vec<BackendOutput>, BackendError> {
-        let fused = self
-            .executor
-            .fused_capabilities()
-            .validate()?;
+        let fused = self.executor.fused_capabilities().validate()?;
         if !fused.fused_batch {
             return Err(BackendError::Unsupported(
                 "runtime does not advertise fused cross-request execution".to_owned(),
@@ -381,7 +377,8 @@ where
             if batches.len() > maximum {
                 return Err(BackendError::InvalidInput(format!(
                     "fused runtime received {} requests; maximum is {}",
-                    batches.len(), maximum
+                    batches.len(),
+                    maximum
                 )));
             }
         }
@@ -395,8 +392,7 @@ where
                 *plan,
                 self.max_tokens_per_code,
                 self.candidate_set_attempts,
-            )
-            .map_err(map_runtime_error)?;
+            )?;
             let runtime_batch = self
                 .prepare_batch(batch, *plan, capabilities)
                 .map_err(map_runtime_error)?;
@@ -425,7 +421,8 @@ where
         if outputs.len() != batches.len() {
             return Err(BackendError::Inference(format!(
                 "fused runtime returned {} outputs for {} requests",
-                outputs.len(), batches.len()
+                outputs.len(),
+                batches.len()
             )));
         }
 
@@ -540,11 +537,9 @@ where
         task: &turbojev_backend::DecisionTask,
         capabilities: RuntimeCapabilities,
     ) -> Result<RuntimeTask, RuntimeError> {
-        let candidate_sets = candidate_symbol_sets(
-            task.candidates.len(),
-            self.candidate_set_attempts,
-        )
-        .map_err(|error| RuntimeError::Preparation(error.to_string()))?;
+        let candidate_sets =
+            candidate_symbol_sets(task.candidates.len(), self.candidate_set_attempts)
+                .map_err(|error| RuntimeError::Preparation(error.to_string()))?;
 
         let mut best_multi: Option<(Vec<TokenId>, Vec<RuntimeCandidate>, CodebookKind)> = None;
         for symbols in candidate_sets {
@@ -571,10 +566,7 @@ where
                     .unwrap_or(0);
                 if max_width <= self.max_tokens_per_code && is_prefix_free(&codes) {
                     let first_width = codes[0].token_ids.len();
-                    let kind = if codes
-                        .iter()
-                        .all(|code| code.token_ids.len() == first_width)
-                    {
+                    let kind = if codes.iter().all(|code| code.token_ids.len() == first_width) {
                         CodebookKind::FixedLengthSequence {
                             tokens_per_code: max_width,
                         }
@@ -664,11 +656,13 @@ where
     }
 }
 
-
 fn effective_plan_for_codebooks(plan: ExecutionPlan, batch: &RuntimeBatch) -> ExecutionPlan {
     let requires_sequence_scoring = batch.tasks.iter().any(|task| {
         !matches!(task.codebook_kind, CodebookKind::SingleToken)
-            || task.candidates.iter().any(|candidate| candidate.token_ids.len() != 1)
+            || task
+                .candidates
+                .iter()
+                .any(|candidate| candidate.token_ids.len() != 1)
     });
     if !requires_sequence_scoring {
         return plan;
@@ -847,7 +841,10 @@ mod tests {
         fn decode(&self, token_ids: &[TokenId]) -> Result<String, RuntimeError> {
             token_ids
                 .iter()
-                .map(|value| char::from_u32(*value).ok_or_else(|| RuntimeError::Codec("invalid scalar".into())))
+                .map(|value| {
+                    char::from_u32(*value)
+                        .ok_or_else(|| RuntimeError::Codec("invalid scalar".into()))
+                })
                 .collect()
         }
     }
@@ -894,13 +891,19 @@ mod tests {
                     .iter()
                     .map(|task| RuntimeTaskScores {
                         id: task.id.clone(),
-                        logits: (0..task.candidates.len()).map(|index| index as f32).collect(),
+                        logits: (0..task.candidates.len())
+                            .map(|index| index as f32)
+                            .collect(),
                     })
                     .collect(),
                 metrics: BackendMetrics {
                     input_tokens: Some(
                         batch.common_prefix.len()
-                            + batch.tasks.iter().map(|task| task.prompt_suffix.len()).sum::<usize>(),
+                            + batch
+                                .tasks
+                                .iter()
+                                .map(|task| task.prompt_suffix.len())
+                                .sum::<usize>(),
                     ),
                     ..BackendMetrics::default()
                 },
@@ -932,19 +935,19 @@ mod tests {
             _plan: ExecutionPlan,
         ) -> RuntimeFuture<'a, Result<RuntimeOutput, RuntimeError>> {
             Box::pin(std::future::ready(Ok(RuntimeOutput {
-                    model: Some("async-open-model-test".to_owned()),
-                    scores: batch
-                        .tasks
-                        .iter()
-                        .map(|task| RuntimeTaskScores {
-                            id: task.id.clone(),
-                            logits: (0..task.candidates.len())
-                                .map(|index| index as f32)
-                                .collect(),
-                        })
-                        .collect(),
-                    metrics: BackendMetrics::default(),
-                })))
+                model: Some("async-open-model-test".to_owned()),
+                scores: batch
+                    .tasks
+                    .iter()
+                    .map(|task| RuntimeTaskScores {
+                        id: task.id.clone(),
+                        logits: (0..task.candidates.len())
+                            .map(|index| index as f32)
+                            .collect(),
+                    })
+                    .collect(),
+                metrics: BackendMetrics::default(),
+            })))
         }
     }
 
@@ -1001,9 +1004,18 @@ mod tests {
         };
         let output = backend.score(&batch, plan).unwrap();
         assert_eq!(output.scores.len(), 2);
-        let prepared = backend.executor().last_batch.lock().unwrap().clone().unwrap();
+        let prepared = backend
+            .executor()
+            .last_batch
+            .lock()
+            .unwrap()
+            .clone()
+            .unwrap();
         assert!(!prepared.common_prefix.is_empty());
-        assert!(prepared.tasks.iter().all(|task| task.codebook_kind == CodebookKind::SingleToken));
+        assert!(prepared
+            .tasks
+            .iter()
+            .all(|task| task.codebook_kind == CodebookKind::SingleToken));
     }
 
     #[test]
@@ -1030,5 +1042,4 @@ mod tests {
         assert_eq!(output.model.as_deref(), Some("async-open-model-test"));
         assert_eq!(output.scores.len(), 2);
     }
-
 }

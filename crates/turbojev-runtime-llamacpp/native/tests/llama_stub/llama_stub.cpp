@@ -184,11 +184,12 @@ llama_batch llama_batch_get_one(llama_token * tokens, int32_t n_tokens) {
 
 llama_batch llama_batch_init(int32_t n_tokens, int32_t, int32_t n_seq_max) {
     llama_batch batch{};
-    batch.n_tokens = n_tokens;
+    // Real llama_batch_init allocates capacity but starts with zero used tokens.
+    batch.n_tokens = 0;
     batch.token = new llama_token[static_cast<size_t>(n_tokens)]{};
     batch.pos = new llama_pos[static_cast<size_t>(n_tokens)]{};
     batch.n_seq_id = new int32_t[static_cast<size_t>(n_tokens)]{};
-    batch.seq_id = new llama_seq_id *[static_cast<size_t>(n_tokens)]{};
+    batch.seq_id = new llama_seq_id *[static_cast<size_t>(n_tokens) + 1]{};
     batch.logits = new int8_t[static_cast<size_t>(n_tokens)]{};
     for (int32_t i = 0; i < n_tokens; ++i) {
         batch.seq_id[i] = new llama_seq_id[static_cast<size_t>(n_seq_max)]{};
@@ -198,7 +199,7 @@ llama_batch llama_batch_init(int32_t n_tokens, int32_t, int32_t n_seq_max) {
 
 void llama_batch_free(llama_batch batch) {
     if (batch.seq_id != nullptr) {
-        for (int32_t i = 0; i < batch.n_tokens; ++i) {
+        for (int32_t i = 0; batch.seq_id[i] != nullptr; ++i) {
             delete[] batch.seq_id[i];
         }
     }

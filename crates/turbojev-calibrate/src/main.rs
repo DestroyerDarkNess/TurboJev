@@ -31,18 +31,36 @@ fn run() -> Result<(), String> {
             while index < rest.len() {
                 match rest[index].as_str() {
                     "--id" => profile_id = value(&rest, &mut index, "--id")?,
-                    "--ece-bins" => config.ece_bins = parse(&value(&rest, &mut index, "--ece-bins")?, "--ece-bins")?,
-                    "--iterations" => config.iterations = parse(&value(&rest, &mut index, "--iterations")?, "--iterations")?,
-                    "--min-temperature" => config.min_temperature = parse(&value(&rest, &mut index, "--min-temperature")?, "--min-temperature")?,
-                    "--max-temperature" => config.max_temperature = parse(&value(&rest, &mut index, "--max-temperature")?, "--max-temperature")?,
+                    "--ece-bins" => {
+                        config.ece_bins =
+                            parse(&value(&rest, &mut index, "--ece-bins")?, "--ece-bins")?
+                    }
+                    "--iterations" => {
+                        config.iterations =
+                            parse(&value(&rest, &mut index, "--iterations")?, "--iterations")?
+                    }
+                    "--min-temperature" => {
+                        config.min_temperature = parse(
+                            &value(&rest, &mut index, "--min-temperature")?,
+                            "--min-temperature",
+                        )?
+                    }
+                    "--max-temperature" => {
+                        config.max_temperature = parse(
+                            &value(&rest, &mut index, "--max-temperature")?,
+                            "--max-temperature",
+                        )?
+                    }
                     other => return Err(format!("unknown option {other:?}\n{}", usage())),
                 }
                 index += 1;
             }
             let dataset = read_dataset(&input)?;
-            let profile = fit_temperature_profile(&dataset, profile_id, config).map_err(|e| e.to_string())?;
+            let profile =
+                fit_temperature_profile(&dataset, profile_id, config).map_err(|e| e.to_string())?;
             let json = serde_json::to_string_pretty(&profile).map_err(|e| e.to_string())?;
-            fs::write(&output, format!("{json}\n")).map_err(|e| format!("{}: {e}", output.display()))?;
+            fs::write(&output, format!("{json}\n"))
+                .map_err(|e| format!("{}: {e}", output.display()))?;
             print_metrics("before", &profile.before);
             print_metrics("after", &profile.after);
             println!("temperature: {:.9}", profile.temperature);
@@ -56,14 +74,20 @@ fn run() -> Result<(), String> {
             let mut index = 0;
             while index < rest.len() {
                 match rest[index].as_str() {
-                    "--temperature" => temperature = parse(&value(&rest, &mut index, "--temperature")?, "--temperature")?,
-                    "--ece-bins" => ece_bins = parse(&value(&rest, &mut index, "--ece-bins")?, "--ece-bins")?,
+                    "--temperature" => {
+                        temperature =
+                            parse(&value(&rest, &mut index, "--temperature")?, "--temperature")?
+                    }
+                    "--ece-bins" => {
+                        ece_bins = parse(&value(&rest, &mut index, "--ece-bins")?, "--ece-bins")?
+                    }
                     other => return Err(format!("unknown option {other:?}\n{}", usage())),
                 }
                 index += 1;
             }
             let dataset = read_dataset(&input)?;
-            let metrics = evaluate_calibration(&dataset.examples, temperature, ece_bins).map_err(|e| e.to_string())?;
+            let metrics = evaluate_calibration(&dataset.examples, temperature, ece_bins)
+                .map_err(|e| e.to_string())?;
             print_metrics("report", &metrics);
         }
         "help" | "--help" | "-h" => println!("{}", usage()),
@@ -74,7 +98,8 @@ fn run() -> Result<(), String> {
 
 fn read_dataset(path: &PathBuf) -> Result<CalibrationDataset, String> {
     let text = fs::read_to_string(path).map_err(|e| format!("{}: {e}", path.display()))?;
-    let dataset: CalibrationDataset = serde_json::from_str(&text).map_err(|e| format!("{}: {e}", path.display()))?;
+    let dataset: CalibrationDataset =
+        serde_json::from_str(&text).map_err(|e| format!("{}: {e}", path.display()))?;
     dataset.validate().map_err(|e| e.to_string())?;
     Ok(dataset)
 }
@@ -94,7 +119,9 @@ fn value(args: &[String], index: &mut usize, option: &str) -> Result<String, Str
 }
 
 fn parse<T: std::str::FromStr>(value: &str, option: &str) -> Result<T, String> {
-    value.parse().map_err(|_| format!("invalid value {value:?} for {option}"))
+    value
+        .parse()
+        .map_err(|_| format!("invalid value {value:?} for {option}"))
 }
 
 fn usage() -> String {

@@ -12,20 +12,23 @@ use std::collections::BTreeMap;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use turbojev::{ClassificationResult, TurboJevEngine};
-use turbojev_schema::{EvaluationRequest, EvaluationResponse};
 use turbojev_backend::{FusedBackendCapabilities, FusedScoringBackend};
 use turbojev_backend_mock::FixtureBackend;
 use turbojev_compat::{self, WireProfile};
 use turbojev_engine::{ExecutionBudget, PlanningPolicy};
-use turbojev_runtime_qualification::{RuntimeFingerprint, RuntimeQualificationManifest, LLAMACPP_SHIM_ABI_V5};
+#[cfg(feature = "llamacpp")]
+use turbojev_runtime_qualification::LLAMACPP_SHIM_ABI_V5;
+use turbojev_runtime_qualification::{RuntimeFingerprint, RuntimeQualificationManifest};
+use turbojev_schema::{EvaluationRequest, EvaluationResponse};
 use turbojev_wire;
 
 #[cfg(feature = "llamacpp")]
 use turbojev_runtime::RuntimeBackend;
 #[cfg(feature = "llamacpp")]
 use turbojev_runtime_llamacpp::{
-    ffi::{FfiLlamaCpp, NativeConfig}, llamacpp_backend, LlamaCppCodec, LlamaCppExecutor,
-    ReferencePromptConfig, ReferencePromptRenderer,
+    ffi::{FfiLlamaCpp, NativeConfig},
+    llamacpp_backend, LlamaCppCodec, LlamaCppExecutor, ReferencePromptConfig,
+    ReferencePromptRenderer,
 };
 
 /// Load-time execution policy exposed uniformly to native language bindings.
@@ -108,7 +111,9 @@ impl NativeExecutionCapabilities {
 }
 
 impl Default for NativeExecutionCapabilities {
-    fn default() -> Self { Self::serial_only() }
+    fn default() -> Self {
+        Self::serial_only()
+    }
 }
 
 impl From<FusedBackendCapabilities> for NativeExecutionCapabilities {
@@ -145,17 +150,27 @@ impl Default for HostPromptProfile {
     }
 }
 
-fn default_profile() -> String { "generic-decision-en-v1".to_owned() }
+fn default_profile() -> String {
+    "generic-decision-en-v1".to_owned()
+}
 fn default_system_instruction() -> String {
     "Apply the supplied criterion to the supplied evidence. Reply with exactly one allowed option code and no explanation.".to_owned()
 }
 fn default_best_match_instruction() -> String {
     "Choose the allowed option that best matches the supplied evidence.".to_owned()
 }
-fn default_n_ctx() -> u32 { 4096 }
-fn default_n_batch() -> u32 { 512 }
-fn default_n_seq_max() -> u32 { 8 }
-fn default_gpu_layers() -> i32 { -1 }
+fn default_n_ctx() -> u32 {
+    4096
+}
+fn default_n_batch() -> u32 {
+    512
+}
+fn default_n_seq_max() -> u32 {
+    8
+}
+fn default_gpu_layers() -> i32 {
+    -1
+}
 
 /// Host-neutral native model/session options. `model` must already be a local path.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -185,12 +200,21 @@ pub struct NativeLoadOptions {
 
 impl NativeLoadOptions {
     fn validate(&self) -> Result<(), HostError> {
-        if self.model.trim().is_empty() { return Err(HostError::InvalidOptions("model must not be empty".into())); }
-        if self.n_ctx == 0 || self.n_batch == 0 || self.n_seq_max == 0 {
-            return Err(HostError::InvalidOptions("nCtx, nBatch and nSeqMax must be greater than zero".into()));
+        if self.model.trim().is_empty() {
+            return Err(HostError::InvalidOptions("model must not be empty".into()));
         }
-        if self.prompt.profile.trim().is_empty() || self.prompt.system_instruction.trim().is_empty() || self.prompt.best_match_instruction.trim().is_empty() {
-            return Err(HostError::InvalidOptions("prompt profile fields must not be empty".into()));
+        if self.n_ctx == 0 || self.n_batch == 0 || self.n_seq_max == 0 {
+            return Err(HostError::InvalidOptions(
+                "nCtx, nBatch and nSeqMax must be greater than zero".into(),
+            ));
+        }
+        if self.prompt.profile.trim().is_empty()
+            || self.prompt.system_instruction.trim().is_empty()
+            || self.prompt.best_match_instruction.trim().is_empty()
+        {
+            return Err(HostError::InvalidOptions(
+                "prompt profile fields must not be empty".into(),
+            ));
         }
         Ok(())
     }
@@ -232,7 +256,11 @@ impl NativeSession {
             let mut engine = TurboJevEngine::new(builder.build())
                 .with_planning_policy(options.execution.policy.into());
             engine = engine.with_execution_budget(execution_budget(options.execution));
-            return Ok(Self { engine: NativeEngine::Fixture(engine), model: options.model, qualification_id: None });
+            return Ok(Self {
+                engine: NativeEngine::Fixture(engine),
+                model: options.model,
+                qualification_id: None,
+            });
         }
 
         #[cfg(feature = "llamacpp")]
@@ -261,7 +289,11 @@ impl NativeSession {
             let engine = TurboJevEngine::new(backend)
                 .with_planning_policy(options.execution.policy.into())
                 .with_execution_budget(execution_budget(options.execution));
-            return Ok(Self { engine: NativeEngine::Llama(engine), model: options.model, qualification_id: qualification.id });
+            return Ok(Self {
+                engine: NativeEngine::Llama(engine),
+                model: options.model,
+                qualification_id: qualification.id,
+            });
         }
 
         #[cfg(not(feature = "llamacpp"))]
@@ -307,10 +339,7 @@ impl NativeSession {
     }
 
     /// Shape-aware fused eligibility for the concrete loaded session.
-    pub fn can_evaluate_fused(
-        &self,
-        requests: &[EvaluationRequest],
-    ) -> Result<bool, HostError> {
+    pub fn can_evaluate_fused(&self, requests: &[EvaluationRequest]) -> Result<bool, HostError> {
         match &self.engine {
             NativeEngine::Fixture(engine) => engine
                 .can_evaluate_fused(requests)
@@ -345,20 +374,29 @@ impl NativeSession {
 
     /// Evaluate canonical TurboJev JSON and return canonical TurboJev JSON.
     pub fn evaluate_json(&self, input: &str) -> Result<String, HostError> {
-        let request = turbojev_wire::decode_request(input).map_err(|e| HostError::Wire(e.to_string()))?;
+        let request =
+            turbojev_wire::decode_request(input).map_err(|e| HostError::Wire(e.to_string()))?;
         let response = self.evaluate(request)?;
         turbojev_wire::encode_response(&response).map_err(|e| HostError::Wire(e.to_string()))
     }
 
     /// Evaluate one external compatibility profile without duplicating semantic logic.
-    pub fn evaluate_compatible_json(&self, profile: &str, input: &str) -> Result<String, HostError> {
+    pub fn evaluate_compatible_json(
+        &self,
+        profile: &str,
+        input: &str,
+    ) -> Result<String, HostError> {
         let profile = parse_profile(profile)?;
         let request = turbojev_compat::decode_request(profile, input)
             .map_err(|e| HostError::Compatibility(e.to_string()))?;
         let response = match &self.engine {
-            NativeEngine::Fixture(engine) => engine.evaluate(request.clone()).map_err(|e| HostError::Core(e.to_string()))?,
+            NativeEngine::Fixture(engine) => engine
+                .evaluate(request.clone())
+                .map_err(|e| HostError::Core(e.to_string()))?,
             #[cfg(feature = "llamacpp")]
-            NativeEngine::Llama(engine) => engine.evaluate(request.clone()).map_err(|e| HostError::Core(e.to_string()))?,
+            NativeEngine::Llama(engine) => engine
+                .evaluate(request.clone())
+                .map_err(|e| HostError::Core(e.to_string()))?,
         };
         turbojev_compat::encode_response(profile, &request, &response)
             .map_err(|e| HostError::Compatibility(e.to_string()))
@@ -368,9 +406,13 @@ impl NativeSession {
     pub fn classify_json(&self, state: &str, options_json: &str) -> Result<String, HostError> {
         let options: Vec<String> = serde_json::from_str(options_json).map_err(HostError::Json)?;
         let result = match &self.engine {
-            NativeEngine::Fixture(engine) => engine.classify(state.to_owned(), options).map_err(|e| HostError::Core(e.to_string()))?,
+            NativeEngine::Fixture(engine) => engine
+                .classify(state.to_owned(), options)
+                .map_err(|e| HostError::Core(e.to_string()))?,
             #[cfg(feature = "llamacpp")]
-            NativeEngine::Llama(engine) => engine.classify(state.to_owned(), options).map_err(|e| HostError::Core(e.to_string()))?,
+            NativeEngine::Llama(engine) => engine
+                .classify(state.to_owned(), options)
+                .map_err(|e| HostError::Core(e.to_string()))?,
         };
         serde_json::to_string(&classification_wire(result)).map_err(HostError::Json)
     }
@@ -388,10 +430,10 @@ impl NativeSession {
             "executionCapabilitiesContract": NATIVE_EXECUTION_CAPABILITIES_CONTRACT,
             "executionCapabilities": self.execution_capabilities(),
             "runtimeQualificationId": self.qualification_id,
-        })).map_err(HostError::Json)
+        }))
+        .map_err(HostError::Json)
     }
 }
-
 
 #[cfg(feature = "llamacpp")]
 struct LlamaQualificationDecision {
@@ -401,16 +443,35 @@ struct LlamaQualificationDecision {
 }
 
 #[cfg(feature = "llamacpp")]
-fn qualify_llamacpp_multi_root(options: &NativeLoadOptions) -> Result<LlamaQualificationDecision, HostError> {
+fn qualify_llamacpp_multi_root(
+    options: &NativeLoadOptions,
+) -> Result<LlamaQualificationDecision, HostError> {
     if !options.execution.llamacpp_multi_root_fused {
-        return Ok(LlamaQualificationDecision { enabled: false, estimated_fused_item_bytes: None, id: None });
+        return Ok(LlamaQualificationDecision {
+            enabled: false,
+            estimated_fused_item_bytes: None,
+            id: None,
+        });
     }
-    let manifest = options.execution.llamacpp_qualification.as_ref().ok_or_else(|| HostError::InvalidOptions(
-        "llamacppMultiRootFused=true requires execution.llamacppQualification evidence".into(),
-    ))?;
-    let current = options.execution.runtime_fingerprint.as_ref().ok_or_else(|| HostError::InvalidOptions(
-        "llamacppMultiRootFused=true requires execution.runtimeFingerprint".into(),
-    ))?;
+    let manifest = options
+        .execution
+        .llamacpp_qualification
+        .as_ref()
+        .ok_or_else(|| {
+            HostError::InvalidOptions(
+                "llamacppMultiRootFused=true requires execution.llamacppQualification evidence"
+                    .into(),
+            )
+        })?;
+    let current = options
+        .execution
+        .runtime_fingerprint
+        .as_ref()
+        .ok_or_else(|| {
+            HostError::InvalidOptions(
+                "llamacppMultiRootFused=true requires execution.runtimeFingerprint".into(),
+            )
+        })?;
     if current.runtime != "llama.cpp" || current.shim_abi != LLAMACPP_SHIM_ABI_V5 {
         return Err(HostError::InvalidOptions(
             "runtimeFingerprint must identify llama.cpp with TurboJev shim ABI v5".into(),
@@ -421,8 +482,9 @@ fn qualify_llamacpp_multi_root(options: &NativeLoadOptions) -> Result<LlamaQuali
             "runtimeFingerprint.model.source must exactly match the loaded model path".into(),
         ));
     }
-    let capabilities = manifest.authorize(current)
-        .map_err(|error| HostError::InvalidOptions(format!("runtime qualification rejected: {error}")))?;
+    let capabilities = manifest.authorize(current).map_err(|error| {
+        HostError::InvalidOptions(format!("runtime qualification rejected: {error}"))
+    })?;
     if !capabilities.fused_batch {
         return Err(HostError::InvalidOptions(
             "runtime qualification does not authorize fusedBatch".into(),
@@ -437,8 +499,12 @@ fn qualify_llamacpp_multi_root(options: &NativeLoadOptions) -> Result<LlamaQuali
 
 fn execution_budget(options: HostExecutionOptions) -> ExecutionBudget {
     let mut budget = ExecutionBudget::unlimited();
-    if let Some(value) = options.max_parallel_tasks { budget = budget.with_max_parallel_tasks(value.max(1)); }
-    if let Some(value) = options.memory_budget_bytes { budget = budget.with_memory_budget_bytes(value); }
+    if let Some(value) = options.max_parallel_tasks {
+        budget = budget.with_max_parallel_tasks(value.max(1));
+    }
+    if let Some(value) = options.memory_budget_bytes {
+        budget = budget.with_memory_budget_bytes(value);
+    }
     budget
 }
 
@@ -449,7 +515,10 @@ struct ClassificationWire {
     probabilities: indexmap::IndexMap<String, f64>,
 }
 fn classification_wire(result: ClassificationResult) -> ClassificationWire {
-    ClassificationWire { choice: result.choice, probabilities: result.probabilities }
+    ClassificationWire {
+        choice: result.choice,
+        probabilities: result.probabilities,
+    }
 }
 
 fn parse_profile(value: &str) -> Result<WireProfile, HostError> {
@@ -457,7 +526,9 @@ fn parse_profile(value: &str) -> Result<WireProfile, HostError> {
         "turbojev" => Ok(WireProfile::TurboJev),
         "typesafe-systemone-v1" | "typesafe" | "systemone" => Ok(WireProfile::TypeSafeSystemOne),
         "ai-sdk-evaluation-v4" | "ai-sdk" => Ok(WireProfile::AiSdkEvaluationV4),
-        other => Err(HostError::InvalidOptions(format!("unknown compatibility profile: {other}"))),
+        other => Err(HostError::InvalidOptions(format!(
+            "unknown compatibility profile: {other}"
+        ))),
     }
 }
 
@@ -505,11 +576,18 @@ mod tests {
     #[test]
     fn fixture_session_uses_the_real_core() {
         let session = NativeSession::open(NativeLoadOptions {
-            model: "fixture://host".into(), n_ctx: 64, n_batch: 64, n_seq_max: 2,
-            n_gpu_layers: 0, n_threads: 0, n_threads_batch: 0,
-            execution: HostExecutionOptions::default(), prompt: HostPromptProfile::default(),
+            model: "fixture://host".into(),
+            n_ctx: 64,
+            n_batch: 64,
+            n_seq_max: 2,
+            n_gpu_layers: 0,
+            n_threads: 0,
+            n_threads_batch: 0,
+            execution: HostExecutionOptions::default(),
+            prompt: HostPromptProfile::default(),
             fixture_logits: BTreeMap::from([("route".into(), vec![0.0, 3.0])]),
-        }).unwrap();
+        })
+        .unwrap();
         let output = session.evaluate_json(r#"{"state":"lost","questions":{"route":{"type":"choice","instructions":"route","criteria":{"billing":"billing","shipping":"shipping"}}}}"#).unwrap();
         let value: serde_json::Value = serde_json::from_str(&output).unwrap();
         assert_eq!(value["answers"]["route"]["choice"], "shipping");
@@ -524,11 +602,18 @@ mod tests {
     #[test]
     fn fixture_fused_bridge_matches_independent_reference() {
         let session = NativeSession::open(NativeLoadOptions {
-            model: "fixture://host-fused".into(), n_ctx: 64, n_batch: 64, n_seq_max: 2,
-            n_gpu_layers: 0, n_threads: 0, n_threads_batch: 0,
-            execution: HostExecutionOptions::default(), prompt: HostPromptProfile::default(),
+            model: "fixture://host-fused".into(),
+            n_ctx: 64,
+            n_batch: 64,
+            n_seq_max: 2,
+            n_gpu_layers: 0,
+            n_threads: 0,
+            n_threads_batch: 0,
+            execution: HostExecutionOptions::default(),
+            prompt: HostPromptProfile::default(),
             fixture_logits: BTreeMap::from([("route".into(), vec![0.0, 3.0])]),
-        }).unwrap();
+        })
+        .unwrap();
         let make_request = |state: &str| -> EvaluationRequest {
             serde_json::from_value(serde_json::json!({
                 "state": state,
@@ -539,7 +624,8 @@ mod tests {
                         "criteria": {"billing": "billing", "shipping": "shipping"}
                     }
                 }
-            })).unwrap()
+            }))
+            .unwrap()
         };
         let requests = vec![make_request("one"), make_request("two")];
         let reference: Vec<_> = requests
@@ -558,7 +644,8 @@ mod tests {
 
         let enabled: NativeLoadOptions = serde_json::from_str(
             r#"{"model":"model.gguf","execution":{"llamacppMultiRootFused":true}}"#,
-        ).unwrap();
+        )
+        .unwrap();
         assert!(enabled.execution.llamacpp_multi_root_fused);
     }
 
@@ -566,7 +653,9 @@ mod tests {
     fn no_runtime_build_reports_a_stable_error() {
         #[cfg(not(feature = "llamacpp"))]
         {
-            let err = NativeSession::open_json(r#"{"model":"/tmp/model.gguf"}"#).unwrap_err();
+            let err = NativeSession::open_json(r#"{"model":"/tmp/model.gguf"}"#)
+                .err()
+                .expect("opening without a runtime must fail");
             assert_eq!(err.code(), "RUNTIME_UNAVAILABLE");
         }
     }

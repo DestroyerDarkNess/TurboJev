@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import os
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -18,31 +19,37 @@ EXCLUDED_DIRS = {
     ".venv",
     ".mypy_cache",
     ".ruff_cache",
+    ".cache",
+    ".codegraph",
+    ".e2e-final",
+    "artifacts",
+    "bin",
+    "obj",
 }
 EXCLUDED_NAMES = {".DS_Store", "SOURCE_MANIFEST.sha256"}
-EXCLUDED_SUFFIXES = {".pyc", ".pyo", ".tgz"}
+EXCLUDED_SUFFIXES = {".pyc", ".pyo", ".tgz", ".gguf", ".safetensors", ".bin",
+                     ".dll", ".pyd", ".node", ".lib", ".obj", ".pdb", ".exp", ".exe"}
 
 
 def source_files() -> list[Path]:
     files: list[Path] = []
-    for path in ROOT.rglob("*"):
-        if not path.is_file():
-            continue
-        relative = path.relative_to(ROOT)
-        if any(part in EXCLUDED_DIRS for part in relative.parts[:-1]):
-            continue
-        if relative.name in EXCLUDED_NAMES or relative.suffix in EXCLUDED_SUFFIXES:
-            continue
-        files.append(relative)
+    for directory, directories, filenames in os.walk(ROOT):
+        directories[:] = [name for name in directories if name not in EXCLUDED_DIRS]
+        for filename in filenames:
+            relative = (Path(directory) / filename).relative_to(ROOT)
+            if relative.name in EXCLUDED_NAMES or relative.name == ".env" or relative.suffix in EXCLUDED_SUFFIXES:
+                continue
+            files.append(relative)
     return sorted(files, key=lambda p: p.as_posix())
 
 
 def digest(path: Path) -> str:
-    hasher = hashlib.sha256()
-    with path.open("rb") as handle:
-        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
-            hasher.update(chunk)
-    return hasher.hexdigest()
+    content = path.read_bytes()
+    # Git may check text out as CRLF on Windows and LF on Linux.
+    # Hash the same canonical text on both hosts; preserve binary bytes.
+    if b"\0" not in content:
+        content = content.replace(b"\r\n", b"\n")
+    return hashlib.sha256(content).hexdigest()
 
 
 def render() -> str:

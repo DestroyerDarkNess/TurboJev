@@ -12,8 +12,7 @@ pub use turbojev_core::{ClassificationResult, Error, TurboJevAsyncEngine, TurboJ
 pub type TurboJev<B> = TurboJevEngine<B, turbojev_calibration::SoftmaxCalibrator>;
 
 /// Default asynchronous engine alias using the softmax calibrator.
-pub type TurboJevAsync<B> =
-    TurboJevAsyncEngine<B, turbojev_calibration::SoftmaxCalibrator>;
+pub type TurboJevAsync<B> = TurboJevAsyncEngine<B, turbojev_calibration::SoftmaxCalibrator>;
 
 /// Public schema types.
 pub mod schema {
@@ -89,7 +88,6 @@ pub mod conformance {
 pub mod runtime {
     pub use turbojev_runtime::*;
 }
-
 
 /// Exact prefix-sharing multi-token candidate scoring.
 pub mod sequence {

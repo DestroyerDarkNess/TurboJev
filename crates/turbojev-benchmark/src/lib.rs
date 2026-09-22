@@ -153,8 +153,12 @@ impl BenchmarkReport {
                 || sample.answer_fingerprint.trim().is_empty()
                 || sample.repetition >= metadata.repetitions
                 || !valid_seconds(sample.total_seconds)
-                || sample.prefill_seconds.is_some_and(|value| !valid_seconds(value))
-                || sample.scoring_seconds.is_some_and(|value| !valid_seconds(value))
+                || sample
+                    .prefill_seconds
+                    .is_some_and(|value| !valid_seconds(value))
+                || sample
+                    .scoring_seconds
+                    .is_some_and(|value| !valid_seconds(value))
                 || sample.generated_tokens != 0
             {
                 return Err(BenchmarkError::InvalidSample);
@@ -255,7 +259,10 @@ mod tests {
             repetitions: 0,
             host: None,
         };
-        assert_eq!(metadata.validate().unwrap_err(), BenchmarkError::ZeroRepetitions);
+        assert_eq!(
+            metadata.validate().unwrap_err(),
+            BenchmarkError::ZeroRepetitions
+        );
     }
 
     #[test]

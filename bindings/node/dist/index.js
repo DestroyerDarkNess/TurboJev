@@ -11,7 +11,14 @@ export class TurboJev {
     constructor(worker) { this.#worker = worker; worker.on("message", (m) => { const p = this.#pending.get(m.id); if (!p)
         return; this.#pending.delete(m.id); m.ok ? p.resolve(m.value) : p.reject(normalizeError(m.error)); }); worker.on("error", (e) => this.#fail(e)); worker.on("exit", (c) => { if (!this.#closed && c !== 0)
         this.#fail(new Error(`worker exited ${c}`)); }); }
-    static async load(options) { const model = await resolveModel(options); const worker = new Worker(new URL("../worker.mjs", import.meta.url), { workerData: { options: { ...options, model } } }); const jev = new TurboJev(worker); await jev.#call("ready", {}); return jev; }
+    static async load(options) { const model = await resolveModel(options); const worker = new Worker(new URL("../worker.mjs", import.meta.url), { workerData: { options: { ...options, model } } }); const jev = new TurboJev(worker); try {
+        await jev.#call("ready", {});
+        return jev;
+    }
+    catch (error) {
+        await worker.terminate();
+        throw error;
+    } }
     async evaluate(request) { return JSON.parse(await this.#call("evaluate", { request: JSON.stringify(request) })); }
     async evaluateCompatible(profile, request) { return JSON.parse(await this.#call("compatible", { profile, request: JSON.stringify(request) })); }
     async classify(state, options) { return JSON.parse(await this.#call("classify", { state, options: JSON.stringify(options) })); }

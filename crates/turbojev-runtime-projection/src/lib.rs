@@ -258,9 +258,7 @@ mod tests {
     use turbojev_backend::CandidateProjection;
     use turbojev_projection::{gather_candidate_rows_f32, project_full_vocab_f32};
     use turbojev_runtime::{RuntimeCandidate, RuntimeTask};
-    use turbojev_runtime_conformance::{
-        verify_selective_projection, RuntimeTolerance,
-    };
+    use turbojev_runtime_conformance::{verify_selective_projection, RuntimeTolerance};
     use turbojev_tokenizer::CodebookKind;
 
     use super::*;
@@ -277,11 +275,8 @@ mod tests {
             Self {
                 hidden: vec![0.5, -1.25, 2.0, 0.75],
                 matrix: vec![
-                    0.1, 0.2, 0.3, 0.4,
-                    -0.5, 0.6, -0.7, 0.8,
-                    1.0, 0.0, 0.25, -0.5,
-                    0.33, -0.2, 0.75, 1.1,
-                    -1.0, 0.5, 0.5, -0.25,
+                    0.1, 0.2, 0.3, 0.4, -0.5, 0.6, -0.7, 0.8, 1.0, 0.0, 0.25, -0.5, 0.33, -0.2,
+                    0.75, 1.1, -1.0, 0.5, 0.5, -0.25,
                 ],
                 bias: vec![0.0, 0.1, -0.2, 0.3, -0.4],
             }
@@ -329,14 +324,8 @@ mod tests {
             &self,
             candidate_token_ids: &[TokenId],
         ) -> Result<DenseCandidateRows, ProjectionRuntimeError> {
-            gather_candidate_rows_f32(
-                5,
-                4,
-                &self.matrix,
-                Some(&self.bias),
-                candidate_token_ids,
-            )
-            .map_err(|error| ProjectionRuntimeError::Inference(error.to_string()))
+            gather_candidate_rows_f32(5, 4, &self.matrix, Some(&self.bias), candidate_token_ids)
+                .map_err(|error| ProjectionRuntimeError::Inference(error.to_string()))
         }
     }
 
@@ -347,9 +336,18 @@ mod tests {
                 id: "route".to_owned(),
                 prompt_suffix: vec![10, 11, 12],
                 candidates: vec![
-                    RuntimeCandidate { symbol: "A".to_owned(), token_ids: vec![4] },
-                    RuntimeCandidate { symbol: "B".to_owned(), token_ids: vec![1] },
-                    RuntimeCandidate { symbol: "C".to_owned(), token_ids: vec![3] },
+                    RuntimeCandidate {
+                        symbol: "A".to_owned(),
+                        token_ids: vec![4],
+                    },
+                    RuntimeCandidate {
+                        symbol: "B".to_owned(),
+                        token_ids: vec![1],
+                    },
+                    RuntimeCandidate {
+                        symbol: "C".to_owned(),
+                        token_ids: vec![3],
+                    },
                 ],
                 codebook_kind: CodebookKind::SingleToken,
             }],

@@ -3,6 +3,7 @@ import { basename, join, resolve } from "node:path";
 import { pipeline } from "node:stream/promises";
 import { Readable } from "node:stream";
 import { createHash } from "node:crypto";
+import { fileURLToPath } from "node:url";
 import type { LoadOptions } from "./types.js";
 
 function hfUrl(spec:string):string {
@@ -14,7 +15,7 @@ function hfUrl(spec:string):string {
 export async function resolveModel(options:LoadOptions):Promise<string> {
   const source=options.model;
   if (source.startsWith("fixture://")) return source;
-  if (source.startsWith("file://")) return new URL(source).pathname;
+  if (source.startsWith("file://")) return fileURLToPath(source);
   if (!source.startsWith("http://") && !source.startsWith("https://") && !source.startsWith("hf://")) return resolve(source);
   const url=source.startsWith("hf://") ? hfUrl(source) : source;
   const cache=resolve(options.cacheDir ?? join(process.env.HOME ?? process.cwd(), ".cache", "turbojev")); mkdirSync(cache,{recursive:true});

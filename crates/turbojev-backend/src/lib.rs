@@ -214,8 +214,8 @@ impl BackendCapabilities {
             TaskScheduling::Serial => true,
             TaskScheduling::Parallel => self.parallel_suffixes,
         };
-        let projection_ok = plan.projection == CandidateProjection::FullVocabulary
-            || self.selective_output_head;
+        let projection_ok =
+            plan.projection == CandidateProjection::FullVocabulary || self.selective_output_head;
         prefix_ok && scheduling_ok && projection_ok
     }
 }

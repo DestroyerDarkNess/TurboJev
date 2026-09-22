@@ -344,6 +344,7 @@ bool score_sequence_trie(
                     return false;
                 }
                 llama_batch batch = llama_batch_init(1, 0, 1);
+                batch.n_tokens = 1;
                 batch.token[0] = static_cast<llama_token>(token);
                 batch.pos[0] = position;
                 batch.n_seq_id[0] = 1;
@@ -795,6 +796,8 @@ int32_t tj_llama_score_root_batch(
     runtime->shared_prefix_logits.clear();
 
     llama_batch batch = llama_batch_init(static_cast<int32_t>(prompt_total), 0, 1);
+
+    batch.n_tokens = static_cast<int32_t>(prompt_total);
     std::vector<int32_t> root_output_indices(task_count, -1);
     size_t flat = 0;
     bool valid = true;
@@ -1032,6 +1035,8 @@ int32_t tj_llama_score_suffix(
     llama_memory_seq_cp(memory, 0, 1, 0, -1);
 
     llama_batch batch = llama_batch_init(static_cast<int32_t>(suffix.size()), 0, 1);
+
+    batch.n_tokens = static_cast<int32_t>(suffix.size());
     for (size_t i = 0; i < suffix.size(); ++i) {
         batch.token[i] = suffix[i];
         batch.pos[i] = start_pos + static_cast<llama_pos>(i);
@@ -1108,6 +1113,7 @@ int32_t tj_llama_score_suffix_sequences(
             return -1;
         }
         llama_batch batch = llama_batch_init(static_cast<int32_t>(suffix.size()), 0, 1);
+        batch.n_tokens = static_cast<int32_t>(suffix.size());
         for (size_t i = 0; i < suffix.size(); ++i) {
             llama_pos pos = 0;
             if (!checked_pos(base_len + i, pos)) {
@@ -1248,6 +1254,7 @@ int32_t tj_llama_score_suffix_batch(
     bool batch_allocated = false;
     if (suffix_total > 0) {
         batch = llama_batch_init(static_cast<int32_t>(suffix_total), 0, 1);
+        batch.n_tokens = static_cast<int32_t>(suffix_total);
         batch_allocated = true;
         size_t flat_index = 0;
         llama_pos start_pos = 0;

@@ -27,7 +27,10 @@ struct Node {
 
 impl Node {
     fn new() -> Self {
-        Self { children: BTreeMap::new(), terminal: None }
+        Self {
+            children: BTreeMap::new(),
+            terminal: None,
+        }
     }
 }
 
@@ -77,17 +80,28 @@ impl CandidateTrie {
             }
         }
         let edges = nodes.len().saturating_sub(1);
-        let prefix_evals = nodes.iter().filter(|node| !node.children.is_empty()).count();
+        let prefix_evals = nodes
+            .iter()
+            .filter(|node| !node.children.is_empty())
+            .count();
         let work = SequenceWork {
             naive_token_steps: naive,
             unique_prefix_evaluations: prefix_evals,
             shared_token_steps_saved: naive.saturating_sub(edges),
         };
-        Ok(Self { nodes, candidate_count: candidates.len(), work })
+        Ok(Self {
+            nodes,
+            candidate_count: candidates.len(),
+            work,
+        })
     }
 
-    pub const fn candidate_count(&self) -> usize { self.candidate_count }
-    pub const fn work(&self) -> SequenceWork { self.work }
+    pub const fn candidate_count(&self) -> usize {
+        self.candidate_count
+    }
+    pub const fn work(&self) -> SequenceWork {
+        self.work
+    }
 
     /// Score every candidate with exact conditional log-likelihood.
     /// `next_logits(prefix)` must return the full-vocabulary next-token logits
@@ -124,8 +138,11 @@ impl CandidateTrie {
         let logits = next_logits(prefix).map_err(SequenceScoreError::Backend)?;
         let log_z = logsumexp(&logits).ok_or(SequenceScoreError::InvalidLogits)?;
         for (&token, &child_index) in &node.children {
-            let token_index = usize::try_from(token).map_err(|_| SequenceScoreError::TokenOutOfRange(token))?;
-            let token_logit = *logits.get(token_index).ok_or(SequenceScoreError::TokenOutOfRange(token))?;
+            let token_index =
+                usize::try_from(token).map_err(|_| SequenceScoreError::TokenOutOfRange(token))?;
+            let token_logit = *logits
+                .get(token_index)
+                .ok_or(SequenceScoreError::TokenOutOfRange(token))?;
             if !token_logit.is_finite() {
                 return Err(SequenceScoreError::InvalidLogits);
             }
@@ -149,8 +166,13 @@ pub fn logsumexp(logits: &[f32]) -> Option<f32> {
         return None;
     }
     let maximum = logits.iter().copied().fold(f32::NEG_INFINITY, f32::max);
-    let sum: f64 = logits.iter().map(|value| f64::from(*value - maximum).exp()).sum();
-    if !sum.is_finite() || sum <= 0.0 { return None; }
+    let sum: f64 = logits
+        .iter()
+        .map(|value| f64::from(*value - maximum).exp())
+        .sum();
+    if !sum.is_finite() || sum <= 0.0 {
+        return None;
+    }
     Some(maximum + sum.ln() as f32)
 }
 
@@ -193,16 +215,18 @@ mod tests {
     fn exact_scores_use_full_vocabulary_normalizer() {
         let trie = CandidateTrie::build(&[vec![0, 1], vec![0, 2], vec![3, 1]]).unwrap();
         let mut calls = 0usize;
-        let scores = trie.score_with::<(), _>(|prefix| {
-            calls += 1;
-            let logits = match prefix {
-                [] => vec![3.0, 0.0, 0.0, 2.0],
-                [0] => vec![0.0, 2.5, 1.0, 0.0],
-                [3] => vec![0.0, 1.5, 0.0, 0.0],
-                _ => unreachable!(),
-            };
-            Ok(logits)
-        }).unwrap();
+        let scores = trie
+            .score_with::<(), _>(|prefix| {
+                calls += 1;
+                let logits = match prefix {
+                    [] => vec![3.0, 0.0, 0.0, 2.0],
+                    [0] => vec![0.0, 2.5, 1.0, 0.0],
+                    [3] => vec![0.0, 1.5, 0.0, 0.0],
+                    _ => unreachable!(),
+                };
+                Ok(logits)
+            })
+            .unwrap();
         assert_eq!(calls, 3);
         assert_eq!(scores.len(), 3);
         assert!(scores[0] > scores[1]);

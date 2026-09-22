@@ -121,7 +121,10 @@ pub struct CrossRequestBudget {
 
 impl CrossRequestBudget {
     pub const fn items(max_fused_items: usize) -> Self {
-        Self { max_fused_items, memory_budget_bytes: None }
+        Self {
+            max_fused_items,
+            memory_budget_bytes: None,
+        }
     }
 }
 
@@ -203,8 +206,12 @@ pub trait ExecutionControl {
 pub struct Uncontrolled;
 
 impl ExecutionControl for Uncontrolled {
-    fn is_cancelled(&self) -> bool { false }
-    fn deadline_expired(&self) -> bool { false }
+    fn is_cancelled(&self) -> bool {
+        false
+    }
+    fn deadline_expired(&self) -> bool {
+        false
+    }
 }
 
 /// SPI implemented by host/runtime adapters that want cross-request execution.
@@ -271,23 +278,34 @@ pub fn execute_turn<E: CrossRequestExecutor>(
                 if control.deadline_expired() {
                     return Err(TurnError::DeadlineExceeded);
                 }
-                responses.push(executor.execute_one(request, control).map_err(TurnError::Executor)?);
+                responses.push(
+                    executor
+                        .execute_one(request, control)
+                        .map_err(TurnError::Executor)?,
+                );
             }
             Ok(responses)
         }
         CrossRequestMode::Fused => {
-            let capabilities = executor.capabilities().validate().map_err(TurnError::Contract)?;
+            let capabilities = executor
+                .capabilities()
+                .validate()
+                .map_err(TurnError::Contract)?;
             if !capabilities.fused_batch {
-                return Err(TurnError::Contract(ExecutionContractError::UnsupportedFusedBatch));
+                return Err(TurnError::Contract(
+                    ExecutionContractError::UnsupportedFusedBatch,
+                ));
             }
             let responses = executor
                 .execute_fused(&requests[..plan.turn_items], control)
                 .map_err(TurnError::Executor)?;
             if responses.len() != plan.turn_items {
-                return Err(TurnError::Contract(ExecutionContractError::ResponseCountMismatch {
-                    expected: plan.turn_items,
-                    actual: responses.len(),
-                }));
+                return Err(TurnError::Contract(
+                    ExecutionContractError::ResponseCountMismatch {
+                        expected: plan.turn_items,
+                        actual: responses.len(),
+                    },
+                ));
             }
             Ok(responses)
         }
@@ -304,9 +322,11 @@ where
     E: CrossRequestExecutor,
 {
     if requests.len() < 2 {
-        return Err(FusedParityError::Contract(ExecutionContractError::InvalidLimits(
-            "fused parity requires at least two requests".to_owned(),
-        )));
+        return Err(FusedParityError::Contract(
+            ExecutionContractError::InvalidLimits(
+                "fused parity requires at least two requests".to_owned(),
+            ),
+        ));
     }
     let capabilities = executor
         .capabilities()
@@ -431,7 +451,8 @@ mod tests {
                     "criteria": {"a": "A", "b": "B"}
                 }
             }
-        })).unwrap()
+        }))
+        .unwrap()
     }
 
     fn response_for(_request: &EvaluationRequest) -> EvaluationResponse {
@@ -461,7 +482,8 @@ mod tests {
                     "projection": "full-vocabulary"
                 }
             }
-        })).unwrap()
+        }))
+        .unwrap()
     }
 
     #[test]
@@ -472,7 +494,8 @@ mod tests {
             8,
             4,
             8,
-        ).unwrap();
+        )
+        .unwrap();
         assert_eq!(plan.mode, CrossRequestMode::Serial);
         assert_eq!(plan.turn_items, 4);
     }
@@ -520,5 +543,4 @@ mod tests {
         assert_eq!(plan.mode, CrossRequestMode::Fused);
         assert_eq!(plan.turn_items, 3);
     }
-
 }

@@ -91,13 +91,17 @@ pub struct OptimizationConfig {
 impl OptimizationConfig {
     fn validate(&self) -> Result<(), SpecializedError> {
         if !self.learning_rate.is_finite() || self.learning_rate <= 0.0 {
-            return Err(SpecializedError::InvalidPositive("optimization.learning_rate"));
+            return Err(SpecializedError::InvalidPositive(
+                "optimization.learning_rate",
+            ));
         }
         if self.epochs == 0 {
             return Err(SpecializedError::InvalidPositive("optimization.epochs"));
         }
         if self.micro_batch_size == 0 {
-            return Err(SpecializedError::InvalidPositive("optimization.micro_batch_size"));
+            return Err(SpecializedError::InvalidPositive(
+                "optimization.micro_batch_size",
+            ));
         }
         if self.gradient_accumulation_steps == 0 {
             return Err(SpecializedError::InvalidPositive(
@@ -393,10 +397,7 @@ fn require_text(field: &'static str, value: &str) -> Result<(), SpecializedError
     }
 }
 
-fn require_unique_nonempty(
-    field: &'static str,
-    values: &[String],
-) -> Result<(), SpecializedError> {
+fn require_unique_nonempty(field: &'static str, values: &[String]) -> Result<(), SpecializedError> {
     if values.is_empty() {
         return Err(SpecializedError::EmptyList(field));
     }
@@ -520,7 +521,10 @@ mod tests {
     fn leakage_between_training_and_calibration_is_rejected() {
         let mut recipe = recipe();
         recipe.splits.calibration = recipe.splits.train.clone();
-        assert_eq!(recipe.validate().unwrap_err(), SpecializedError::SplitLeakage);
+        assert_eq!(
+            recipe.validate().unwrap_err(),
+            SpecializedError::SplitLeakage
+        );
     }
 
     #[test]
