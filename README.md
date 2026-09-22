@@ -4,6 +4,9 @@ Try the [five runnable sample projects](samples/README.md): vanilla browser Java
 
 TurboJev is a Rust-first, universal typed-decision layer for open-weight models.
 
+TurboJev is licensed under the Apache License 2.0. See [`LICENSE`](LICENSE) for
+the full terms.
+
 ```text
 state + typed questions -> candidate scores -> probabilities -> typed answers
 ```
@@ -194,8 +197,8 @@ const jev = await TurboJevWeb.load({
 });
 
 const result = await jev.classify(
-  "Mi paquete nunca llegó",
-  ["facturación", "envíos", "soporte"],
+  "My package never arrived",
+  ["billing", "shipping", "support"],
 );
 
 await jev.close();

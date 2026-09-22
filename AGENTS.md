@@ -1,73 +1,76 @@
-# Contexto del proyecto: TurboJev
+# TurboJev Project Context
 
-Resumen guardado a petición del usuario el 2026-09-21. Basado en README.md,
-SPEC.md, Cargo.toml y CHANGELOG.md; no constituye una auditoría del código
-ni evidencia de que las pruebas hayan pasado. Revalidar el estado al hacer cambios.
+Summary saved at the user's request on 2026-09-21. Based on README.md, SPEC.md,
+Cargo.toml, and CHANGELOG.md; this is not a code audit or evidence that every
+test has passed. Revalidate the current state when making changes.
 
-## Propósito
+## Purpose
 
-TurboJev es una biblioteca multiplataforma, escrita principalmente en Rust, para
-tomar decisiones semánticas tipadas con modelos de pesos abiertos. Su flujo es:
-estado + preguntas tipadas -> puntuaciones de candidatos -> probabilidades ->
-respuestas tipadas. Sirve para clasificación, enrutamiento y evaluación de estados.
-La vía optimizada lee logits de los candidatos sin generar texto ni JSON con el modelo.
+TurboJev is a cross-platform library, primarily written in Rust, for making
+typed semantic decisions with open-weight models. Its flow is:
+state + typed questions -> candidate scores -> probabilities -> typed answers.
+It supports classification, routing, and state evaluation. The optimized path
+reads candidate logits without generating model text or JSON.
 
-Tipos centrales: `choice` (selección entre opciones), `noul` (decisión booleana;
-`boolean` es alias de entrada) y `score` (evaluación con criterios ordenados).
-Ofrece una API sencilla `classify` y una API completa `evaluate`.
+Core types are `choice` (selection among options), `noul` (a boolean decision;
+`boolean` is an input alias), and `score` (evaluation with ordered criteria).
+The API provides a simple `classify` operation and a complete `evaluate` operation.
 
-## Arquitectura y principios
+## Architecture and principles
 
-- La lógica semántica, validación, planificación, calibración y construcción de
-  respuestas vive una sola vez en crates Rust pequeños y separados.
-- El núcleo portable es independiente del modelo, sistema operativo, hardware,
-  runtime, idioma, plantilla de prompt y ejecutor asíncrono. No incorpora acceso
-  directo a archivos, red, procesos o entorno: eso pertenece a los hosts/adaptadores.
-- Los adaptadores usan la plantilla y el tokenizer reales del modelo. Nunca
-  adivinar ni fijar IDs de candidatos por familia de modelos.
-- Bindings finos para Node/TypeScript, navegador/WASM, Python, C, .NET, Android y
-  Swift/iOS comparten contratos Rust y JSON. Hay integración opcional llama.cpp/GGUF,
-  adaptador web Transformers.js y conexión de runtimes personalizados.
-- Optimizaciones: reutilización de prefijos, sufijos paralelos, proyección selectiva
-  de candidatos y fusión de solicitudes cuando el runtime lo permita y lo demuestre.
-  Conservar una ruta independiente de referencia y verificar paridad numérica.
-- Softmax condicional no equivale a confianza calibrada. La calibración y su
-  procedencia son explícitas. No anunciar capacidades que el runtime no implemente.
-- Inferencia local y ausencia de telemetría obligatoria son principios del proyecto.
-- Inspirado en ideas de SemIf y Nimble; no es un fork. La compatibilidad con Jev es
-  de contratos y semántica, sin afirmar equivalencia con pesos o calibración privados.
-- Incluye contratos, datasets, artefactos y evaluación reproducible de modelos
-  especializados; el entrenamiento LoRA/QLoRA se realiza fuera de TurboJev.
+- Semantic logic, validation, planning, calibration, and response construction
+  live exactly once in small, separate Rust crates.
+- The portable core is independent of the model, operating system, hardware,
+  runtime, language, prompt template, and async executor. It does not access
+  files, networks, processes, or the environment directly; hosts and adapters own
+  those concerns.
+- Adapters use the model's real template and tokenizer. They never guess or fix
+  candidate IDs for a model family.
+- Thin bindings for Node/TypeScript, browser/WASM, Python, C, .NET, Android,
+  and Swift/iOS share Rust and JSON contracts. Optional integrations include
+  llama.cpp/GGUF, a Transformers.js web adapter, and custom runtimes.
+- Optimizations include prefix reuse, parallel suffixes, selective candidate
+  projection, and request fusion when the runtime supports and demonstrates them.
+  Keep an independent reference path and verify numerical parity.
+- Conditional softmax is not calibrated confidence. Calibration and provenance
+  are explicit. Do not advertise capabilities that a runtime does not implement.
+- Local inference and no mandatory telemetry are project principles.
+- The project is inspired by ideas from SemIf and Nimble; it is not a fork.
+  Jev compatibility concerns contracts and semantics, without claiming equality
+  with private weights or calibration.
+- The project includes contracts, datasets, artifacts, and reproducible evaluation
+  for specialized models; LoRA/QLoRA training happens outside TurboJev.
 
-## Estado observado
+## Observed state
 
-Cargo.toml y CHANGELOG.md indican v0.28.2. La cabecera v0.20 del README está
-desactualizada respecto a sus secciones finales y al manifiesto.
-El foco reciente es la validación reproducible con modelos reales y paridad de
-respuestas completas entre Node, Python, C y .NET; también la calificación de
-llama.cpp multi-root con evidencia ligada a modelo/runtime/hardware.
-v0.28.2 corrige la liberación del hilo de afinidad .NET ante fallos y usa el binario
-Release precompilado en E2E. No asumir preparación para 1.0 sin el reporte real:
-pruebas con fixtures o stubs no sustituyen evidencia con un modelo real.
+Cargo.toml and CHANGELOG.md report v0.28.2. The README v0.20 heading is stale
+relative to its later sections and the manifest.
+Recent work focuses on reproducible validation with real models and complete
+response parity across Node, Python, C, and .NET, plus llama.cpp multi-root
+qualification with evidence bound to the model, runtime, and hardware.
+v0.28.2 fixes .NET affinity-thread release on failure and uses the prebuilt
+Release binary in E2E. Do not assume 1.0 readiness without the real report:
+fixture or stub tests do not replace evidence from a real model.
 
-## Orientación
+## Orientation
 
-- README.md: producto, API e integraciones.
-- SPEC.md: contrato portable; su versión propia es distinta de la del workspace.
-- CHANGELOG.md y Cargo.toml: cambios y versión del workspace.
-- crates/: núcleo, adaptadores, hosts y herramientas.
-- bindings/: paquetes para otros lenguajes/plataformas.
-- docs/, schemas/, tests/, scripts/ y benchmarks/: contratos, documentación y validación.
+- README.md: product, API, and integrations.
+- SPEC.md: portable contract; its own version is distinct from the workspace version.
+- CHANGELOG.md and Cargo.toml: workspace changes and version.
+- crates/: core, adapters, hosts, and tools.
+- bindings/: packages for other languages and platforms.
+- docs/, schemas/, tests/, scripts/, and benchmarks/: contracts, documentation,
+  and validation.
 
-Para preguntas estructurales del código, respetar las instrucciones CodeGraph del
-entorno y preferir sus herramientas cuando estén disponibles.
+For structural code questions, follow the CodeGraph instructions in the
+environment and prefer its tools when available.
 
-## Validación real posterior (2026-09-21)
+## Real validation after the previous milestone (2026-09-21)
 
-Se ejecutó SmolLM2-135M-Instruct Q2_K en Windows con paridad completa entre Node,
-Python, C y .NET; 108 pruebas Rust y comprobaciones reales de robustez pasaron.
-Se corrigieron fallos de compilación, contadores de tokens de llama.cpp, rutas
-Windows y cierre de workers. Consultar docs/WINDOWS_VALIDATION.md para resultados,
-limitaciones y reproducción. Clippy estricto sigue pendiente. La fusión multi-root
-no pasó la tolerancia numérica y debe continuar desactivada en esta configuración.
-Esto no constituye aprobación del gate Linux ni preparación automática para 1.0.
+SmolLM2-135M-Instruct Q2_K ran on Windows with complete parity across Node,
+Python, C, and .NET; 108 Rust tests and real robustness checks passed.
+Compilation failures, llama.cpp token counters, Windows paths, and worker
+shutdown were fixed. See docs/WINDOWS_VALIDATION.md for results, limitations,
+and reproduction. Strict Clippy remains pending. Multi-root fusion did not meet
+the numerical tolerance and must remain disabled in this configuration.
+This does not constitute Linux gate approval or automatic 1.0 readiness.

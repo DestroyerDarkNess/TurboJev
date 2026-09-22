@@ -16,7 +16,7 @@ Prerequisites: Python 3.9+, Node 22+, .NET SDK 8+, Rust/rustup, Git, CMake, and 
 C/C++ toolchain (Visual Studio C++ tools on Windows, Xcode tools on macOS, GCC/Clang
 on Linux). The repository pins Rust 1.82. Run commands from the repository root.
 
-Si ya estás dentro de `D:\Projects\TurboJev\samples`, usa `py` así:
+If you are already in `D:\Projects\TurboJev\samples`, use `py` like this:
 
 ```powershell
 py .\build.py native --download-model
@@ -26,10 +26,10 @@ py .\run.py csharp
 py .\run.py rust
 ```
 
-`native` y `web` son modos obligatorios. Para seleccionar arquitectura se
-escribe una sola opción, sin llaves: `--arch x64`, `--arch x86` o `--arch
-arm64`. El valor debe coincidir con la arquitectura de Windows, Python, Node y
-las herramientas de compilación instaladas. Para el ejemplo web:
+`native` and `web` are required modes. To select an architecture, write one
+option without braces: `--arch x64`, `--arch x86`, or `--arch arm64`. The value
+must match the architecture of Windows, Python, Node, and the installed build
+tools. For the web example:
 
 ```powershell
 py .\build.py web
@@ -46,8 +46,8 @@ python samples/run.py rust
 
 ## Comandos por proyecto
 
-Todos los comandos se ejecutan desde la raíz del repositorio. El comando de
-build nativo prepara una sola vez las librerías para el lenguaje elegido.
+Run all commands from the repository root. The native build prepares the
+compiled libraries once for the selected host.
 
 ### `TurboJev-TS-node`
 
@@ -57,8 +57,8 @@ python samples/run.py ts
 python samples/run.py ts --text "I was charged twice."
 ```
 
-El código del ejemplo está en `samples/TurboJev-TS-node/src/main.ts`. Para
-compilar solamente el proyecto después de preparar los artefactos:
+The sample source is in `samples/TurboJev-TS-node/src/main.ts`. To compile only
+the project after preparing the artifacts:
 
 ```sh
 npm run build --prefix samples/TurboJev-TS-node
@@ -72,8 +72,8 @@ python samples/run.py python
 python samples/run.py python --text "My order arrived damaged."
 ```
 
-El launcher configura `PYTHONPATH` y las librerías nativas automáticamente.
-El ejemplo fuente está en `samples/TurboJev-Python/main.py`.
+The launcher configures `PYTHONPATH` and native library paths automatically.
+The sample source is in `samples/TurboJev-Python/main.py`.
 
 ### `TurboJev-csharp-NET`
 
@@ -83,15 +83,15 @@ python samples/run.py csharp
 python samples/run.py csharp --text "The application crashes on startup."
 ```
 
-El proyecto .NET está en `samples/TurboJev-csharp-NET/Sample.csproj`. Para
-compilarlo directamente, después del build nativo:
+The .NET project is in `samples/TurboJev-csharp-NET/Sample.csproj`. To compile
+it directly after the native build:
 
 ```sh
 dotnet build samples/TurboJev-csharp-NET/Sample.csproj -c Release -p:TurboJevRid=win-x64
 ```
 
-Usa `linux-x64`, `linux-arm64`, `osx-x64` u otro RID compatible cuando ejecutes
-en esa plataforma.
+Use `linux-x64`, `linux-arm64`, `osx-x64`, or another compatible RID on that
+platform.
 
 ### `TurboJev-rust`
 
@@ -101,27 +101,27 @@ python samples/run.py rust
 python samples/run.py rust --text "Please send a replacement."
 ```
 
-Para comprobar o compilar el crate desde Cargo:
+To check the crate with Cargo:
 
 ```sh
 cargo check -p turbojev-rust-sample --features native
 ```
 
-El ejecutable enlazado con llama.cpp lo genera `python samples/build.py native`;
-`samples/run.py rust` lo ejecuta con la biblioteca correcta ya preparada.
+The executable linked with llama.cpp is produced by
+`python samples/build.py native`; `samples/run.py rust` runs it with the
+prepared library.
 
 ### `TurboJev-js-native`
 
-Este ejemplo corre en el navegador usando Rust/WASM y Transformers.js; no usa
-una DLL nativa. Sus comandos son:
+This example runs in the browser with Rust/WASM and Transformers.js; it does
+not use a native DLL. Its commands are:
 
 ```sh
 python samples/build.py web
 python samples/run.py web
 ```
 
-Para trabajar solamente dentro del proyecto web, desde
-`samples/TurboJev-js-native`:
+To work only inside the web project, from `samples/TurboJev-js-native`:
 
 ```sh
 npm install
@@ -130,7 +130,7 @@ npm run build
 npm run dev
 ```
 
-Abre la URL local de Vite, pulsa **Cargar modelo** y después **Evaluar mensaje**.
+Open the local Vite URL, click **Load model**, and then **Evaluate message**.
 
 The first build fetches pinned llama.cpp and optionally the SHA-256-verified 88 MB
 SmolLM2 Q2_K model. Later builds reuse downloads and compilation caches. Use
@@ -161,7 +161,7 @@ python samples/run.py web
 
 Open the localhost URL printed by Vite. The build installs the pinned local
 wasm-bindgen CLI, compiles the Rust core to WASM, and bundles the browser runtime.
-Click **Cargar modelo**, then **Evaluar mensaje**. CPU is the compatible default;
+Click **Load model**, then **Evaluate message**. CPU is the compatible default;
 WebGPU is optional. Model files are downloaded by the browser only after clicking.
 Use an ONNX-compatible model ID, not a GGUF file. Native and browser models use
 different formats. The page has no inference server and does not upload the input

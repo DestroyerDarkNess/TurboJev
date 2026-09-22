@@ -7,7 +7,7 @@ name = "turbojev"
 version = "0.28.2"
 description = "TurboJev native semantic decision engine"
 requires-python = ">=3.9"
-license = { text = "MIT" }
+license = { text = "Apache-2.0" }
 
 [tool.maturin]
 manifest-path = "../../crates/turbojev-python/Cargo.toml"

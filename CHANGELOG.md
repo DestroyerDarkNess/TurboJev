@@ -1,6 +1,7 @@
 # Changelog
 
 ## 0.28.2
+- Project licensing and package metadata now use Apache-2.0 for commercial-friendly distribution.
 - `.NET DisposeAsync` now tears down the dedicated affinity worker in a `finally` block even when native close reports an error.
 
 - Final-gate bugfix only; no architecture changes.

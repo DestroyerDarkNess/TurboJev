@@ -59,8 +59,8 @@ const jev = await TurboJevWeb.load({
 });
 
 const result = await jev.classify(
-  'Mi paquete nunca llegó',
-  ['facturación', 'envíos', 'soporte'],
+  'My package never arrived',
+  ['billing', 'shipping', 'support'],
 );
 ```
 

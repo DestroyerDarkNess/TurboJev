@@ -1,6 +1,7 @@
 {
   "name": "@turbojev/web",
   "version": "0.28.2",
+  "license": "Apache-2.0",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
