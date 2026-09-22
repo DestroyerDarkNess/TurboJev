@@ -21,6 +21,7 @@ EXCLUDED_DIRS = {
     ".ruff_cache",
     ".cache",
     ".codegraph",
+    "other",
     ".e2e-final",
     "artifacts",
     ".artifacts",
