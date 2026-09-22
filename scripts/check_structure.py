@@ -11,7 +11,6 @@ ROOT = Path(__file__).resolve().parents[1]
 
 REQUIRED = [
     ROOT / "Cargo.toml",
-    ROOT / "PLAN.md",
     ROOT / "SPEC.md",
     ROOT / "docs/ARCHITECTURE.md",
     ROOT / "docs/PORTABILITY.md",
@@ -94,6 +93,10 @@ def main() -> None:
         str(path.parent.relative_to(ROOT)).replace("\\", "/")
         for path in (ROOT / "crates").glob("*/Cargo.toml")
     }
+    actual.update(
+        str(path.parent.relative_to(ROOT)).replace("\\", "/")
+        for path in (ROOT / "samples").glob("*/Cargo.toml")
+    )
     if members != actual:
         raise SystemExit(
             "workspace member mismatch:\n"

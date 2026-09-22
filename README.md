@@ -339,7 +339,6 @@ Rust contracts instead of reimplementing decision logic.
 
 See:
 
-- `PLAN.md`
 - `SPEC.md`
 - `docs/ARCHITECTURE.md`
 - `docs/PORTABILITY.md`

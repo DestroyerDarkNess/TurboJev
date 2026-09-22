@@ -1,7 +1,7 @@
 # Contexto del proyecto: TurboJev
 
 Resumen guardado a petición del usuario el 2026-09-21. Basado en README.md,
-PLAN.md, SPEC.md, Cargo.toml y CHANGELOG.md; no constituye una auditoría del código
+SPEC.md, Cargo.toml y CHANGELOG.md; no constituye una auditoría del código
 ni evidencia de que las pruebas hayan pasado. Revalidar el estado al hacer cambios.
 
 ## Propósito
@@ -53,7 +53,6 @@ pruebas con fixtures o stubs no sustituyen evidencia con un modelo real.
 ## Orientación
 
 - README.md: producto, API e integraciones.
-- PLAN.md: visión, principios y evolución.
 - SPEC.md: contrato portable; su versión propia es distinta de la del workspace.
 - CHANGELOG.md y Cargo.toml: cambios y versión del workspace.
 - crates/: núcleo, adaptadores, hosts y herramientas.
