@@ -1,0 +1,129 @@
+name: release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing release tag to validate"
+        required: true
+        type: string
+      publish:
+        description: "Publish registry packages after validation"
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: write
+  id-token: write
+
+env:
+  RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: dtolnay/rust-toolchain@1.82.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+      - name: Validate release versions
+        run: python scripts/release_preflight.py --tag "$RELEASE_TAG"
+      - name: Validate workspace metadata
+        run: cargo metadata --locked --no-deps
+      - name: Validate source manifest
+        run: python scripts/source_manifest.py
+      - name: Build and pack JavaScript packages
+        working-directory: bindings/web
+        run: |
+          npm install --ignore-scripts --no-audit --no-fund
+          npm run build
+          npm pack --dry-run
+      - name: Pack Transformers.js runtime
+        working-directory: bindings/web-runtimes/transformersjs
+        run: |
+          npm install --ignore-scripts --no-audit --no-fund
+          npm run build
+          npm pack --dry-run
+      - name: Pack .NET wrapper for validation
+        run: dotnet pack bindings/dotnet/TurboJev/TurboJev.csproj --configuration Release
+
+  publish-npm:
+    needs: preflight
+    if: github.event_name == 'push' || inputs.publish == true
+    runs-on: ubuntu-latest
+    environment: release
+    strategy:
+      fail-fast: false
+      matrix:
+        package:
+          - bindings/web
+          - bindings/web-runtimes/transformersjs
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - name: Build package
+        working-directory: ${{ matrix.package }}
+        run: |
+          npm install --ignore-scripts --no-audit --no-fund
+          npm run build
+      - name: Publish with npm trusted publishing
+        working-directory: ${{ matrix.package }}
+        run: npm publish --provenance --access public
+
+  publish-python:
+    needs: preflight
+    if: github.event_name == 'push' || inputs.publish == true
+    runs-on: ubuntu-latest
+    environment: release
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.82.0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Build Python wheel
+        working-directory: bindings/python
+        run: |
+          python -m pip install --upgrade pip maturin==1.9.6
+          maturin build --release --out dist
+      - name: Publish with PyPI trusted publishing
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: bindings/python/dist
+
+  github-release:
+    needs: preflight
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create source archive
+        run: git archive --format=tar.gz --output="turbojev-${RELEASE_TAG}.tar.gz" "$RELEASE_TAG"
+      - name: Publish GitHub release artifacts
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.RELEASE_TAG }}
+          generate_release_notes: true
+          files: turbojev-${{ env.RELEASE_TAG }}.tar.gz

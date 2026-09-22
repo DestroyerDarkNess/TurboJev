@@ -46,8 +46,8 @@ version = "0.28.2"
 edition = "2021"
 rust-version = "1.82"
 license = "Apache-2.0"
-repository = "https://github.com/turbojev/turbojev"
-homepage = "https://github.com/turbojev/turbojev"
+repository = "https://github.com/DestroyerDarkNess/TurboJev"
+homepage = "https://github.com/DestroyerDarkNess/TurboJev"
 authors = ["TurboJev contributors"]
 
 [workspace.dependencies]

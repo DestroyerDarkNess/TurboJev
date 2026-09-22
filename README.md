@@ -388,7 +388,7 @@ core never claims an optimization that the runtime did not execute. See
 
 ## Verification
 
-Portable release gates are documented in `docs/TESTING.md`. Structural/portability checks are runnable without Cargo; release correctness still requires `cargo fmt`, `cargo check`, `cargo clippy -D warnings`, the full test suite, the `wasm32-unknown-unknown` check, and the Linux/Windows/macOS CI matrix.
+Portable release gates are documented in `docs/TESTING.md`, and tag-driven package publication is documented in `docs/RELEASING.md`. Structural/portability checks are runnable without Cargo; release correctness still requires `cargo fmt`, `cargo check`, `cargo clippy -D warnings`, the full test suite, the `wasm32-unknown-unknown` check, and the Linux/Windows/macOS CI matrix.
 
 ## Async without an async framework
 

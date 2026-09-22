@@ -1,1 +1,21 @@
-<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net8.0</TargetFramework><Nullable>enable</Nullable><ImplicitUsings>enable</ImplicitUsings><PackageId>TurboJev</PackageId><Version>0.28.2</Version></PropertyGroup></Project>
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <PackageId>TurboJev</PackageId>
+    <Version>0.28.2</Version>
+    <Authors>TurboJev contributors</Authors>
+    <Description>Typed semantic decisions powered by TurboJev.</Description>
+    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageTags>semantic;classification;machine-learning;rust</PackageTags>
+    <RepositoryType>git</RepositoryType>
+    <RepositoryUrl>https://github.com/DestroyerDarkNess/TurboJev</RepositoryUrl>
+    <PackageProjectUrl>https://github.com/DestroyerDarkNess/TurboJev</PackageProjectUrl>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+  <ItemGroup>
+    <None Include="..\..\..\README.md" Pack="true" PackagePath="README.md" />
+  </ItemGroup>
+</Project>
