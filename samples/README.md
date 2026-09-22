@@ -16,6 +16,26 @@ Prerequisites: Python 3.9+, Node 22+, .NET SDK 8+, Rust/rustup, Git, CMake, and 
 C/C++ toolchain (Visual Studio C++ tools on Windows, Xcode tools on macOS, GCC/Clang
 on Linux). The repository pins Rust 1.82. Run commands from the repository root.
 
+Si ya estás dentro de `D:\Projects\TurboJev\samples`, usa `py` así:
+
+```powershell
+py .\build.py native --download-model
+py .\run.py ts
+py .\run.py python
+py .\run.py csharp
+py .\run.py rust
+```
+
+`native` y `web` son modos obligatorios. Para seleccionar arquitectura se
+escribe una sola opción, sin llaves: `--arch x64`, `--arch x86` o `--arch
+arm64`. El valor debe coincidir con la arquitectura de Windows, Python, Node y
+las herramientas de compilación instaladas. Para el ejemplo web:
+
+```powershell
+py .\build.py web
+py .\run.py web
+```
+
 ```sh
 python samples/build.py native --download-model
 python samples/run.py ts
