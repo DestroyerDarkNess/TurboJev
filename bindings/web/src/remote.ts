@@ -1,4 +1,4 @@
-/** Server-backed media inference. The selected server runtime processes media. */
+/** Model-independent media evidence for local WASM or explicitly selected servers. */
 export type MediaModality = "image" | "audio" | "video";
 export interface MediaEvidence {
   contract: "turbojev.media.v1";

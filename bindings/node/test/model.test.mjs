@@ -2,6 +2,6 @@ import test from "node:test"; import assert from "node:assert/strict"; import { 
 import { pathToFileURL } from "node:url";
 import { resolveModel } from "../dist/model.js";
 test("worker keeps Hugging Face model identifiers unchanged", async () => {
-  assert.equal(await resolveModel({model:"akhilaaa3/Jev-Omni",worker:{program:"python"}}), "akhilaaa3/Jev-Omni");
+  assert.equal(await resolveModel({model:"example/multimodal-model",worker:{program:"python"}}), "example/multimodal-model");
 });
 test("local and file model resolution is host-owned",async()=>{const d=await mkdtemp(join(tmpdir(),"tj-"));const p=join(d,"m.gguf");await writeFile(p,"x");assert.equal(await resolveModel({model:p}),p);assert.equal(await resolveModel({model:pathToFileURL(p).href}),p);});

@@ -121,6 +121,13 @@ impl WorkerBackend {
         }
         let modalities: Vec<String> = serde_json::from_value(hello["modalities"].clone())
             .map_err(|e| BackendError::NotReady(e.to_string()))?;
+        if modalities.is_empty()
+            || modalities
+                .iter()
+                .any(|m| !matches!(m.as_str(), "text" | "image" | "audio" | "video"))
+        {
+            return Err(BackendError::NotReady("invalid worker modalities".into()));
+        }
         Ok(Self {
             process: Mutex::new(process),
             timeout,
@@ -149,21 +156,8 @@ impl ScoringBackend for WorkerBackend {
         if !self.capabilities().supports(plan) {
             return Err(BackendError::UnsupportedPlan);
         }
-        let media = turbojev_schema::media::MediaEvidence::from_state(&batch.state)
-            .map_err(BackendError::InvalidInput)?;
-        let modality = media
-            .as_ref()
-            .map(|m| match m.modality {
-                turbojev_schema::media::Modality::Image => "image",
-                turbojev_schema::media::Modality::Audio => "audio",
-                turbojev_schema::media::Modality::Video => "video",
-            })
-            .unwrap_or("text");
-        if !self.modalities.iter().any(|m| m == modality) {
-            return Err(BackendError::Unsupported(format!(
-                "worker does not support {modality}"
-            )));
-        }
+        turbojev_schema::media::MediaEvidence::check_modalities(&batch.state, &self.modalities)
+            .map_err(BackendError::Unsupported)?;
         let payload =
             serde_json::to_vec(batch).map_err(|e| BackendError::InvalidInput(e.to_string()))?;
         let mut process = self

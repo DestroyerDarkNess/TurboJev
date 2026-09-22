@@ -9,7 +9,10 @@ use js_sys::{Function, Promise, Reflect};
 use serde::Deserialize;
 use serde_json::Value;
 use turbojev::{schema::EvaluationRequest, TurboJevAsync};
-use turbojev_backend::{BackendMetrics, BackendResourceHints, ExecutionPlan};
+use turbojev_backend::{
+    AsyncScoringBackend, BackendCapabilities, BackendError, BackendFuture, BackendMetrics,
+    BackendOutput, BackendResourceHints, DecisionBatch, ExecutionPlan, TaskScores,
+};
 use turbojev_engine::{ExecutionBudget, PlanningPolicy};
 use turbojev_prompt::{
     PromptCriterion, PromptDocument, PromptError, PromptRenderer, RenderedMessages,
@@ -37,10 +40,116 @@ struct RuntimeDescriptor {
     #[serde(rename = "name")]
     _name: String,
     model: String,
+    #[serde(default)]
     codec_profile: String,
+    #[serde(default)]
+    scoring_mode: ScoringMode,
+    #[serde(default = "text_modalities")]
+    modalities: Vec<String>,
     capabilities: DescriptorCapabilities,
     #[serde(default)]
     resource_hints: RuntimeHints,
+}
+
+#[derive(Debug, Clone, Copy, Default, Deserialize, PartialEq)]
+#[serde(rename_all = "kebab-case")]
+enum ScoringMode {
+    #[default]
+    Tokens,
+    Decisions,
+}
+fn text_modalities() -> Vec<String> {
+    vec!["text".into()]
+}
+
+// Decision scorers receive original media evidence, avoiding lossy text tokenization.
+// They own model-specific preprocessing; Rust still validates and normalizes scores.
+enum BrowserBackend {
+    Tokens(RuntimeBackend<BrowserRenderer, JsCodec, JsExecutor>),
+    Decisions {
+        runtime: JsValue,
+        descriptor: RuntimeDescriptor,
+    },
+}
+impl AsyncScoringBackend for BrowserBackend {
+    fn name(&self) -> &'static str {
+        match self {
+            Self::Tokens(b) => b.name(),
+            Self::Decisions { .. } => "browser-decision-runtime",
+        }
+    }
+    fn capabilities(&self) -> BackendCapabilities {
+        match self {
+            Self::Tokens(b) => b.capabilities(),
+            Self::Decisions { descriptor, .. } => BackendCapabilities {
+                local_inference: descriptor.capabilities.local_inference,
+                ..Default::default()
+            },
+        }
+    }
+    fn resource_hints(&self) -> BackendResourceHints {
+        match self {
+            Self::Tokens(b) => b.resource_hints(),
+            _ => BackendResourceHints::default(),
+        }
+    }
+    fn score_async<'a>(
+        &'a self,
+        batch: &'a DecisionBatch,
+        plan: ExecutionPlan,
+    ) -> BackendFuture<'a, Result<BackendOutput, BackendError>> {
+        match self {
+            Self::Tokens(b) => b.score_async(batch, plan),
+            Self::Decisions {
+                runtime,
+                descriptor,
+            } => Box::pin(async move {
+                if !self.capabilities().supports(plan) {
+                    return Err(BackendError::UnsupportedPlan);
+                }
+                turbojev::schema::media::MediaEvidence::check_modalities(
+                    &batch.state,
+                    &descriptor.modalities,
+                )
+                .map_err(BackendError::Unsupported)?;
+                let batch_json = serde_json::to_string(batch)
+                    .map_err(|e| BackendError::InvalidInput(e.to_string()))?;
+                let plan_json = serde_json::to_string(&plan)
+                    .map_err(|e| BackendError::InvalidInput(e.to_string()))?;
+                let function = Reflect::get(runtime, &JsValue::from_str("scoreDecisionBatch"))
+                    .map_err(|e| BackendError::Inference(js_message(e)))?
+                    .dyn_into::<Function>()
+                    .map_err(|_| BackendError::NotReady("scoreDecisionBatch is required".into()))?;
+                let value = function
+                    .call2(
+                        runtime,
+                        &JsValue::from_str(&batch_json),
+                        &JsValue::from_str(&plan_json),
+                    )
+                    .map_err(|e| BackendError::Inference(js_message(e)))?;
+                let resolved = JsFuture::from(Promise::resolve(&value))
+                    .await
+                    .map_err(|e| BackendError::Inference(js_message(e)))?;
+                let text = resolved.as_string().ok_or_else(|| {
+                    BackendError::Inference("scoreDecisionBatch must return JSON string".into())
+                })?;
+                let output = parse_runtime_output(&text, &descriptor.model)
+                    .map_err(|e| BackendError::Inference(e.to_string()))?;
+                Ok(BackendOutput {
+                    model: output.model,
+                    metrics: output.metrics,
+                    scores: output
+                        .scores
+                        .into_iter()
+                        .map(|s| TaskScores {
+                            id: s.id,
+                            logits: s.logits,
+                        })
+                        .collect(),
+                })
+            }),
+        }
+    }
 }
 #[derive(Debug, Clone, Copy, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
@@ -322,7 +431,7 @@ fn js_message(v: JsValue) -> String {
 /// High-level browser engine. The runtime object must already be initialized.
 #[wasm_bindgen]
 pub struct WasmEngine {
-    engine: TurboJevAsync<RuntimeBackend<BrowserRenderer, JsCodec, JsExecutor>>,
+    engine: TurboJevAsync<BrowserBackend>,
 }
 
 #[wasm_bindgen]
@@ -335,6 +444,32 @@ impl WasmEngine {
     ) -> Result<WasmEngine, JsValue> {
         let descriptor: RuntimeDescriptor =
             serde_json::from_str(descriptor_json).map_err(js_json)?;
+        if descriptor.modalities.is_empty()
+            || descriptor
+                .modalities
+                .iter()
+                .any(|m| !matches!(m.as_str(), "text" | "image" | "audio" | "video"))
+        {
+            return Err(JsValue::from_str("invalid runtime modalities"));
+        }
+        if descriptor.scoring_mode == ScoringMode::Decisions {
+            if !Reflect::get(&runtime, &JsValue::from_str("scoreDecisionBatch"))?.is_function() {
+                return Err(JsValue::from_str(
+                    "decision runtime requires scoreDecisionBatch",
+                ));
+            }
+            return Ok(Self {
+                engine: TurboJevAsync::new(BrowserBackend::Decisions {
+                    runtime,
+                    descriptor,
+                }),
+            });
+        }
+        if descriptor.modalities.iter().any(|m| m != "text") {
+            return Err(JsValue::from_str(
+                "multimodal runtimes require scoringMode=decisions",
+            ));
+        }
         if !descriptor.capabilities.next_token_logits {
             return Err(JsValue::from_str("runtime must expose next-token logits"));
         }
@@ -360,7 +495,7 @@ impl WasmEngine {
         )
         .with_max_tokens_per_code(max_tokens);
         Ok(Self {
-            engine: TurboJevAsync::new(backend)
+            engine: TurboJevAsync::new(BrowserBackend::Tokens(backend))
                 .with_planning_policy(PlanningPolicy::Auto)
                 .with_execution_budget(ExecutionBudget::unlimited()),
         })

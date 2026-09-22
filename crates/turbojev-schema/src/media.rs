@@ -5,7 +5,7 @@ use serde_json::Value;
 /// Version marker for structured media evidence.
 pub const MEDIA_CONTRACT: &str = "turbojev.media.v1";
 
-/// Modalities supported by the Jev-Omni reference adapter.
+/// Model-independent input modalities. Decoding belongs to the selected runtime.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum Modality {
@@ -33,6 +33,24 @@ pub struct MediaEvidence {
 }
 
 impl MediaEvidence {
+    /// Validate evidence and check the selected runtime's declared modalities.
+    pub fn check_modalities(state: &Value, supported: &[String]) -> Result<(), String> {
+        let media = Self::from_state(state)?;
+        let required = match media.as_ref().map(|m| &m.modality) {
+            None => "text",
+            Some(Modality::Image) => "image",
+            Some(Modality::Audio) => "audio",
+            Some(Modality::Video) => "video",
+        };
+        if supported.iter().any(|m| m == required) {
+            Ok(())
+        } else {
+            Err(format!(
+                "UNSUPPORTED_MODALITY: runtime does not support {required}"
+            ))
+        }
+    }
+
     /// Parse explicit media evidence without interpreting ordinary JSON objects.
     pub fn from_state(state: &Value) -> Result<Option<Self>, String> {
         let Some(contract) = state.get("contract").and_then(Value::as_str) else {

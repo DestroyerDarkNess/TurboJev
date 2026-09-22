@@ -3,7 +3,9 @@ export type { MediaEvidence, MediaModality } from "./remote.js";
 export interface BrowserRuntimeDescriptor {
     name: string;
     model: string;
-    codecProfile: string;
+    codecProfile?: string;
+    scoringMode?: "tokens" | "decisions";
+    modalities?: Array<"text" | "image" | "audio" | "video">;
     promptProfile?: {
         profile: string;
         systemInstruction: string;
@@ -24,6 +26,15 @@ export interface BrowserRuntime {
     encodePromptWithAnswer(messagesJson: string, answer: string): string;
     decodeTokens(tokenIdsJson: string): string;
     scoreRuntimeBatch(runtimeBatchJson: string, planJson: string): Promise<string> | string;
+    close(): Promise<void> | void;
+}
+/** Model-independent scoring; the provider owns media decoding and preprocessing. */
+export interface BrowserDecisionRuntime {
+    initialize(options: unknown): Promise<BrowserRuntimeDescriptor & {
+        scoringMode: "decisions";
+        modalities: Array<"text" | "image" | "audio" | "video">;
+    }>;
+    scoreDecisionBatch(batchJson: string, planJson: string): Promise<string> | string;
     close(): Promise<void> | void;
 }
 export interface WebLoadOptions {
