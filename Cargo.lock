@@ -778,6 +778,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "turbojev-rust-sample"
+version = "0.1.0"
+dependencies = [
+ "turbojev",
+ "turbojev-runtime-llamacpp",
+]
+
+[[package]]
 name = "turbojev-schema"
 version = "0.28.2"
 dependencies = [

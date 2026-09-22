@@ -23,6 +23,7 @@ EXCLUDED_DIRS = {
     ".codegraph",
     ".e2e-final",
     "artifacts",
+    ".artifacts",
     "bin",
     "obj",
 }
@@ -37,6 +38,8 @@ def source_files() -> list[Path]:
         directories[:] = [name for name in directories if name not in EXCLUDED_DIRS]
         for filename in filenames:
             relative = (Path(directory) / filename).relative_to(ROOT)
+            if relative.parts[:1] == ("samples",) and any(part in {"vendor", "dist"} for part in relative.parts[1:-1]):
+                continue
             if relative.name in EXCLUDED_NAMES or relative.name == ".env" or relative.suffix in EXCLUDED_SUFFIXES:
                 continue
             files.append(relative)

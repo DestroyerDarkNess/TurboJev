@@ -1,0 +1,17 @@
+[package]
+name = "turbojev-rust-sample"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[[bin]]
+name = "turbojev-rust-sample"
+path = "src/main.rs"
+required-features = ["native"]
+
+[features]
+native = ["turbojev-runtime-llamacpp/ffi"]
+
+[dependencies]
+turbojev = { path = "../../crates/turbojev" }
+turbojev-runtime-llamacpp = { path = "../../crates/turbojev-runtime-llamacpp" }

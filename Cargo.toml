@@ -1,6 +1,7 @@
 [workspace]
 resolver = "2"
 members = [
+    "samples/TurboJev-rust",
     "crates/turbojev",
     "crates/turbojev-schema",
     "crates/turbojev-calibration",

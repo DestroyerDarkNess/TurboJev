@@ -1,5 +1,7 @@
 # TurboJev
 
+Try the [five runnable sample projects](samples/README.md): vanilla browser JavaScript, TypeScript/Node, Python, C#/.NET and Rust. Shared build scripts prepare the compiled libraries for each host architecture.
+
 TurboJev is a Rust-first, universal typed-decision layer for open-weight models.
 
 ```text
