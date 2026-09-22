@@ -105,7 +105,9 @@ def native(args):
         download(plan["model"]["url"], ROOT / ".cache/real-validation" / plan["model"]["filename"], plan["model"]["sha256"])
     (stage / "build-info.json").write_text(json.dumps({"rid": rid, "target": target, "llamaRevision": revision,
         "profile": "debug" if args.debug else "release", "python": sys.version, "nodeArch": node_arch}, indent=2))
-    print(f"Ready: {stage}\nRun: python samples/run.py python")
+    print(f"Ready: {stage}")
+    print("Run from repository root: python samples/run.py python")
+    print("Run from samples/:        py .\\run.py python")
 
 
 def web():
@@ -119,7 +121,9 @@ def web():
     run("npm", "install", "--ignore-scripts", "--no-audit", "--no-fund", cwd=sample)
     run("npm", "run", "prepare:runtime", cwd=sample)
     run("npm", "run", "build", cwd=sample)
-    print("Ready: python samples/run.py web")
+    print("Ready")
+    print("Run from repository root: python samples/run.py web")
+    print("Run from samples/:        py .\\run.py web")
 
 
 if __name__ == "__main__":
