@@ -4,6 +4,12 @@ param()
 $ErrorActionPreference = "Stop"
 $Root = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 Set-Location $Root
+$AllArchitectures = @("x86", "x64", "arm64")
+$RustTargets = @{
+    x86 = "i686-pc-windows-msvc"
+    x64 = "x86_64-pc-windows-msvc"
+    arm64 = "aarch64-pc-windows-msvc"
+}
 
 function Import-DotEnv {
     param([string]$Path)
@@ -64,35 +70,6 @@ function Require-Value {
     return $value
 }
 
-function Get-HostArchitecture {
-    if ([Environment]::Is64BitOperatingSystem) {
-        if ($env:PROCESSOR_ARCHITEW6432 -eq "ARM64" -or $env:PROCESSOR_ARCHITECTURE -eq "ARM64") {
-            return "arm64"
-        }
-        return "x64"
-    }
-    return "x86"
-}
-
-function Select-Architecture {
-    Write-Host ""
-    Write-Host "Architecture" -ForegroundColor Cyan
-    Write-Host "  1) Host architecture ($(Get-HostArchitecture))"
-    Write-Host "  2) x86"
-    Write-Host "  3) x64"
-    Write-Host "  4) arm64"
-    Write-Host "  5) all"
-
-    switch (Read-Host "Select architecture") {
-        "1" { return @((Get-HostArchitecture)) }
-        "2" { return @("x86") }
-        "3" { return @("x64") }
-        "4" { return @("arm64") }
-        "5" { return @("x86", "x64", "arm64") }
-        default { throw "Invalid architecture selection" }
-    }
-}
-
 function Publish-Npm {
     Require-Value "NPM_TOKEN" | Out-Null
     $npm = if (Get-Command npm.cmd -ErrorAction SilentlyContinue) { "npm.cmd" } else { "npm" }
@@ -121,24 +98,19 @@ function Publish-Npm {
 }
 
 function Publish-Python {
-    param([string[]]$Architectures)
-
     Require-Value "PYPI_API_TOKEN" | Out-Null
-    $hostArchitecture = Get-HostArchitecture
     $output = Join-Path $Root "artifacts/pypi"
     New-Item -ItemType Directory -Force -Path $output | Out-Null
+    Get-ChildItem -LiteralPath $output -Filter "*.whl" -ErrorAction SilentlyContinue | Remove-Item -Force
     $env:TWINE_USERNAME = "__token__"
     $env:TWINE_PASSWORD = $env:PYPI_API_TOKEN
 
     try {
         Invoke-Tool "python" @("-m", "pip", "install", "build", "twine")
-        foreach ($architecture in $Architectures) {
-            if ($architecture -ne $hostArchitecture) {
-                Write-Warning "Skipping Python ${architecture}: cross-compilation requires a matching Python/Rust toolchain."
-                continue
-            }
-
-            Invoke-Tool "python" @("-m", "build", "bindings/python", "--wheel", "--outdir", $output)
+        foreach ($architecture in $AllArchitectures) {
+            $target = $RustTargets[$architecture]
+            Invoke-Tool "rustup" @("target", "add", $target)
+            Invoke-Tool "python" @("-m", "maturin", "build", "--release", "--target", $target, "--out", $output) (Join-Path $Root "bindings/python")
         }
 
         $packages = Get-ChildItem -LiteralPath $output -Filter "*.whl"
@@ -155,9 +127,26 @@ function Publish-Python {
 
 function Publish-NuGet {
     Require-Value "NUGET_API_KEY" | Out-Null
+    $nativeRoot = Join-Path $Root "artifacts/nuget-native"
     $output = Join-Path $Root "artifacts/nuget"
+    New-Item -ItemType Directory -Force -Path $nativeRoot | Out-Null
     New-Item -ItemType Directory -Force -Path $output | Out-Null
-    Invoke-Tool "dotnet" @("pack", "bindings/dotnet/TurboJev/TurboJev.csproj", "--configuration", "Release", "--output", $output)
+
+    foreach ($architecture in $AllArchitectures) {
+        $target = $RustTargets[$architecture]
+        $rid = "win-$architecture"
+        $ridRoot = Join-Path $nativeRoot $rid
+        New-Item -ItemType Directory -Force -Path $ridRoot | Out-Null
+        Invoke-Tool "rustup" @("target", "add", $target)
+        Invoke-Tool "cargo" @("build", "--locked", "--release", "--target", $target, "-p", "turbojev-capi")
+        $native = Join-Path $Root "target/$target/release/turbojev_capi.dll"
+        if (-not (Test-Path -LiteralPath $native)) {
+            throw "Native C API was not built for $rid"
+        }
+        Copy-Item -LiteralPath $native -Destination (Join-Path $ridRoot "turbojev_capi.dll") -Force
+    }
+
+    Invoke-Tool "dotnet" @("pack", "bindings/dotnet/TurboJev/TurboJev.csproj", "--configuration", "Release", "-p:TurboJevNativeRoot=$nativeRoot", "--output", $output)
 
     foreach ($package in Get-ChildItem -LiteralPath $output -Filter "*.nupkg") {
         $arguments = @("nuget", "push", $package.FullName, "--api-key", $env:NUGET_API_KEY, "--source", "https://api.nuget.org/v3/index.json", "--skip-duplicate")
@@ -218,7 +207,6 @@ while ($true) {
     }
 
     try {
-        $architectures = Select-Architecture
         if (-not (Confirm-Publish)) {
             Write-Host "Cancelled."
             continue
@@ -226,12 +214,12 @@ while ($true) {
 
         switch ($choice) {
             "1" {
-                Write-Host "npm packages are architecture-independent; publishing once."
+                Write-Host "npm web packages are architecture-independent; publishing once."
                 Publish-Npm
             }
-            "2" { Publish-Python $architectures }
+            "2" { Publish-Python }
             "3" {
-                Write-Host "NuGet package is published once per version; publishing once."
+                Write-Host "Building and publishing one NuGet package with x86, x64, and arm64 runtime assets."
                 Publish-NuGet
             }
             "4" {
@@ -244,7 +232,7 @@ while ($true) {
                     try {
                         switch ($target) {
                             "npm" { Publish-Npm }
-                            "python" { Publish-Python $architectures }
+                            "python" { Publish-Python }
                             "nuget" { Publish-NuGet }
                             "cargo" { Publish-Cargo }
                         }
