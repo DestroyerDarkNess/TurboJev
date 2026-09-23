@@ -111,6 +111,29 @@ jobs:
         with:
           packages-dir: bindings/python/dist
 
+  publish-nuget:
+    needs: preflight
+    if: vars.RELEASE_ENABLED == 'true' && (github.event_name == 'push' || inputs.publish == true)
+    runs-on: ubuntu-latest
+    environment: release
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+      - name: Build NuGet package
+        run: dotnet pack bindings/dotnet/TurboJev/TurboJev.csproj --configuration Release --output artifacts/nuget
+      - name: NuGet login (OIDC to temporary API key)
+        uses: NuGet/login@v1
+        id: login
+        with:
+          user: DestroyerDarkNess
+      - name: Publish NuGet package
+        run: dotnet nuget push "artifacts/nuget/*.nupkg" --api-key "${{ steps.login.outputs.NUGET_API_KEY }}" --source https://api.nuget.org/v3/index.json
+
   github-release:
     needs: preflight
     if: vars.RELEASE_ENABLED == 'true' && github.event_name == 'push'
