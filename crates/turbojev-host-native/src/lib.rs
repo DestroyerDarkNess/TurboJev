@@ -13,7 +13,7 @@ use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
-use turbojev::{ClassificationResult, TurboJevEngine};
+use turbojev::{ClassificationResult, OrderRobustness, TurboJevEngine};
 use turbojev_backend::{FusedBackendCapabilities, FusedScoringBackend};
 use turbojev_backend_mock::FixtureBackend;
 use turbojev_compat::{self, WireProfile};
@@ -43,6 +43,24 @@ pub enum HostPlanningPolicy {
     DeterministicReuse,
 }
 
+/// Load-time candidate-order policy shared by every native language binding.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "kebab-case")]
+pub enum HostOrderRobustness {
+    #[default]
+    None,
+    Cyclic,
+}
+
+impl From<HostOrderRobustness> for OrderRobustness {
+    fn from(value: HostOrderRobustness) -> Self {
+        match value {
+            HostOrderRobustness::None => OrderRobustness::None,
+            HostOrderRobustness::Cyclic => OrderRobustness::Cyclic,
+        }
+    }
+}
+
 impl From<HostPlanningPolicy> for PlanningPolicy {
     fn from(value: HostPlanningPolicy) -> Self {
         match value {
@@ -59,6 +77,9 @@ impl From<HostPlanningPolicy> for PlanningPolicy {
 pub struct HostExecutionOptions {
     #[serde(default)]
     pub policy: HostPlanningPolicy,
+    /// Opt-in exact cyclic averaging for unordered choice candidates.
+    #[serde(default)]
+    pub order_robustness: HostOrderRobustness,
     #[serde(default)]
     pub max_parallel_tasks: Option<usize>,
     #[serde(default)]
@@ -261,6 +282,7 @@ impl NativeSession {
                 engine: NativeEngine::Worker(
                     TurboJevEngine::new(backend)
                         .with_planning_policy(options.execution.policy.into())
+                        .with_order_robustness(options.execution.order_robustness.into())
                         .with_execution_budget(execution_budget(options.execution)),
                 ),
                 model: options.model,
@@ -273,7 +295,8 @@ impl NativeSession {
                 builder = builder.with_logits(id.clone(), logits.clone());
             }
             let mut engine = TurboJevEngine::new(builder.build())
-                .with_planning_policy(options.execution.policy.into());
+                .with_planning_policy(options.execution.policy.into())
+                .with_order_robustness(options.execution.order_robustness.into());
             engine = engine.with_execution_budget(execution_budget(options.execution));
             return Ok(Self {
                 engine: NativeEngine::Fixture(engine),
@@ -307,6 +330,7 @@ impl NativeSession {
             let backend = llamacpp_backend(prompt, runtime);
             let engine = TurboJevEngine::new(backend)
                 .with_planning_policy(options.execution.policy.into())
+                .with_order_robustness(options.execution.order_robustness.into())
                 .with_execution_budget(execution_budget(options.execution));
             return Ok(Self {
                 engine: NativeEngine::Llama(engine),
@@ -667,12 +691,25 @@ mod tests {
     fn llamacpp_multi_root_is_conservative_opt_in() {
         let options: NativeLoadOptions = serde_json::from_str(r#"{"model":"model.gguf"}"#).unwrap();
         assert!(!options.execution.llamacpp_multi_root_fused);
+        assert_eq!(
+            options.execution.order_robustness,
+            HostOrderRobustness::None
+        );
 
         let enabled: NativeLoadOptions = serde_json::from_str(
             r#"{"model":"model.gguf","execution":{"llamacppMultiRootFused":true}}"#,
         )
         .unwrap();
         assert!(enabled.execution.llamacpp_multi_root_fused);
+
+        let corrected: NativeLoadOptions = serde_json::from_str(
+            r#"{"model":"model.gguf","execution":{"orderRobustness":"cyclic"}}"#,
+        )
+        .unwrap();
+        assert_eq!(
+            corrected.execution.order_robustness,
+            HostOrderRobustness::Cyclic
+        );
     }
 
     #[test]

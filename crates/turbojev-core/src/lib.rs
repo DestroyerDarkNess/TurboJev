@@ -22,6 +22,32 @@ use turbojev_schema::{
 /// Stable native core contract identifier.
 pub const CORE_CONTRACT: &str = "turbojev.core.v4";
 
+/// Opt-in mitigation for positional bias in unordered `choice` questions.
+///
+/// `Cyclic` evaluates each cyclic candidate order, maps every score row back to
+/// the caller's stable candidate keys, and averages the raw logits. It costs one
+/// model evaluation per choice. Ordered score levels and `noul` are intentionally
+/// unchanged because their order has semantic meaning.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum OrderRobustness {
+    /// Score the caller's supplied order once.
+    #[default]
+    None,
+    /// Average every cyclic rotation for each unordered choice question.
+    Cyclic,
+}
+
+impl OrderRobustness {
+    const MAX_CYCLIC_CANDIDATES: usize = 32;
+
+    fn name(self) -> &'static str {
+        match self {
+            Self::None => "none",
+            Self::Cyclic => "cyclic",
+        }
+    }
+}
+
 /// Convenience result returned by [`TurboJevEngine::classify`].
 #[derive(Debug, Clone, PartialEq)]
 pub struct ClassificationResult {
@@ -40,6 +66,7 @@ pub struct TurboJevEngine<B, C = SoftmaxCalibrator> {
     backend: B,
     calibrator: C,
     planner: ExecutionPlanner,
+    order_robustness: OrderRobustness,
 }
 
 impl<B> TurboJevEngine<B, SoftmaxCalibrator>
@@ -52,6 +79,7 @@ where
             backend,
             calibrator: SoftmaxCalibrator,
             planner: ExecutionPlanner::default(),
+            order_robustness: OrderRobustness::None,
         }
     }
 }
@@ -67,6 +95,7 @@ where
             backend,
             calibrator,
             planner: ExecutionPlanner::default(),
+            order_robustness: OrderRobustness::None,
         }
     }
 
@@ -82,6 +111,12 @@ where
         self
     }
 
+    /// Opt into exact cyclic candidate-order averaging for unordered choices.
+    pub fn with_order_robustness(mut self, value: OrderRobustness) -> Self {
+        self.order_robustness = value;
+        self
+    }
+
     /// Access the configured inference backend.
     pub fn backend(&self) -> &B {
         &self.backend
@@ -91,8 +126,15 @@ where
     pub fn evaluate(&self, request: EvaluationRequest) -> Result<EvaluationResponse, Error> {
         request.validate()?;
         let batch = compile_decision_batch(&request);
-        let (backend_output, indexed_scores, plan) = self.score_batch(&batch)?;
-        build_evaluation_response(
+        let (backend_output, indexed_scores, plan, order_evaluations) = match self.order_robustness
+        {
+            OrderRobustness::None => {
+                let (output, scores, plan) = self.score_batch(&batch)?;
+                (output, scores, plan, 0)
+            }
+            OrderRobustness::Cyclic => self.score_cyclic_choices(&request, &batch)?,
+        };
+        let mut response = build_evaluation_response(
             &request,
             &batch,
             backend_output,
@@ -100,7 +142,10 @@ where
             plan,
             self.backend.name(),
             &self.calibrator,
-        )
+        )?;
+        response.metadata.order_robustness = self.order_robustness.name().to_owned();
+        response.metadata.order_evaluations = order_evaluations;
+        Ok(response)
     }
 
     /// Ergonomic single-choice helper similar to classifier SDKs.
@@ -153,10 +198,16 @@ where
             tasks: vec![task.clone()],
         };
 
-        let (_backend_output, indexed_scores, _plan) = self.score_batch(&batch)?;
-        let logits = indexed_scores
-            .get(&task.id)
-            .ok_or_else(|| Error::MissingBackendScores(task.id.clone()))?;
+        let logits = match self.order_robustness {
+            OrderRobustness::None => {
+                let (_backend_output, indexed_scores, _plan) = self.score_batch(&batch)?;
+                indexed_scores
+                    .get(&task.id)
+                    .cloned()
+                    .ok_or_else(|| Error::MissingBackendScores(task.id.clone()))?
+            }
+            OrderRobustness::Cyclic => self.score_cyclic_task(&batch, &task)?,
+        };
         if logits.len() != task.candidates.len() {
             return Err(Error::CandidateCountMismatch {
                 question: task.id.clone(),
@@ -164,7 +215,7 @@ where
                 actual: logits.len(),
             });
         }
-        let probabilities = self.calibrator.probabilities(logits)?;
+        let probabilities = self.calibrator.probabilities(&logits)?;
         let winner = argmax(&probabilities).ok_or_else(|| {
             Error::Internal("classification produced no probabilities".to_owned())
         })?;
@@ -201,6 +252,173 @@ where
         let indexed_scores = index_backend_scores(batch, &backend_output.scores)?;
         Ok((backend_output, indexed_scores, effective_plan))
     }
+
+    fn score_cyclic_choices(
+        &self,
+        request: &EvaluationRequest,
+        batch: &DecisionBatch,
+    ) -> Result<
+        (
+            BackendOutput,
+            HashMap<String, Vec<f32>>,
+            ExecutionPlan,
+            usize,
+        ),
+        Error,
+    > {
+        let choice_ids: HashSet<&str> = request
+            .questions
+            .iter()
+            .filter_map(|(id, question)| {
+                matches!(question, Question::Choice { .. }).then_some(id.as_str())
+            })
+            .collect();
+        if choice_ids.is_empty() {
+            let (output, scores, plan) = self.score_batch(batch)?;
+            return Ok((output, scores, plan, 0));
+        }
+        for task in batch
+            .tasks
+            .iter()
+            .filter(|task| choice_ids.contains(task.id.as_str()))
+        {
+            if task.candidates.len() > OrderRobustness::MAX_CYCLIC_CANDIDATES {
+                return Err(Error::OrderRobustnessCandidateLimit {
+                    question: task.id.clone(),
+                    actual: task.candidates.len(),
+                    max: OrderRobustness::MAX_CYCLIC_CANDIDATES,
+                });
+            }
+        }
+
+        let mut indexed = HashMap::with_capacity(batch.tasks.len());
+        let mut model = None;
+        let mut input_tokens = 0usize;
+        let mut input_known = false;
+        let mut plan = None;
+        let mut evaluations = 0usize;
+        let ordinary = DecisionBatch {
+            state: batch.state.clone(),
+            tasks: batch
+                .tasks
+                .iter()
+                .filter(|task| !choice_ids.contains(task.id.as_str()))
+                .cloned()
+                .collect(),
+        };
+        if !ordinary.tasks.is_empty() {
+            let (output, scores, effective_plan) = self.score_batch(&ordinary)?;
+            model = output.model;
+            if let Some(value) = output.metrics.input_tokens {
+                input_tokens += value;
+                input_known = true;
+            }
+            indexed.extend(scores);
+            plan = Some(effective_plan);
+            evaluations += 1;
+        }
+        for task in batch
+            .tasks
+            .iter()
+            .filter(|task| choice_ids.contains(task.id.as_str()))
+        {
+            let count = task.candidates.len();
+            let mut total = vec![0.0f32; count];
+            for rotation in 0..count {
+                let mut rotated = task.clone();
+                rotated.candidates.rotate_left(rotation);
+                let rotated_batch = DecisionBatch {
+                    state: batch.state.clone(),
+                    tasks: vec![rotated],
+                };
+                let (output, scores, effective_plan) = self.score_batch(&rotated_batch)?;
+                if model.is_none() {
+                    model = output.model;
+                }
+                if let Some(value) = output.metrics.input_tokens {
+                    input_tokens += value;
+                    input_known = true;
+                }
+                plan.get_or_insert(effective_plan);
+                let logits = scores
+                    .get(&task.id)
+                    .ok_or_else(|| Error::MissingBackendScores(task.id.clone()))?;
+                if logits.len() != count {
+                    return Err(Error::CandidateCountMismatch {
+                        question: task.id.clone(),
+                        expected: count,
+                        actual: logits.len(),
+                    });
+                }
+                for (position, value) in logits.iter().enumerate() {
+                    total[(position + rotation) % count] += *value;
+                }
+                evaluations += 1;
+            }
+            for value in &mut total {
+                *value /= count as f32;
+            }
+            indexed.insert(task.id.clone(), total);
+        }
+        Ok((
+            BackendOutput {
+                model,
+                scores: Vec::new(),
+                metrics: turbojev_backend::BackendMetrics {
+                    input_tokens: input_known.then_some(input_tokens),
+                    ..Default::default()
+                },
+            },
+            indexed,
+            plan.ok_or_else(|| {
+                Error::Internal("order robustness did not create an execution plan".to_owned())
+            })?,
+            evaluations,
+        ))
+    }
+
+    fn score_cyclic_task(
+        &self,
+        batch: &DecisionBatch,
+        task: &DecisionTask,
+    ) -> Result<Vec<f32>, Error> {
+        let count = task.candidates.len();
+        if count > OrderRobustness::MAX_CYCLIC_CANDIDATES {
+            return Err(Error::OrderRobustnessCandidateLimit {
+                question: task.id.clone(),
+                actual: count,
+                max: OrderRobustness::MAX_CYCLIC_CANDIDATES,
+            });
+        }
+
+        let mut total = vec![0.0f32; count];
+        for rotation in 0..count {
+            let mut rotated = task.clone();
+            rotated.candidates.rotate_left(rotation);
+            let rotated_batch = DecisionBatch {
+                state: batch.state.clone(),
+                tasks: vec![rotated],
+            };
+            let (_output, scores, _plan) = self.score_batch(&rotated_batch)?;
+            let logits = scores
+                .get(&task.id)
+                .ok_or_else(|| Error::MissingBackendScores(task.id.clone()))?;
+            if logits.len() != count {
+                return Err(Error::CandidateCountMismatch {
+                    question: task.id.clone(),
+                    expected: count,
+                    actual: logits.len(),
+                });
+            }
+            for (position, value) in logits.iter().enumerate() {
+                total[(position + rotation) % count] += *value;
+            }
+        }
+        for value in &mut total {
+            *value /= count as f32;
+        }
+        Ok(total)
+    }
 }
 
 impl<B, C> TurboJevEngine<B, C>
@@ -212,6 +430,9 @@ where
     /// This is shape-aware: a runtime may support fused batching globally while a
     /// particular request group must fall back to the independent reference path.
     pub fn can_evaluate_fused(&self, requests: &[EvaluationRequest]) -> Result<bool, Error> {
+        if self.order_robustness != OrderRobustness::None {
+            return Ok(false);
+        }
         if requests.len() < 2 {
             return Ok(false);
         }
@@ -487,6 +708,8 @@ fn build_evaluation_response<C: Calibrator>(
             calibrated: calibrator.is_fitted(),
             confidence_method: "selected-candidate-probability".to_owned(),
             contract: CORE_CONTRACT.to_owned(),
+            order_robustness: "none".to_owned(),
+            order_evaluations: 0,
             execution: execution_metadata(plan),
         },
     })
@@ -781,6 +1004,15 @@ pub enum Error {
     /// Invalid convenience-classification input.
     #[error("invalid classification request: {0}")]
     InvalidClassification(String),
+    /// Cyclic order correction would exceed its bounded inference cost.
+    #[error(
+        "order robustness for question {question:?} has {actual} candidates; maximum is {max}"
+    )]
+    OrderRobustnessCandidateLimit {
+        question: String,
+        actual: usize,
+        max: usize,
+    },
     /// Invalid cross-request fused-evaluation request.
     #[error("invalid fused evaluation request: {0}")]
     InvalidFusedBatch(String),
@@ -828,9 +1060,99 @@ mod tests {
         assert_eq!(response.usage.generated_tokens, 0);
     }
 
+    struct PositionBiasedBackend;
+
+    impl ScoringBackend for PositionBiasedBackend {
+        fn name(&self) -> &'static str {
+            "position-biased-fixture"
+        }
+
+        fn capabilities(&self) -> turbojev_backend::BackendCapabilities {
+            turbojev_backend::BackendCapabilities::default()
+        }
+
+        fn score(
+            &self,
+            batch: &DecisionBatch,
+            _plan: ExecutionPlan,
+        ) -> Result<BackendOutput, BackendError> {
+            let position_bias = [5.0, 0.0, -5.0];
+            Ok(BackendOutput {
+                model: Some("position-biased-fixture".to_owned()),
+                scores: batch
+                    .tasks
+                    .iter()
+                    .map(|task| TaskScores {
+                        id: task.id.clone(),
+                        logits: task
+                            .candidates
+                            .iter()
+                            .enumerate()
+                            .map(|(position, candidate)| {
+                                let semantic_logit = match candidate.key.as_str() {
+                                    "a" => 0.1,
+                                    "b" => 1.0,
+                                    "c" => 0.2,
+                                    _ => 0.0,
+                                };
+                                semantic_logit + position_bias[position]
+                            })
+                            .collect(),
+                    })
+                    .collect(),
+                metrics: turbojev_backend::BackendMetrics::default(),
+            })
+        }
+    }
+
+    fn position_biased_request() -> EvaluationRequest {
+        EvaluationRequest {
+            model: None,
+            state: serde_json::json!({"message": "route this"}),
+            questions: indexmap! {
+                "route".into() => Question::choice(
+                    "Choose the best route.",
+                    indexmap! {
+                        "a".into() => "option a".into(),
+                        "b".into() => "option b".into(),
+                        "c".into() => "option c".into(),
+                    },
+                )
+            },
+        }
+    }
+
+    #[test]
+    fn cyclic_order_robustness_cancels_position_bias_for_evaluate_and_classify() {
+        let baseline = TurboJevEngine::new(PositionBiasedBackend)
+            .evaluate(position_biased_request())
+            .unwrap();
+        match &baseline.answers["route"] {
+            Answer::Choice { choice, .. } => assert_eq!(choice, "a"),
+            _ => panic!("wrong answer type"),
+        }
+
+        let engine = TurboJevEngine::new(PositionBiasedBackend)
+            .with_order_robustness(OrderRobustness::Cyclic);
+        let corrected = engine.evaluate(position_biased_request()).unwrap();
+        match &corrected.answers["route"] {
+            Answer::Choice { choice, .. } => assert_eq!(choice, "b"),
+            _ => panic!("wrong answer type"),
+        }
+        assert_eq!(corrected.metadata.order_robustness, "cyclic");
+        assert_eq!(corrected.metadata.order_evaluations, 3);
+        assert_eq!(
+            engine
+                .classify("route this", ["a", "b", "c"])
+                .unwrap()
+                .choice,
+            "b"
+        );
+    }
+
     struct AsyncFixtureBackend;
 
-    impl turbojev_backend::AsyncScoringBackend for AsyncFixtureBackend {
+    impl AsyncScoringBackend for AsyncFixtureBackend {
         fn name(&self) -> &'static str {
             "async-fixture"
         }

@@ -233,6 +233,12 @@ pub struct EngineMetadata {
     pub confidence_method: String,
     /// Stable architecture contract identifier.
     pub contract: String,
+    /// How candidate-order bias was mitigated for `choice` questions.
+    #[serde(default)]
+    pub order_robustness: String,
+    /// Number of backend evaluations used by order-robustness processing.
+    #[serde(default)]
+    pub order_evaluations: usize,
     /// Portable execution strategy chosen through capability negotiation.
     pub execution: ExecutionMetadata,
 }

@@ -22,6 +22,7 @@ class LoadOptions:
     n_seq_max: int = 8
     n_gpu_layers: int = -1
     worker: Mapping[str, Any] | None = None
+    execution: Mapping[str, Any] | None = None
 
     def to_wire(self) -> dict[str, Any]:
         return {
@@ -31,6 +32,7 @@ class LoadOptions:
             "nSeqMax": self.n_seq_max,
             "nGpuLayers": self.n_gpu_layers,
             "worker": self.worker,
+            "execution": self.execution,
         }
 
 class TurboJev:

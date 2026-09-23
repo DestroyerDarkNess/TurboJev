@@ -17,6 +17,10 @@ def test_worker_configuration_reaches_native_load():
     worker = {"program": "python", "args": ["scorer.py"]}
     assert LoadOptions(model="example/multimodal-model", worker=worker).to_wire()["worker"] == worker
 
+def test_order_robustness_configuration_reaches_native_load():
+    execution = {"orderRobustness": "cyclic"}
+    assert LoadOptions(model="fixture://test", execution=execution).to_wire()["execution"] == execution
+
 def test_wrapper_roundtrip():
     jev = TurboJev.load("fixture://test")
     assert jev.classify("x", ["a", "b"])["choice"] == "b"

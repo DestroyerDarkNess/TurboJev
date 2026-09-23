@@ -15,11 +15,16 @@ The optimized path does not require natural-language answer generation. Model
 runtimes return candidate logits/scores; TurboJev owns schema validation,
 execution planning, calibration, and `choice` / `noul` / `score` construction.
 
-> Status: **v0.20 specialized evaluation + external-run interchange milestone.** The portable core remains model-,
-> runtime-, operating-system-, host-language-, prompt-template-, and async-executor-agnostic.
-> Node/TypeScript, browser/WASM, Python, C, .NET, Android and iOS converge on the same Rust
-> semantic contracts. v0.20 adds framework-neutral external evaluation runs, fair generic-vs-specialized
-> comparison, robustness metrics and reproducible SHA-256 experiment bundles while keeping all trainers external.
+For unordered `choice` questions, native hosts can opt into exact cyclic
+candidate-order correction. It remaps every rotation to stable option keys,
+averages logits before calibration, and records the work in the response. See
+[candidate-order robustness](docs/ORDER_ROBUSTNESS.md).
+
+> Status: **v0.28.2.** Native Windows validation has passed with a real small
+> GGUF model across Node/TypeScript, Python, C, and .NET; the portable core
+> remains runtime-, operating-system-, host-language-, prompt-template-, and
+> async-executor-agnostic. See [Windows validation evidence](docs/WINDOWS_VALIDATION.md)
+> and the [release requirements](docs/RELEASING.md).
 
 
 
@@ -167,7 +172,7 @@ import { TurboJev } from "@turbojev/node";
 
 const jev = await TurboJev.load({
   model: "./Qwen3-0.6B-Q8_0.gguf",
-  execution: { policy: "auto", maxParallelTasks: 4 },
+  execution: { policy: "auto", orderRobustness: "cyclic", maxParallelTasks: 4 },
 });
 
 const result = await jev.classify(
