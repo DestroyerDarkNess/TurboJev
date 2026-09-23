@@ -5,9 +5,9 @@ Small projects using compiled TurboJev libraries and local inference.
 | Project | Interface | Engine |
 |---|---|---|
 | TurboJev-js-native | HTML + vanilla JS decision studio | Rust/WASM + Transformers.js, browser only |
-| TurboJev-TS-node | Typed async console application | Node-API + llama.cpp |
+| TurboJev-TS-node | Typed async console application, plus image/video decisions | Node-API + llama.cpp or SmolVLM2 worker |
 | TurboJev-Python | Context-managed Python console application | PyO3 + llama.cpp |
-| TurboJev-csharp-NET | C# `await using` console application | Compiled .NET wrapper + native C ABI |
+| TurboJev-csharp-NET | C# `await using` console application, plus image/video decisions | Native C ABI + SmolVLM2 worker |
 | TurboJev-rust | Typed Rust classification application | Compiled Rust crates + llama.cpp |
 | [TurboJev-SmolVLM2](TurboJev-SmolVLM2/README.md) | Image and short-video decisions | Rust + optional SmolVLM2 CPU worker |
 | [TurboJev-LFM-Audio](TurboJev-LFM-Audio/README.md) | Spoken-intent decisions | Rust + optional LFM2.5-Audio CPU worker |
@@ -77,6 +77,20 @@ python samples/run.py ts
 python samples/run.py ts --text "I was charged twice."
 ```
 
+After the native build above and preparing the optional vision worker, this
+sample can also send an image or short video through the same native TurboJev
+session and print the complete typed `EvaluationResponse`:
+
+```sh
+python samples/multimodal/setup.py vision
+python samples/run.py ts --media photo.jpg --modality image \
+  --question "What animal is shown?" --options "A cat" "A dog"
+```
+
+Use `--modality video` for a supported short video. The launcher configures the
+local SmolVLM2 worker; the TypeScript code only constructs media evidence and
+calls `evaluate`.
+
 The sample source is in `samples/TurboJev-TS-node/src/main.ts`. To compile only
 the project after preparing the artifacts:
 
@@ -102,6 +116,17 @@ python samples/build.py native --download-model
 python samples/run.py csharp
 python samples/run.py csharp --text "The application crashes on startup."
 ```
+
+After the native build above, the C# sample has the same image/video path:
+
+```sh
+python samples/multimodal/setup.py vision
+python samples/run.py csharp --media photo.jpg --modality image \
+  --question "What animal is shown?" --options "A cat" "A dog"
+```
+
+It loads the same local worker through the stable native C ABI and prints the
+canonical JSON response returned by `EvaluateJsonAsync`.
 
 The .NET project is in `samples/TurboJev-csharp-NET/Sample.csproj`. To compile
 it directly after the native build:
