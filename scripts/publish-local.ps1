@@ -1,9 +1,13 @@
 [CmdletBinding()]
-param()
+param(
+    [ValidateSet('npm', 'python', 'nuget', 'cargo', 'all')][string]$Target,
+    [switch]$Yes
+)
 
 $ErrorActionPreference = "Stop"
 $Root = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 Set-Location $Root
+. (Join-Path $PSScriptRoot 'use-arm64-toolchain.ps1')
 $AllArchitectures = @("x86", "x64", "arm64")
 $RustTargets = @{
     x86 = "i686-pc-windows-msvc"
@@ -75,12 +79,30 @@ function Require-Value {
     return $value
 }
 
+function Publish-NpmPackage {
+    param([string]$NpmCommand, [string]$PackagePath)
+    $manifest = Get-Content -Raw (Join-Path $PackagePath 'package.json') | ConvertFrom-Json
+    $uri = 'https://registry.npmjs.org/' + [uri]::EscapeDataString($manifest.name) + '/' + $manifest.version
+    try {
+        $published = Invoke-RestMethod $uri
+        if ($published.version -eq $manifest.version) {
+            Write-Host "Already published: $($manifest.name)@$($manifest.version)"
+            return
+        }
+    }
+    catch {
+        if ([int]$_.Exception.Response.StatusCode -ne 404) { throw }
+    }
+    Invoke-Tool $NpmCommand @('publish', '--access', 'public') $PackagePath
+}
+
 function Publish-Node {
     param([string]$NpmCommand)
 
     $nodePackage = Join-Path $Root "bindings/node"
     $output = Join-Path $Root "artifacts/npm-native"
     $manifest = Get-Content -Raw (Join-Path $nodePackage "package.json") | ConvertFrom-Json
+    $platformPackages = @()
     New-Item -ItemType Directory -Force -Path $output | Out-Null
 
     Invoke-Tool $NpmCommand @("install", "--ignore-scripts", "--no-audit", "--no-fund", "--package-lock=false") $nodePackage
@@ -111,10 +133,13 @@ function Publish-Node {
             repository = $manifest.repository
         }
         $platformManifest | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $platformPackage "package.json")
-        Invoke-Tool $NpmCommand @("publish", "--access", "public") $platformPackage
+        $platformPackages += $platformPackage
     }
 
-    Invoke-Tool $NpmCommand @("publish", "--access", "public") $nodePackage
+    foreach ($platformPackage in $platformPackages) {
+        Publish-NpmPackage $NpmCommand $platformPackage
+    }
+    Publish-NpmPackage $NpmCommand $nodePackage
 }
 
 function Publish-Npm {
@@ -128,9 +153,9 @@ function Publish-Npm {
         $env:NPM_CONFIG_USERCONFIG = $tempNpmrc
 
         foreach ($package in @("bindings/web", "bindings/web-runtimes/transformersjs")) {
-            Invoke-Tool $npm @("install", "--ignore-scripts", "--no-audit", "--no-fund") (Join-Path $Root $package)
+            Invoke-Tool $npm @("install", "--ignore-scripts", "--no-audit", "--no-fund", "--package-lock=false") (Join-Path $Root $package)
             Invoke-Tool $npm @("run", "build") (Join-Path $Root $package)
-            Invoke-Tool $npm @("publish", "--access", "public") (Join-Path $Root $package)
+            Publish-NpmPackage $npm (Join-Path $Root $package)
         }
         Publish-Node $npm
     }
@@ -152,22 +177,48 @@ function Publish-Python {
     Get-ChildItem -LiteralPath $output -Filter "*.whl" -ErrorAction SilentlyContinue | Remove-Item -Force
     $env:TWINE_USERNAME = "__token__"
     $env:TWINE_PASSWORD = $env:PYPI_API_TOKEN
+    $previousPyConfig = $env:PYO3_CONFIG_FILE
 
     try {
-        Invoke-Tool "python" @("-m", "pip", "install", "build", "twine")
+        $toolsRoot = Join-Path $Root "artifacts/publish-tools"
+        $python = Join-Path $toolsRoot "Scripts/python.exe"
+        if (-not (Test-Path $python)) {
+            Invoke-Tool "python" @("-m", "venv", $toolsRoot)
+        }
+        Invoke-Tool $python @("-m", "pip", "install", "maturin>=1.7,<2", "twine")
         foreach ($architecture in $AllArchitectures) {
             $target = $RustTargets[$architecture]
             Invoke-Tool "rustup" @("target", "add", $target)
-            Invoke-Tool "python" @("-m", "maturin", "build", "--release", "--target", $target, "--out", $output) (Join-Path $Root "bindings/python")
+            $config = Join-Path $output "pyo3-$architecture.txt"
+            $width = if ($architecture -eq 'x86') { 32 } else { 64 }
+            @("implementation=CPython", "version=3.9", "shared=true", "abi3=true", "lib_name=python3", "pointer_width=$width", "ext_suffix=.pyd") | Set-Content $config
+            if ($architecture -eq 'arm64' -and $env:TURBOJEV_ARM64_LIB_EXE) {
+                $metadata = (& cargo metadata --format-version 1 --locked) | ConvertFrom-Json
+                if ($LASTEXITCODE -ne 0) { throw 'Could not read Cargo metadata' }
+                $importPackage = $metadata.packages | Where-Object name -EQ 'python3-dll-a'
+                $definition = Join-Path (Split-Path $importPackage.manifest_path) 'src/python3.def'
+                $importDir = Join-Path $output 'arm64-import'
+                New-Item -ItemType Directory -Force $importDir | Out-Null
+                Invoke-Tool $env:TURBOJEV_ARM64_LIB_EXE @('/NOLOGO', '/MACHINE:ARM64', "/DEF:$definition", "/OUT:$importDir/python3.lib")
+                "lib_dir=$importDir" | Add-Content $config
+            }
+            $env:PYO3_CONFIG_FILE = $config
+            Invoke-Tool $python @("-m", "maturin", "build", "--locked", "--release", "--target", $target, "--out", $output) (Join-Path $Root "bindings/python")
         }
 
         $packages = Get-ChildItem -LiteralPath $output -Filter "*.whl"
         if (-not $packages) {
             throw "No Python wheel was produced"
         }
-        Invoke-Tool "python" (@("-m", "twine", "upload") + @($packages.FullName))
+        if ($packages.Count -ne $AllArchitectures.Count) { throw "Expected one wheel per architecture" }
+        Invoke-Tool $python (@("-m", "twine", "check") + @($packages.FullName))
+        $hostWheel = $packages | Where-Object Name -Like '*win_amd64.whl'
+        Invoke-Tool $python @('-m', 'pip', 'install', '--force-reinstall', '--no-deps', $hostWheel.FullName)
+        Invoke-Tool $python @('scripts/smoke-python-package.py')
+        Invoke-Tool $python (@("-m", "twine", "upload", "--non-interactive", "--skip-existing") + @($packages.FullName))
     }
     finally {
+        $env:PYO3_CONFIG_FILE = $previousPyConfig
         Remove-Item Env:TWINE_USERNAME -ErrorAction SilentlyContinue
         Remove-Item Env:TWINE_PASSWORD -ErrorAction SilentlyContinue
     }
@@ -210,8 +261,7 @@ function Publish-Cargo {
 
     try {
         Write-Host "Cargo preflight (the workspace must have publishable versioned dependencies)..." -ForegroundColor Yellow
-        Invoke-Tool "cargo" @("publish", "--dry-run", "--locked", "-p", "turbojev")
-        Invoke-Tool "cargo" @("publish", "--locked", "-p", "turbojev")
+        Invoke-Tool "python" @("scripts/publish-crates.py")
     }
     finally {
         if ($null -eq $previousToken) {
@@ -224,6 +274,7 @@ function Publish-Cargo {
 }
 
 function Confirm-Publish {
+    if ($Yes) { return $true }
     $answer = Read-Host "This uploads packages to public registries. Type PUBLISH to continue"
     return $answer -ceq "PUBLISH"
 }
@@ -249,7 +300,7 @@ while ($true) {
     Write-Host "  5) all"
     Write-Host "  6) exit"
 
-    $choice = Read-Host "Select target"
+    $choice = if ($Target) { @{npm='1';python='2';nuget='3';cargo='4';all='5'}[$Target] } else { Read-Host "Select target" }
     if ($choice -eq "6") {
         break
     }
@@ -298,6 +349,7 @@ while ($true) {
         }
 
         Write-Host "Completed successfully." -ForegroundColor Green
+        if ($Target) { break }
     }
     catch {
         Write-Error $_

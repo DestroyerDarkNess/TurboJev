@@ -9,7 +9,7 @@ repository.workspace = true
 [dependencies]
 serde_json.workspace = true
 thiserror.workspace = true
-turbojev-schema = { path = "../turbojev-schema" }
+turbojev-schema = { version = "=0.28.2", path = "../turbojev-schema" }
 
 [lints]
 workspace = true

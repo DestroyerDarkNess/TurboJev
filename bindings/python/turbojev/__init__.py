@@ -25,15 +25,17 @@ class LoadOptions:
     execution: Mapping[str, Any] | None = None
 
     def to_wire(self) -> dict[str, Any]:
-        return {
+        options = {
             "model": self.model,
             "nCtx": self.n_ctx,
             "nBatch": self.n_batch,
             "nSeqMax": self.n_seq_max,
             "nGpuLayers": self.n_gpu_layers,
             "worker": self.worker,
-            "execution": self.execution,
         }
+        if self.execution is not None:
+            options["execution"] = self.execution
+        return options
 
 class TurboJev:
     def __init__(self, native: Any): self._native = native

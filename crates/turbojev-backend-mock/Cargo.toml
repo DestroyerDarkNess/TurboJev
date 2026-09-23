@@ -10,7 +10,7 @@ homepage.workspace = true
 
 [dependencies]
 indexmap.workspace = true
-turbojev-backend = { path = "../turbojev-backend" }
+turbojev-backend = { version = "=0.28.2", path = "../turbojev-backend" }
 
 [lints]
 workspace = true

@@ -21,6 +21,9 @@ def test_order_robustness_configuration_reaches_native_load():
     execution = {"orderRobustness": "cyclic"}
     assert LoadOptions(model="fixture://test", execution=execution).to_wire()["execution"] == execution
 
+def test_default_execution_is_omitted_for_native_serde_defaults():
+    assert "execution" not in LoadOptions(model="fixture://test").to_wire()
+
 def test_wrapper_roundtrip():
     jev = TurboJev.load("fixture://test")
     assert jev.classify("x", ["a", "b"])["choice"] == "b"

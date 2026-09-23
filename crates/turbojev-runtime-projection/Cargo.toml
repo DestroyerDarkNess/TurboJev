@@ -10,13 +10,13 @@ homepage.workspace = true
 
 [dependencies]
 thiserror.workspace = true
-turbojev-backend = { path = "../turbojev-backend" }
-turbojev-projection = { path = "../turbojev-projection" }
-turbojev-runtime = { path = "../turbojev-runtime" }
+turbojev-backend = { version = "=0.28.2", path = "../turbojev-backend" }
+turbojev-projection = { version = "=0.28.2", path = "../turbojev-projection" }
+turbojev-runtime = { version = "=0.28.2", path = "../turbojev-runtime" }
 
 [dev-dependencies]
-turbojev-runtime-conformance = { path = "../turbojev-runtime-conformance" }
-turbojev-tokenizer = { path = "../turbojev-tokenizer" }
+turbojev-runtime-conformance = { version = "=0.28.2", path = "../turbojev-runtime-conformance" }
+turbojev-tokenizer = { version = "=0.28.2", path = "../turbojev-tokenizer" }
 
 [lints]
 workspace = true

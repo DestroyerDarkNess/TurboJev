@@ -7,7 +7,7 @@ license.workspace = true
 repository.workspace = true
 
 [dependencies]
-turbojev-backend = { path = "../turbojev-backend" }
+turbojev-backend = { version = "=0.28.2", path = "../turbojev-backend" }
 
 [lints]
 workspace = true

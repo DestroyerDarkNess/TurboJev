@@ -27,6 +27,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fc652a48c352aef3ea3aed32080501cf3ef6ed5da78602a020c991775b0aff04"
 
 [[package]]
+name = "cc"
+version = "1.4.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "54413ede23c2daf518f35156dfde027feb2374004d63bd497f983c8db9c0e313"
+dependencies = [
+ "find-msvc-tools",
+ "shlex",
+]
+
+[[package]]
 name = "cesu8"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -93,6 +103,12 @@ name = "equivalent"
 version = "1.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "877a4ace8713b0bcf2a4e7eec82529c029f1d0619886d18145fea96c3ffe5c0f"
+
+[[package]]
+name = "find-msvc-tools"
+version = "0.1.13"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ef25905e51abafe4dcea6c15fec58c57b601cdbd0ee53d22ea1d3016c587d39b"
 
 [[package]]
 name = "hashbrown"
@@ -331,6 +347,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1cd3927b5a78757a0d71aa9dff669f903b1eb64b54142a9bd9f757f8fde65fd7"
 dependencies = [
  "once_cell",
+ "python3-dll-a",
  "target-lexicon",
 ]
 
@@ -367,6 +384,15 @@ dependencies = [
  "pyo3-build-config",
  "quote",
  "syn",
+]
+
+[[package]]
+name = "python3-dll-a"
+version = "0.2.15"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d80ba7540edb18890d444c5aa8e1f1f99b1bdf26fb26ae383135325f4a36042b"
+dependencies = [
+ "cc",
 ]
 
 [[package]]
@@ -453,6 +479,12 @@ dependencies = [
  "ryu",
  "serde",
 ]
+
+[[package]]
+name = "shlex"
+version = "2.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f8fadd59c855ef2080decdef8ff161eb6661b86933c9d82e5ba29dc602a55aba"
 
 [[package]]
 name = "syn"

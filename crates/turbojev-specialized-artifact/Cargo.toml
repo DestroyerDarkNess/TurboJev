@@ -11,18 +11,18 @@ homepage.workspace = true
 [dependencies]
 serde.workspace = true
 thiserror.workspace = true
-turbojev-calibration = { path = "../turbojev-calibration" }
-turbojev-model = { path = "../turbojev-model" }
-turbojev-prompt = { path = "../turbojev-prompt" }
-turbojev-runtime = { path = "../turbojev-runtime" }
-turbojev-runtime-conformance = { path = "../turbojev-runtime-conformance" }
-turbojev-specialized = { path = "../turbojev-specialized" }
-turbojev-tokenizer = { path = "../turbojev-tokenizer" }
-turbojev-training-data = { path = "../turbojev-training-data" }
+turbojev-calibration = { version = "=0.28.2", path = "../turbojev-calibration" }
+turbojev-model = { version = "=0.28.2", path = "../turbojev-model" }
+turbojev-prompt = { version = "=0.28.2", path = "../turbojev-prompt" }
+turbojev-runtime = { version = "=0.28.2", path = "../turbojev-runtime" }
+turbojev-runtime-conformance = { version = "=0.28.2", path = "../turbojev-runtime-conformance" }
+turbojev-specialized = { version = "=0.28.2", path = "../turbojev-specialized" }
+turbojev-tokenizer = { version = "=0.28.2", path = "../turbojev-tokenizer" }
+turbojev-training-data = { version = "=0.28.2", path = "../turbojev-training-data" }
 
 [lints]
 workspace = true
 
 [dev-dependencies]
 serde_json.workspace = true
-turbojev-backend = { path = "../turbojev-backend" }
+turbojev-backend = { version = "=0.28.2", path = "../turbojev-backend" }
