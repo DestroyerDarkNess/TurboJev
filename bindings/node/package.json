@@ -19,6 +19,11 @@
       "import": "./dist/index.js"
     }
   },
+  "optionalDependencies": {
+    "@turbojev/node-win32-ia32": "0.28.2",
+    "@turbojev/node-win32-x64": "0.28.2",
+    "@turbojev/node-win32-arm64": "0.28.2"
+  },
   "files": [
     "dist",
     "src",

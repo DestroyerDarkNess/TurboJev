@@ -10,6 +10,11 @@ $RustTargets = @{
     x64 = "x86_64-pc-windows-msvc"
     arm64 = "aarch64-pc-windows-msvc"
 }
+$NodeArchitectures = @{
+    x86 = "ia32"
+    x64 = "x64"
+    arm64 = "arm64"
+}
 
 function Import-DotEnv {
     param([string]$Path)
@@ -70,6 +75,48 @@ function Require-Value {
     return $value
 }
 
+function Publish-Node {
+    param([string]$NpmCommand)
+
+    $nodePackage = Join-Path $Root "bindings/node"
+    $output = Join-Path $Root "artifacts/npm-native"
+    $manifest = Get-Content -Raw (Join-Path $nodePackage "package.json") | ConvertFrom-Json
+    New-Item -ItemType Directory -Force -Path $output | Out-Null
+
+    Invoke-Tool $NpmCommand @("install", "--ignore-scripts", "--no-audit", "--no-fund", "--package-lock=false") $nodePackage
+    Invoke-Tool $NpmCommand @("run", "build") $nodePackage
+
+    foreach ($architecture in $AllArchitectures) {
+        $target = $RustTargets[$architecture]
+        $nodeArchitecture = $NodeArchitectures[$architecture]
+        Invoke-Tool "rustup" @("target", "add", $target)
+        Invoke-Tool "cargo" @("build", "--locked", "--release", "--target", $target, "-p", "turbojev-node")
+
+        $native = Join-Path $Root "target/$target/release/turbojev_node.dll"
+        if (-not (Test-Path -LiteralPath $native)) {
+            throw "Node native addon was not built for win32-$nodeArchitecture"
+        }
+
+        $platformPackage = Join-Path $output ("node-win32-{0}" -f $nodeArchitecture)
+        New-Item -ItemType Directory -Force -Path $platformPackage | Out-Null
+        Copy-Item -LiteralPath $native -Destination (Join-Path $platformPackage "turbojev.node") -Force
+        $platformManifest = [ordered]@{
+            name = "@turbojev/node-win32-$nodeArchitecture"
+            version = $manifest.version
+            description = "TurboJev native Node.js addon for win32-$nodeArchitecture"
+            main = "turbojev.node"
+            os = @("win32")
+            cpu = @($nodeArchitecture)
+            license = $manifest.license
+            repository = $manifest.repository
+        }
+        $platformManifest | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $platformPackage "package.json")
+        Invoke-Tool $NpmCommand @("publish", "--access", "public") $platformPackage
+    }
+
+    Invoke-Tool $NpmCommand @("publish", "--access", "public") $nodePackage
+}
+
 function Publish-Npm {
     Require-Value "NPM_TOKEN" | Out-Null
     $npm = if (Get-Command npm.cmd -ErrorAction SilentlyContinue) { "npm.cmd" } else { "npm" }
@@ -85,6 +132,7 @@ function Publish-Npm {
             Invoke-Tool $npm @("run", "build") (Join-Path $Root $package)
             Invoke-Tool $npm @("publish", "--access", "public") (Join-Path $Root $package)
         }
+        Publish-Node $npm
     }
     finally {
         Remove-Item -LiteralPath $tempNpmrc -Force -ErrorAction SilentlyContinue
