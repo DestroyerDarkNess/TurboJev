@@ -5,6 +5,7 @@ edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
+description = "Stable wire types and serialization contracts for TurboJev"
 
 [dependencies]
 serde_json.workspace = true
