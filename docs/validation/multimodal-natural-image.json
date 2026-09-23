@@ -1,0 +1,42 @@
+{
+  "source": "https://huggingface.co/datasets/huggingface/documentation-images/resolve/main/bee.jpg",
+  "image_sha256": "8b21ba78250f852ca5990063866b1ace6432521d0251bde7f8de783b22c99a6d",
+  "question": "What is shown in the image?",
+  "options": [
+    "A bee on a flower",
+    "A dog running",
+    "A car on a road"
+  ],
+  "response": {
+    "model": "HuggingFaceTB/SmolVLM2-256M-Video-Instruct",
+    "answers": {
+      "scene": {
+        "type": "choice",
+        "choice": "option_1",
+        "confidence": 0.8743925697920115,
+        "probabilities": {
+          "option_1": 0.8743925697920115,
+          "option_2": 0.012899567518066814,
+          "option_3": 0.11270786268992161
+        }
+      }
+    },
+    "usage": {
+      "decisions": 1,
+      "generated_tokens": 0
+    },
+    "_turbojev": {
+      "backend": "local-worker",
+      "calibration": "softmax",
+      "calibrated": false,
+      "confidence_method": "selected-candidate-probability",
+      "contract": "turbojev.core.v4",
+      "execution": {
+        "prefix_reuse": "none",
+        "scheduling": "serial",
+        "parallel_task_limit": 1,
+        "projection": "full-vocabulary"
+      }
+    }
+  }
+}

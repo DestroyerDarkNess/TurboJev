@@ -1,0 +1,240 @@
+{
+  "kind": "vision",
+  "platform": "Windows-11-10.0.26100-SP0",
+  "python": "3.12.7",
+  "packages": {
+    "torch": "2.8.0+cpu",
+    "transformers": "4.57.6",
+    "av": "16.1.0"
+  },
+  "model": {
+    "id": "HuggingFaceTB/SmolVLM2-256M-Video-Instruct",
+    "revision": "067788b187b95ebe7b2e040b3e4299e342e5b8fd",
+    "sha256": "dcc8f4c00d30d70bb3028a1bfc373e1b1972e25919f8788183cae4ae72431ce2"
+  },
+  "runs": [
+    {
+      "file": "red.png",
+      "sha256": "4cb244d414ed57a0a81ad808c62ff855a390b00b01f2f8591fcf8d035317ec78",
+      "seconds": 14.61,
+      "response": {
+        "model": "HuggingFaceTB/SmolVLM2-256M-Video-Instruct",
+        "answers": {
+          "choice": {
+            "type": "choice",
+            "choice": "a",
+            "confidence": 0.9260638589246398,
+            "probabilities": {
+              "a": 0.9260638589246398,
+              "b": 0.07393614107536009
+            }
+          },
+          "boolean": {
+            "type": "noul",
+            "noul": 0.8669044316665088
+          },
+          "score": {
+            "type": "score",
+            "score": 0.6043305133466744,
+            "confidence": 0.6043305133466744,
+            "probabilities": {
+              "0": 0.39566948665332563,
+              "1": 0.6043305133466744
+            },
+            "legend": {
+              "0": "unclear",
+              "1": "clear"
+            }
+          }
+        },
+        "usage": {
+          "decisions": 3,
+          "generated_tokens": 0
+        },
+        "_turbojev": {
+          "backend": "local-worker",
+          "calibration": "softmax",
+          "calibrated": false,
+          "confidence_method": "selected-candidate-probability",
+          "contract": "turbojev.core.v4",
+          "execution": {
+            "prefix_reuse": "none",
+            "scheduling": "serial",
+            "parallel_task_limit": 1,
+            "projection": "full-vocabulary"
+          }
+        }
+      }
+    },
+    {
+      "file": "blue.png",
+      "sha256": "449c56497fec01b080d2c8c79a590c3daf28dc5e323227dc36c66d4e5dcca06b",
+      "seconds": 15.453,
+      "response": {
+        "model": "HuggingFaceTB/SmolVLM2-256M-Video-Instruct",
+        "answers": {
+          "choice": {
+            "type": "choice",
+            "choice": "b",
+            "confidence": 0.9806126943302219,
+            "probabilities": {
+              "a": 0.01938730566977804,
+              "b": 0.9806126943302219
+            }
+          },
+          "boolean": {
+            "type": "noul",
+            "noul": 0.8561166079007673
+          },
+          "score": {
+            "type": "score",
+            "score": 0.4947194632284183,
+            "confidence": 0.5052805367715817,
+            "probabilities": {
+              "0": 0.5052805367715817,
+              "1": 0.4947194632284183
+            },
+            "legend": {
+              "0": "unclear",
+              "1": "clear"
+            }
+          }
+        },
+        "usage": {
+          "decisions": 3,
+          "generated_tokens": 0
+        },
+        "_turbojev": {
+          "backend": "local-worker",
+          "calibration": "softmax",
+          "calibrated": false,
+          "confidence_method": "selected-candidate-probability",
+          "contract": "turbojev.core.v4",
+          "execution": {
+            "prefix_reuse": "none",
+            "scheduling": "serial",
+            "parallel_task_limit": 1,
+            "projection": "full-vocabulary"
+          }
+        }
+      }
+    },
+    {
+      "file": "red.mp4",
+      "sha256": "57046a01248428c09cf6e95529b9ab3c3e0d9f71ef7b7389aa1f5583f5879a57",
+      "seconds": 29.515,
+      "response": {
+        "model": "HuggingFaceTB/SmolVLM2-256M-Video-Instruct",
+        "answers": {
+          "choice": {
+            "type": "choice",
+            "choice": "a",
+            "confidence": 0.9799424343037226,
+            "probabilities": {
+              "a": 0.9799424343037226,
+              "b": 0.0200575656962774
+            }
+          },
+          "boolean": {
+            "type": "noul",
+            "noul": 0.6880636917674441
+          },
+          "score": {
+            "type": "score",
+            "score": 0.5681189008272504,
+            "confidence": 0.5681189008272504,
+            "probabilities": {
+              "0": 0.4318810991727495,
+              "1": 0.5681189008272504
+            },
+            "legend": {
+              "0": "unclear",
+              "1": "clear"
+            }
+          }
+        },
+        "usage": {
+          "decisions": 3,
+          "generated_tokens": 0
+        },
+        "_turbojev": {
+          "backend": "local-worker",
+          "calibration": "softmax",
+          "calibrated": false,
+          "confidence_method": "selected-candidate-probability",
+          "contract": "turbojev.core.v4",
+          "execution": {
+            "prefix_reuse": "none",
+            "scheduling": "serial",
+            "parallel_task_limit": 1,
+            "projection": "full-vocabulary"
+          }
+        }
+      }
+    },
+    {
+      "file": "blue.mp4",
+      "sha256": "65584fe8cbaed3ba048fad46437081d1d08a51b9132992e766b0af50ec3d1e3c",
+      "seconds": 41.922,
+      "response": {
+        "model": "HuggingFaceTB/SmolVLM2-256M-Video-Instruct",
+        "answers": {
+          "choice": {
+            "type": "choice",
+            "choice": "b",
+            "confidence": 0.9878537453641948,
+            "probabilities": {
+              "a": 0.012146254635805131,
+              "b": 0.9878537453641948
+            }
+          },
+          "boolean": {
+            "type": "noul",
+            "noul": 0.693439403356147
+          },
+          "score": {
+            "type": "score",
+            "score": 0.47519433157350516,
+            "confidence": 0.5248056684264949,
+            "probabilities": {
+              "0": 0.5248056684264949,
+              "1": 0.47519433157350516
+            },
+            "legend": {
+              "0": "unclear",
+              "1": "clear"
+            }
+          }
+        },
+        "usage": {
+          "decisions": 3,
+          "generated_tokens": 0
+        },
+        "_turbojev": {
+          "backend": "local-worker",
+          "calibration": "softmax",
+          "calibrated": false,
+          "confidence_method": "selected-candidate-probability",
+          "contract": "turbojev.core.v4",
+          "execution": {
+            "prefix_reuse": "none",
+            "scheduling": "serial",
+            "parallel_task_limit": 1,
+            "projection": "full-vocabulary"
+          }
+        }
+      }
+    }
+  ],
+  "checks": [
+    "real media inference",
+    "choice/noul/score",
+    "media sensitivity",
+    "repeatability",
+    "candidate order invariance",
+    "zero generated tokens",
+    "invalid media",
+    "unsupported modality",
+    "four correct synthetic color classifications"
+  ]
+}

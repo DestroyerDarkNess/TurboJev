@@ -1,0 +1,12 @@
+{
+  "vision": {
+    "id": "HuggingFaceTB/SmolVLM2-256M-Video-Instruct",
+    "revision": "067788b187b95ebe7b2e040b3e4299e342e5b8fd",
+    "sha256": "dcc8f4c00d30d70bb3028a1bfc373e1b1972e25919f8788183cae4ae72431ce2"
+  },
+  "audio": {
+    "id": "LiquidAI/LFM2.5-Audio-1.5B",
+    "revision": "c362a0625dfe45aa588dce5f0ada28a7e5707628",
+    "sha256": "f38bb74d9792030bbfaebf2df8aae24bb2c875685b7ab4f9b16903dbf9393c1e"
+  }
+}

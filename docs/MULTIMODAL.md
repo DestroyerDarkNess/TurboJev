@@ -99,11 +99,15 @@ is no automatic network fallback.
 
 The generic native and browser interfaces are implemented. Built-in llama.cpp
 and Transformers.js causal-LM adapters remain text-only and reject media.
-Actual multimodal adapters and real-model validation remain necessary: these
-interfaces do not by themselves make any GGUF, ONNX or safetensors model
+Optional application workers are now provided in
+[`samples/TurboJev-SmolVLM2`](../samples/TurboJev-SmolVLM2/README.md) and
+[`samples/TurboJev-LFM-Audio`](../samples/TurboJev-LFM-Audio/README.md).
+They run selected Transformers/liquid-audio architectures on CPU and preserve
+Rust decision semantics. See [real validation status](MULTIMODAL_VALIDATION.md).
+These interfaces do not by themselves make any GGUF, ONNX or safetensors model
 multimodal. No claim of universal format or hardware support is made.
 
-Tests cover contract negotiation, unchanged evidence, Rust responses, invalid
+Protocol fixture tests cover contract negotiation, unchanged evidence, Rust responses, invalid
 scores and process errors using protocol fixtures. Fixture results do not prove
 real inference. Keep `RELEASE_ENABLED` unset until implementation, model,
 platform and distribution release gates are complete.

@@ -7,10 +7,28 @@ from pathlib import Path
 from build import ROOT, SAMPLES, host
 
 parser = argparse.ArgumentParser(description=__doc__)
-parser.add_argument("sample", choices=["web", "ts", "python", "csharp", "rust"])
+parser.add_argument("sample", choices=["web", "ts", "python", "csharp", "rust", "vision", "audio"])
 parser.add_argument("--model", type=Path, default=ROOT / ".cache/real-validation/SmolLM2-135M-Instruct-Q2_K.gguf")
 parser.add_argument("--text", default="My package arrived broken and I need a replacement.")
+parser.add_argument("--file", type=Path, help="Local media for vision/audio samples")
+parser.add_argument("--modality", choices=["image", "video", "audio"])
+parser.add_argument("--question", default="What is happening?")
+parser.add_argument("--options", nargs="+", help="Candidate descriptions for vision/audio")
 args = parser.parse_args()
+if args.sample in ("vision", "audio"):
+    python = ROOT / ".cache/multimodal-venv" / ("Scripts/python.exe" if os.name == "nt" else "bin/python")
+    if not python.exists():
+        parser.error(f"First run: python {SAMPLES / 'multimodal/setup.py'} {args.sample}")
+    if args.file is None:
+        parser.error("vision/audio requires --file /path/to/media")
+    sample = "TurboJev-SmolVLM2" if args.sample == "vision" else "TurboJev-LFM-Audio"
+    command = [str(python), str(SAMPLES / sample / "main.py"), str(args.file.resolve()),
+               "--question", args.question]
+    if args.modality:
+        command += ["--modality", args.modality]
+    if args.options:
+        command += ["--options", *args.options]
+    raise SystemExit(subprocess.call(command))
 rid = "-".join(host())
 stage = SAMPLES / ".artifacts" / rid
 env = os.environ.copy()

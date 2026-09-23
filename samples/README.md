@@ -1,6 +1,6 @@
 # TurboJev samples
 
-Five small projects using compiled TurboJev libraries and real local inference.
+Small projects using compiled TurboJev libraries and local inference.
 
 | Project | Interface | Engine |
 |---|---|---|
@@ -9,6 +9,8 @@ Five small projects using compiled TurboJev libraries and real local inference.
 | TurboJev-Python | Context-managed Python console application | PyO3 + llama.cpp |
 | TurboJev-csharp-NET | C# `await using` console application | Compiled .NET wrapper + native C ABI |
 | TurboJev-rust | Typed Rust classification application | Compiled Rust crates + llama.cpp |
+| [TurboJev-SmolVLM2](TurboJev-SmolVLM2/README.md) | Image and short-video decisions | Rust + optional SmolVLM2 CPU worker |
+| [TurboJev-LFM-Audio](TurboJev-LFM-Audio/README.md) | Spoken-intent decisions | Rust + optional LFM2.5-Audio CPU worker |
 
 ## Native: build once, run four languages
 
@@ -44,7 +46,25 @@ python samples/run.py csharp
 python samples/run.py rust
 ```
 
-## Comandos por proyecto
+## Commands by project
+
+### Multimodal examples
+
+These optional CPU samples compile only the Python binding and run a local
+model worker. They need Python 3.12; setup installs its own environment and
+downloads the selected model. From the repository root:
+
+```sh
+python samples/multimodal/setup.py vision
+python samples/run.py vision --file clip.mp4 --question "What is happening?" --options "Walking" "Sitting"
+python samples/run.py vision --file photo.jpg --modality image --options "A cat" "A dog"
+
+python samples/multimodal/setup.py audio
+python samples/run.py audio --file speech.wav --question "What is requested?" --options "Turn on the light" "Turn off the light"
+```
+
+From `samples/`, omit the `samples/` prefix in these commands. See each
+example's README for limits, licenses, and platform validation status.
 
 Run all commands from the repository root. The native build prepares the
 compiled libraries once for the selected host.
