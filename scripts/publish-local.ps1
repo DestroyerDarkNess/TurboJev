@@ -37,12 +37,13 @@ function Invoke-Tool {
     param(
         [Parameter(Mandatory = $true)][string]$Command,
         [Parameter(Mandatory = $true)][string[]]$Arguments,
-        [string]$WorkingDirectory = $Root
+        [string]$WorkingDirectory = $Root,
+        [string[]]$DisplayArguments = $Arguments
     )
 
     Push-Location $WorkingDirectory
     try {
-        Write-Host ("> {0} {1}" -f $Command, ($Arguments -join " ")) -ForegroundColor DarkGray
+        Write-Host ("> {0} {1}" -f $Command, ($DisplayArguments -join " ")) -ForegroundColor DarkGray
         & $Command @Arguments
         if ($LASTEXITCODE -ne 0) {
             throw "Command failed with exit code ${LASTEXITCODE}: $Command"
@@ -159,7 +160,9 @@ function Publish-NuGet {
     Invoke-Tool "dotnet" @("pack", "bindings/dotnet/TurboJev/TurboJev.csproj", "--configuration", "Release", "--output", $output)
 
     foreach ($package in Get-ChildItem -LiteralPath $output -Filter "*.nupkg") {
-        Invoke-Tool "dotnet" @("nuget", "push", $package.FullName, "--api-key", $env:NUGET_API_KEY, "--source", "https://api.nuget.org/v3/index.json", "--skip-duplicate")
+        $arguments = @("nuget", "push", $package.FullName, "--api-key", $env:NUGET_API_KEY, "--source", "https://api.nuget.org/v3/index.json", "--skip-duplicate")
+        $display = @("nuget", "push", $package.FullName, "--api-key", "***", "--source", "https://api.nuget.org/v3/index.json", "--skip-duplicate")
+        Invoke-Tool -Command "dotnet" -Arguments $arguments -DisplayArguments $display
     }
 }
 
@@ -236,10 +239,24 @@ while ($true) {
                 Publish-Cargo
             }
             "5" {
-                Publish-Npm
-                Publish-Python $architectures
-                Publish-NuGet
-                Publish-Cargo
+                $failures = [System.Collections.Generic.List[string]]::new()
+                foreach ($target in @("npm", "python", "nuget", "cargo")) {
+                    try {
+                        switch ($target) {
+                            "npm" { Publish-Npm }
+                            "python" { Publish-Python $architectures }
+                            "nuget" { Publish-NuGet }
+                            "cargo" { Publish-Cargo }
+                        }
+                    }
+                    catch {
+                        $failures.Add($target)
+                        Write-Warning ("{0} failed: {1}" -f $target, $_.Exception.Message)
+                    }
+                }
+                if ($failures.Count -gt 0) {
+                    throw ("Targets failed: " + ($failures -join ", "))
+                }
             }
             default { throw "Invalid target selection" }
         }
