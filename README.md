@@ -6,7 +6,7 @@
 
 **Turn text, structured state, images, audio, or video into a typed decision with auditable probabilities.**
 
-[Samples](samples/README.md) · [Documentation](docs/ARCHITECTURE.md) · [Multimodal input](docs/MULTIMODAL.md) · [Order robustness](docs/ORDER_ROBUSTNESS.md)
+[Website and docs](website/) · [Samples](samples/README.md) · [Documentation](docs/ARCHITECTURE.md) · [Multimodal input](docs/MULTIMODAL.md) · [Order robustness](docs/ORDER_ROBUSTNESS.md)
 
 [![License](https://img.shields.io/badge/license-Apache--2.0-green.svg)](LICENSE)
 [![Rust](https://img.shields.io/badge/core-Rust-dea584.svg)](https://www.rust-lang.org/)

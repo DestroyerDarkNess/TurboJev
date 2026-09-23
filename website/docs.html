@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="TurboJev documentation for Rust, Node, Python, C, .NET, browser, Android and Swift.">
+  <meta name="theme-color" content="#07111f">
+  <title>Documentation — TurboJev</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="docs-page">
+<a class="skip-link" href="#docs-main">Skip to content</a>
+<div class="site-shell">
+  <header class="site-header">
+    <a class="brand" href="index.html" aria-label="TurboJev home"><span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span><span>Turbo<span>Jev</span></span></a>
+    <nav class="main-nav" aria-label="Primary navigation"><a href="index.html#principles">Why TurboJev</a><a href="index.html#surfaces">Surfaces</a><a class="active" href="docs.html">Docs</a><a href="https://github.com/DestroyerDarkNess/TurboJev" target="_blank" rel="noreferrer">GitHub <span aria-hidden="true">↗</span></a></nav>
+    <a class="button button-small button-primary" href="#quickstart">Quickstart <span aria-hidden="true">→</span></a>
+    <button class="menu-toggle" type="button" aria-label="Open navigation" aria-expanded="false">☰</button>
+  </header>
+
+  <div class="docs-layout" id="docs-main">
+    <aside class="docs-sidebar">
+      <div class="docs-sidebar-inner">
+        <p class="sidebar-label">Documentation</p>
+        <div class="docs-search"><span aria-hidden="true">⌕</span><input id="docs-search" type="search" placeholder="Filter docs" aria-label="Filter documentation"></div>
+        <nav class="docs-nav" aria-label="Documentation navigation">
+          <a href="#quickstart">Quickstart</a><a href="#architecture">Architecture</a><a href="#api">Core API</a>
+          <p class="sidebar-label">Languages</p>
+          <a href="#rust">Rust</a><a href="#node">Node / TypeScript</a><a href="#python">Python</a><a href="#c">C ABI</a><a href="#dotnet">.NET / C#</a><a href="#browser">Browser / WASM</a><a href="#mobile">Android + Swift</a>
+          <p class="sidebar-label">Capabilities</p>
+          <a href="#multimodal">Multimodal</a><a href="#examples">Examples</a><a href="#publishing">Publishing</a>
+        </nav>
+        <div class="sidebar-version"><span class="version-dot"></span><span>v0.28.2 · Apache-2.0</span></div>
+      </div>
+    </aside>
+
+    <main class="docs-content">
+      <section class="docs-hero reveal"><p class="eyebrow">TurboJev documentation</p><h1>Build decisions that survive a runtime switch.</h1><p>Install the binding for your host, point it at a local model or scorer, and keep the same typed semantics from your first sample to production.</p><div class="docs-hero-meta"><span>Current release <strong>0.28.2</strong></span><span>Rust 1.82+</span><span>Local-first</span></div></section>
+
+      <section id="quickstart" class="doc-section searchable reveal"><div class="section-marker">01</div><div class="doc-section-body"><p class="eyebrow">Quickstart</p><h2>Run a real decision in five minutes.</h2><p>The repository samples build a small verified GGUF model once, then reuse the native artifacts from TypeScript, Python, .NET, and Rust.</p><div class="callout callout-accent"><strong>Prerequisites</strong><span>Python 3.9+, Rust 1.82+, Node 22+, .NET 8+, CMake, and a native C/C++ toolchain.</span></div><div class="code-block"><div class="code-toolbar"><span>PowerShell · repository root</span><button class="copy-button" type="button">Copy</button></div><pre><code>py samples/build.py native --download-model
+py samples/run.py ts
+py samples/run.py python
+py samples/run.py csharp
+py samples/run.py rust</code></pre></div><p class="muted">For the browser studio, build the independent WASM path:</p><div class="code-block"><div class="code-toolbar"><span>Browser / WASM</span><button class="copy-button" type="button">Copy</button></div><pre><code>python samples/build.py web
+python samples/run.py web</code></pre></div></div></section>
+
+      <section id="architecture" class="doc-section searchable reveal"><div class="section-marker">02</div><div class="doc-section-body"><p class="eyebrow">Architecture</p><h2>Portable semantics, replaceable runtimes.</h2><p>The core receives state and typed questions. An adapter renders the model's real prompt and tokenizer, returns candidate scores, and lets TurboJev validate, normalize, calibrate, and build the response.</p><div class="architecture-diagram"><div><span>state</span><small>text · JSON · media</small></div><i>→</i><div><span>typed questions</span><small>choice · noul · score</small></div><i>→</i><div class="diagram-core"><span>TurboJev core</span><small>plan · score · respond</small></div><i>→</i><div><span>EvaluationResponse</span><small>same shape everywhere</small></div></div><div class="two-column-notes"><div><h3>Core owns</h3><ul><li>Schema and candidate validation</li><li>Execution planning and calibration metadata</li><li>Typed response construction</li><li>Order robustness and parity contracts</li></ul></div><div><h3>Adapters own</h3><ul><li>Chat template and tokenizer</li><li>GGUF, Transformers.js, or custom runtime</li><li>Media preprocessing and hardware</li><li>Process, file, and network boundaries</li></ul></div></div></div></section>
+
+      <section id="api" class="doc-section searchable reveal"><div class="section-marker">03</div><div class="doc-section-body"><p class="eyebrow">Core API</p><h2>Three operations cover the decision layer.</h2><div class="api-table"><div class="api-row api-head"><span>Operation</span><span>Use it for</span><span>Returns</span></div><div class="api-row"><code>classify(state, options)</code><span>One fast text choice</span><strong>choice + probabilities</strong></div><div class="api-row"><code>evaluate(request)</code><span>Several typed questions or media</span><strong>EvaluationResponse</strong></div><div class="api-row"><code>evaluateCompatible(profile, request)</code><span>Versioned compatibility contracts</span><strong>profile response</strong></div></div><div class="code-block"><div class="code-toolbar"><span>Canonical request</span><button class="copy-button" type="button">Copy</button></div><pre><code>{
+  "state": {"message": "My package arrived broken."},
+  "questions": {
+    "route": {
+      "type": "choice",
+      "instructions": "Which team should handle this?",
+      "criteria": {"billing": "Payments", "shipping": "Delivery", "technical": "Product issue"}
+    },
+    "urgent": {"type": "noul", "instructions": "Needs human intervention?"}
+  }
+}</code></pre></div></div></section>
+
+      <section id="languages" class="language-section searchable reveal"><div class="section-marker">04</div><div class="doc-section-body"><p class="eyebrow">Language bindings</p><h2>Use the idioms of your host.</h2><p class="section-lede">Each binding owns lifecycle and host ergonomics. The request and response semantics stay the same.</p>
+
+        <article id="rust" class="language-card"><div class="language-heading"><span class="language-token token-rust">Rs</span><div><h3>Rust</h3><p>Native, strongly typed integration with the crates directly.</p></div><a href="https://crates.io/crates/turbojev" target="_blank" rel="noreferrer">crates.io ↗</a></div><div class="code-block"><div class="code-toolbar"><span>Cargo.toml + main.rs</span><button class="copy-button" type="button">Copy</button></div><pre><code>[dependencies]
+turbojev = "0.28.2"
+turbojev-runtime-llamacpp = "0.28.2"
+
+use turbojev::TurboJev;
+use turbojev_runtime_llamacpp::{ffi::{FfiLlamaCpp, NativeConfig}, reference_backend, ReferencePromptConfig, ReferencePromptRenderer};
+
+fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+    let runtime = FfiLlamaCpp::open("./model.gguf", NativeConfig::default())?;
+    let renderer = ReferencePromptRenderer::new(ReferencePromptConfig::new(
+        "my-app-v1", "Choose exactly one allowed code.", "Which team should handle this?"));
+    let engine = TurboJev::new(reference_backend(renderer, runtime));
+    let answer = engine.classify("My package arrived broken.", ["billing", "shipping", "technical", "other"])?;
+    println!("{}", answer.choice);
+    Ok(())
+}</code></pre></div><p class="source-link">Runnable source: <a href="https://github.com/DestroyerDarkNess/TurboJev/blob/main/samples/TurboJev-rust/src/main.rs" target="_blank" rel="noreferrer">samples/TurboJev-rust ↗</a></p></article>
+
+        <article id="node" class="language-card"><div class="language-heading"><span class="language-token token-node">TS</span><div><h3>Node / TypeScript</h3><p>Worker-backed native calls with typed results and clean async shutdown.</p></div><a href="https://www.npmjs.com/package/@turbojev/node" target="_blank" rel="noreferrer">npm ↗</a></div><div class="install-line"><code>npm install @turbojev/node</code><button class="copy-button" type="button">Copy</button></div><div class="code-block"><div class="code-toolbar"><span>decision.ts</span><button class="copy-button" type="button">Copy</button></div><pre><code>import { TurboJev } from "@turbojev/node";
+
+const jev = await TurboJev.load({model: "./model.gguf", nGpuLayers: 0, nThreads: 4});
+try {
+  const result = await jev.classify("My package arrived broken.", [
+    "billing", "shipping", "technical", "other",
+  ]);
+  console.log(result.choice, result.probabilities);
+} finally {
+  await jev.close();
+}</code></pre></div><p class="source-link">Text and media source: <a href="https://github.com/DestroyerDarkNess/TurboJev/blob/main/samples/TurboJev-TS-node/src/main.ts" target="_blank" rel="noreferrer">TS sample ↗</a></p></article>
+
+        <article id="python" class="language-card"><div class="language-heading"><span class="language-token token-python">Py</span><div><h3>Python</h3><p>A context-managed API that returns ordinary dictionaries.</p></div><a href="https://pypi.org/project/turbojev/" target="_blank" rel="noreferrer">PyPI ↗</a></div><div class="install-line"><code>pip install turbojev</code><button class="copy-button" type="button">Copy</button></div><div class="code-block"><div class="code-toolbar"><span>decision.py</span><button class="copy-button" type="button">Copy</button></div><pre><code>from turbojev import TurboJev
+
+with TurboJev.load("./model.gguf", n_gpu_layers=0) as jev:
+    result = jev.classify(
+        "My package arrived broken.",
+        ["billing", "shipping", "technical", "other"],
+    )
+
+print(result["choice"])
+print(result["probabilities"])</code></pre></div><p class="source-link">Runnable source: <a href="https://github.com/DestroyerDarkNess/TurboJev/blob/main/samples/TurboJev-Python/main.py" target="_blank" rel="noreferrer">samples/TurboJev-Python ↗</a></p></article>
+
+        <article id="c" class="language-card"><div class="language-heading"><span class="language-token token-c">C</span><div><h3>C ABI</h3><p>Stable UTF-8 JSON ABI for C, Zig, Go, and other FFI hosts.</p></div><a href="https://github.com/DestroyerDarkNess/TurboJev/tree/main/bindings/c" target="_blank" rel="noreferrer">header ↗</a></div><div class="code-block"><div class="code-toolbar"><span>smoke.c</span><button class="copy-button" type="button">Copy</button></div><pre><code>#include "turbojev.h"
+#include &lt;stdio.h&gt;
+
+int main(void) {
+    tj_engine *engine = NULL;
+    if (tj_engine_open_json("{\"model\":\"./model.gguf\"}", &amp;engine) != TJ_OK) return 1;
+    char *json = NULL;
+    int rc = tj_engine_classify_json(engine, "My package arrived broken.",
+        "[\"billing\",\"shipping\",\"technical\",\"other\"]", &amp;json);
+    if (rc == TJ_OK) { puts(json); tj_string_free(json); }
+    tj_engine_close(engine);
+    return rc != TJ_OK;
+}</code></pre></div><p class="source-link">The ABI uses opaque handles, explicit string ownership, and thread-local errors.</p></article>
+
+        <article id="dotnet" class="language-card"><div class="language-heading"><span class="language-token token-dotnet">C#</span><div><h3>.NET</h3><p>NuGet package with native assets for three Windows architectures.</p></div><a href="https://www.nuget.org/packages/TurboJev" target="_blank" rel="noreferrer">NuGet ↗</a></div><div class="install-line"><code>dotnet add package TurboJev --version 0.28.2</code><button class="copy-button" type="button">Copy</button></div><div class="code-block"><div class="code-toolbar"><span>Program.cs</span><button class="copy-button" type="button">Copy</button></div><pre><code>using TurboJev;
+
+await using var jev = await TurboJevEngine.LoadAsync(new {
+    model = "./model.gguf", nGpuLayers = 0, nThreads = 4
+});
+var json = await jev.ClassifyJsonAsync(
+    "My package arrived broken",
+    ["billing", "shipping", "technical", "other"]);
+Console.WriteLine(json);</code></pre></div><p class="source-link">The package carries win-x86, win-x64, and win-arm64 native assets.</p></article>
+
+        <article id="browser" class="language-card"><div class="language-heading"><span class="language-token token-web">◎</span><div><h3>Browser / WASM</h3><p>Run locally in a web worker with optional WebGPU.</p></div><a href="https://www.npmjs.com/package/@turbojev/web" target="_blank" rel="noreferrer">npm ↗</a></div><div class="install-line"><code>npm install @turbojev/web</code><button class="copy-button" type="button">Copy</button></div><div class="code-block"><div class="code-toolbar"><span>app.ts</span><button class="copy-button" type="button">Copy</button></div><pre><code>import { TurboJevWeb } from "@turbojev/web";
+
+const jev = await TurboJevWeb.load({
+  model: "https://example.com/model.onnx",
+  wasmModuleUrl: "/turbojev_wasm.js",
+  runtimeModuleUrl: "/my-runtime.js",
+  execution: {policy: "auto", maxParallelTasks: 4},
+});
+const result = await jev.classify("My package never arrived",
+  ["billing", "shipping", "support"]);
+console.log(result.choice);
+await jev.close();</code></pre></div><p class="source-link">Included vanilla studio: <code>python samples/build.py web</code>.</p></article>
+
+        <article id="mobile" class="language-card mobile-card"><div class="language-heading"><span class="language-token token-mobile">⌁</span><div><h3>Android + Swift</h3><p>Both mobile bindings call the C ABI on a dedicated affinity thread.</p></div><a href="https://github.com/DestroyerDarkNess/TurboJev/tree/main/bindings" target="_blank" rel="noreferrer">sources ↗</a></div><div class="mobile-snippets"><div class="code-block"><div class="code-toolbar"><span>Kotlin</span><button class="copy-button" type="button">Copy</button></div><pre><code>val jev = TurboJev.load(
+    JSONObject("{\"model\":\"app/model.gguf\"}")
+).join()
+val result = jev.classify(
+    "My package arrived broken",
+    listOf("billing", "shipping", "technical", "other")
+).join()
+jev.close()</code></pre></div><div class="code-block"><div class="code-toolbar"><span>Swift</span><button class="copy-button" type="button">Copy</button></div><pre><code>let jev = try TurboJevEngine(
+    optionsJSON: #"{\"model\":\"model.gguf\"}"#
+)
+let json = try jev.classify(
+    state: "My package arrived broken",
+    optionsJSON: #"[\"billing\",\"shipping\",\"technical\",\"other\"]"#
+)
+try jev.close()</code></pre></div></div></article>
+      </div></section>
+
+      <section id="multimodal" class="doc-section searchable reveal"><div class="section-marker">05</div><div class="doc-section-body"><p class="eyebrow">Multimodal</p><h2>Media evidence follows the same response contract.</h2><p>TurboJev does not depend on a particular multimodal checkpoint. An application-selected runtime owns decoding and preprocessing; TurboJev validates the envelope and returns the typed decision.</p><div class="code-block"><div class="code-toolbar"><span>media evidence</span><button class="copy-button" type="button">Copy</button></div><pre><code>{
+  "state": {"contract": "turbojev.media.v1", "modality": "image", "base64": "&lt;encoded bytes&gt;"},
+  "questions": {"scene": {"type": "choice", "instructions": "What animal is shown?",
+    "criteria": {"cat": "A cat", "dog": "A dog"}}}
+}</code></pre></div><div class="callout"><strong>Included workers</strong><span><a href="https://github.com/DestroyerDarkNess/TurboJev/tree/main/samples/TurboJev-SmolVLM2" target="_blank" rel="noreferrer">SmolVLM2</a> covers image/video CPU decisions. <a href="https://github.com/DestroyerDarkNess/TurboJev/tree/main/samples/TurboJev-LFM-Audio" target="_blank" rel="noreferrer">LFM2.5-Audio</a> covers spoken-intent decisions.</span></div><div class="code-block"><div class="code-toolbar"><span>vision sample</span><button class="copy-button" type="button">Copy</button></div><pre><code>python samples/multimodal/setup.py vision
+python samples/run.py vision --file photo.jpg --modality image \
+  --question "What animal is shown?" --options "A cat" "A dog"</code></pre></div></div></section>
+
+      <section id="examples" class="doc-section searchable reveal"><div class="section-marker">06</div><div class="doc-section-body"><p class="eyebrow">Examples</p><h2>Copy a complete path, not a toy snippet.</h2><div class="example-links"><a href="https://github.com/DestroyerDarkNess/TurboJev/tree/main/samples/TurboJev-js-native" target="_blank" rel="noreferrer"><span>01</span><div><strong>TurboJev-js-native</strong><small>Vanilla HTML + JS decision studio with WASM.</small></div><b>↗</b></a><a href="https://github.com/DestroyerDarkNess/TurboJev/tree/main/samples/TurboJev-TS-node" target="_blank" rel="noreferrer"><span>02</span><div><strong>TurboJev-TS-node</strong><small>Typed Node app with text and media modes.</small></div><b>↗</b></a><a href="https://github.com/DestroyerDarkNess/TurboJev/tree/main/samples/TurboJev-Python" target="_blank" rel="noreferrer"><span>03</span><div><strong>TurboJev-Python</strong><small>Context-managed Python console app.</small></div><b>↗</b></a><a href="https://github.com/DestroyerDarkNess/TurboJev/tree/main/samples/TurboJev-csharp-NET" target="_blank" rel="noreferrer"><span>04</span><div><strong>TurboJev-csharp-NET</strong><small>Native C ABI and multimodal JSON evaluation.</small></div><b>↗</b></a><a href="https://github.com/DestroyerDarkNess/TurboJev/tree/main/samples/TurboJev-rust" target="_blank" rel="noreferrer"><span>05</span><div><strong>TurboJev-rust</strong><small>Direct Rust crate integration with llama.cpp.</small></div><b>↗</b></a></div></div></section>
+
+      <section id="publishing" class="doc-section searchable reveal"><div class="section-marker">07</div><div class="doc-section-body"><p class="eyebrow">Publishing</p><h2>Release once, publish every host package.</h2><p>Version <code>0.28.2</code> is available on the public registries. The repository includes a local publisher for environments where hosted CI minutes are limited.</p><div class="registry-grid"><a href="https://www.npmjs.com/org/turbojev" target="_blank" rel="noreferrer"><strong>npm</strong><span>@turbojev/node · @turbojev/web</span>↗</a><a href="https://pypi.org/project/turbojev/" target="_blank" rel="noreferrer"><strong>PyPI</strong><span>turbojev</span>↗</a><a href="https://www.nuget.org/packages/TurboJev" target="_blank" rel="noreferrer"><strong>NuGet</strong><span>TurboJev</span>↗</a><a href="https://crates.io/crates/turbojev" target="_blank" rel="noreferrer"><strong>crates.io</strong><span>turbojev + modular crates</span>↗</a></div><div class="code-block"><div class="code-toolbar"><span>local release menu</span><button class="copy-button" type="button">Copy</button></div><pre><code>pwsh scripts/publish-local.ps1 -Target npm -Yes
+pwsh scripts/publish-local.ps1 -Target python -Yes
+pwsh scripts/publish-local.ps1 -Target nuget -Yes
+pwsh scripts/publish-local.ps1 -Target cargo -Yes
+pwsh scripts/publish-local.ps1 -Target all -Yes</code></pre></div><p class="muted">Full notes: <a href="https://github.com/DestroyerDarkNess/TurboJev/blob/main/docs/LOCAL_PUBLISHING.md" target="_blank" rel="noreferrer">docs/LOCAL_PUBLISHING.md ↗</a>.</p></div></section>
+
+      <section class="docs-footer-cta reveal"><p class="eyebrow">Ready when you are</p><h2>Make your next model call a typed decision.</h2><div class="hero-actions"><a class="button button-primary" href="#quickstart">Run the quickstart <span aria-hidden="true">↗</span></a><a class="text-link" href="index.html">Back to landing <span aria-hidden="true">→</span></a></div></section>
+    </main>
+  </div>
+  <footer class="site-footer"><a class="brand" href="index.html"><span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span><span>Turbo<span>Jev</span></span></a><span>Typed decisions from local open-weight models.</span><nav><a href="index.html">Home</a><a href="https://github.com/DestroyerDarkNess/TurboJev" target="_blank" rel="noreferrer">GitHub ↗</a><a href="https://github.com/DestroyerDarkNess/TurboJev/blob/main/LICENSE" target="_blank" rel="noreferrer">Apache-2.0</a></nav></footer>
++</div>
+<script src="app.js" defer></script>
+</body>
+</html>
