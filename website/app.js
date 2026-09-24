@@ -1,19 +1,4 @@
 (() => {
-  const revealItems = document.querySelectorAll(".reveal");
-  if ("IntersectionObserver" in window) {
-    const observer = new IntersectionObserver((entries, current) => {
-      entries.forEach((entry) => {
-        if (entry.isIntersecting) {
-          entry.target.classList.add("is-visible");
-          current.unobserve(entry.target);
-        }
-      });
-    }, { threshold: 0.08 });
-    revealItems.forEach((item) => observer.observe(item));
-  } else {
-    revealItems.forEach((item) => item.classList.add("is-visible"));
-  }
-
   document.querySelectorAll(".copy-button").forEach((button) => {
     button.addEventListener("click", async () => {
       const block = button.closest(".code-block, .install-line");
@@ -36,15 +21,23 @@
 
   const menuToggle = document.querySelector(".menu-toggle");
   const nav = document.querySelector(".main-nav");
+  const docsSidebar = document.querySelector(".docs-sidebar");
   if (menuToggle && nav) {
     menuToggle.addEventListener("click", () => {
       const open = menuToggle.getAttribute("aria-expanded") === "true";
       menuToggle.setAttribute("aria-expanded", String(!open));
-      nav.classList.toggle("mobile-open", !open);
+      if (!docsSidebar) nav.classList.toggle("mobile-open", !open);
+      docsSidebar?.classList.toggle("mobile-open", !open);
     });
     nav.querySelectorAll("a").forEach((link) => link.addEventListener("click", () => {
       menuToggle.setAttribute("aria-expanded", "false");
-      nav.classList.remove("mobile-open");
+      if (!docsSidebar) nav.classList.remove("mobile-open");
+      docsSidebar?.classList.remove("mobile-open");
+    }));
+    docsSidebar?.querySelectorAll("a").forEach((link) => link.addEventListener("click", () => {
+      menuToggle.setAttribute("aria-expanded", "false");
+      if (!docsSidebar) nav.classList.remove("mobile-open");
+      docsSidebar.classList.remove("mobile-open");
     }));
   }
 

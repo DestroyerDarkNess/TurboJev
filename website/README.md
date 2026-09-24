@@ -16,7 +16,7 @@ Open <http://localhost:4173/>. The landing page is `index.html`; the complete
 language documentation is `docs.html`.
 
 The site intentionally has no build step. `styles.css` contains the visual
-system and `app.js` adds progressive reveal animations, mobile navigation,
+system and `app.js` adds mobile navigation,
 copy buttons, and documentation filtering.
 
 For GitHub Pages, set the repository Pages source to the `website/` folder (or
