@@ -35,7 +35,7 @@ Deploy the entire `website/` directory as the hosting output directory. The site
 
 ## Playground behavior
 
-Text: SmolLM2 135M/360M, Qwen2.5 0.5B, and Qwen3 0.6B use the existing TurboJev tokenizer/runtime adapter.
+Text: Qwen2.5 0.5B and Qwen3 0.6B use the existing TurboJev tokenizer/runtime adapter.
 
 Images: CLIP B/32 and B/16 score image–text similarity. SmolVLM 256M and SmolVLM2 256M score answer codes with model-derived token IDs and the model's chat template.
 

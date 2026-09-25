@@ -12,7 +12,6 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 SAMPLES = ROOT / "samples"
 sys.path.insert(0, str(ROOT / "scripts"))
-from final_e2e_linux import download
 
 
 def run(*args, cwd=ROOT, env=None):
@@ -101,12 +100,10 @@ def native(args):
     run("dotnet", "build", SAMPLES / "TurboJev-csharp-NET/Sample.csproj", "-c", "Release", f"-p:TurboJevRid={rid}")
     run("npm", "install", "--ignore-scripts", "--no-audit", "--no-fund", cwd=SAMPLES / "TurboJev-TS-node")
     run("npm", "run", "build", cwd=SAMPLES / "TurboJev-TS-node")
-    if args.download_model:
-        download(plan["model"]["url"], ROOT / ".cache/real-validation" / plan["model"]["filename"], plan["model"]["sha256"])
     (stage / "build-info.json").write_text(json.dumps({"rid": rid, "target": target, "llamaRevision": revision,
         "profile": "debug" if args.debug else "release", "python": sys.version, "nodeArch": node_arch}, indent=2))
     print(f"Ready: {stage}")
-    print("Run from repository root: python samples/run.py python")
+    print("Run from repository root: python samples/run.py python --model C:/models/model.gguf")
     print("Run from samples/:        py .\\run.py python")
 
 
@@ -131,7 +128,6 @@ if __name__ == "__main__":
     parser.add_argument("kind", choices=["native", "web"])
     parser.add_argument("--arch", choices=["x86", "x64", "arm64"])
     parser.add_argument("--debug", action="store_true")
-    parser.add_argument("--download-model", action="store_true")
     parser.add_argument("--native-build", help="Reuse a CMake build for this exact architecture")
     options = parser.parse_args()
     try:

@@ -5,8 +5,8 @@ Rust with typed classify(), compiled crates and the llama.cpp adapter.
 From the repository root:
 
 ```sh
-python samples/build.py native --download-model
-python samples/run.py rust
+python samples/build.py native
+python samples/run.py rust --model C:/models/model.gguf
 ```
 
 See [shared setup and architecture matrix](../README.md). Native binaries are

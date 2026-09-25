@@ -21,11 +21,11 @@ on Linux). The repository pins Rust 1.82. Run commands from the repository root.
 If you are already in `D:\Projects\TurboJev\samples`, use `py` like this:
 
 ```powershell
-py .\build.py native --download-model
-py .\run.py ts
-py .\run.py python
-py .\run.py csharp
-py .\run.py rust
+py .\build.py native
+py .\run.py ts --model C:\models\model.gguf
+py .\run.py python --model C:\models\model.gguf
+py .\run.py csharp --model C:\models\model.gguf
+py .\run.py rust --model C:\models\model.gguf
 ```
 
 `native` and `web` are required modes. To select an architecture, write one
@@ -39,11 +39,11 @@ py .\run.py web
 ```
 
 ```sh
-python samples/build.py native --download-model
-python samples/run.py ts
-python samples/run.py python
-python samples/run.py csharp
-python samples/run.py rust
+python samples/build.py native
+python samples/run.py ts --model C:\models\model.gguf
+python samples/run.py python --model C:\models\model.gguf
+python samples/run.py csharp --model C:\models\model.gguf
+python samples/run.py rust --model C:\models\model.gguf
 ```
 
 ## Commands by project
@@ -72,9 +72,9 @@ compiled libraries once for the selected host.
 ### `TurboJev-TS-node`
 
 ```sh
-python samples/build.py native --download-model
-python samples/run.py ts
-python samples/run.py ts --text "I was charged twice."
+python samples/build.py native
+python samples/run.py ts --model C:\models\model.gguf
+python samples/run.py ts --model C:\models\model.gguf --text "I was charged twice."
 ```
 
 After the native build above and preparing the optional vision worker, this
@@ -101,9 +101,9 @@ npm run build --prefix samples/TurboJev-TS-node
 ### `TurboJev-Python`
 
 ```sh
-python samples/build.py native --download-model
-python samples/run.py python
-python samples/run.py python --text "My order arrived damaged."
+python samples/build.py native
+python samples/run.py python --model C:\models\model.gguf
+python samples/run.py python --model C:\models\model.gguf --text "My order arrived damaged."
 ```
 
 The launcher configures `PYTHONPATH` and native library paths automatically.
@@ -112,9 +112,9 @@ The sample source is in `samples/TurboJev-Python/main.py`.
 ### `TurboJev-csharp-NET`
 
 ```sh
-python samples/build.py native --download-model
-python samples/run.py csharp
-python samples/run.py csharp --text "The application crashes on startup."
+python samples/build.py native
+python samples/run.py csharp --model C:\models\model.gguf
+python samples/run.py csharp --model C:\models\model.gguf --text "The application crashes on startup."
 ```
 
 After the native build above, the C# sample has the same image/video path:
@@ -141,9 +141,9 @@ platform.
 ### `TurboJev-rust`
 
 ```sh
-python samples/build.py native --download-model
-python samples/run.py rust
-python samples/run.py rust --text "Please send a replacement."
+python samples/build.py native
+python samples/run.py rust --model C:\models\model.gguf
+python samples/run.py rust --model C:\models\model.gguf --text "Please send a replacement."
 ```
 
 To check the crate with Cargo:
@@ -177,9 +177,9 @@ npm run dev
 
 Open the local Vite URL, click **Load model**, and then **Evaluate message**.
 
-The first build fetches pinned llama.cpp and optionally the SHA-256-verified 88 MB
-SmolLM2 Q2_K model. Later builds reuse downloads and compilation caches. Use
-`--debug` for faster Rust development builds. Use another model or message:
+The first build fetches pinned llama.cpp; later builds reuse the compilation cache.
+Provide your own local GGUF with `--model`. Use `--debug` for faster Rust
+development builds, or pass a different model and message:
 
 ```sh
 python samples/run.py python --model /path/model.gguf --text "I was charged twice."

@@ -1,7 +1,5 @@
 const $ = id => document.getElementById(id);
 const catalog = [
- {id:'HuggingFaceTB/SmolLM2-135M-Instruct',name:'SmolLM2 · 135M',modes:['text'],dtype:'q4',note:'Compact text model · Q4 · best place to start.'},
- {id:'HuggingFaceTB/SmolLM2-360M-Instruct',name:'SmolLM2 · 360M',modes:['text'],dtype:'q4',note:'Larger text model · Q4 · more memory than 135M.'},
  {id:'onnx-community/Qwen2.5-0.5B-Instruct',name:'Qwen2.5 · 0.5B',modes:['text'],dtype:'q4',note:'Instruction model · Q4 · multilingual text decisions.'},
  {id:'onnx-community/Qwen3-0.6B-ONNX',name:'Qwen3 · 0.6B',modes:['text'],dtype:'q4',note:'Instruction model · Q4 · allow extra memory and load time.'},
  {id:'Xenova/clip-vit-base-patch32',name:'CLIP · ViT-B/32',modes:['image','video'],dtype:'q8',note:'Image–text similarity · Q8 · video uses four sampled frames, not motion reasoning.'},

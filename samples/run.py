@@ -8,7 +8,7 @@ from build import ROOT, SAMPLES, host
 
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument("sample", choices=["web", "ts", "python", "csharp", "rust", "vision", "audio"])
-parser.add_argument("--model", type=Path, default=ROOT / ".cache/real-validation/SmolLM2-135M-Instruct-Q2_K.gguf")
+parser.add_argument("--model", type=Path, help="Local GGUF model used by native text samples")
 parser.add_argument("--text", default="My package arrived broken and I need a replacement.")
 parser.add_argument("--file", type=Path, help="Local media for vision/audio samples")
 parser.add_argument("--media", type=Path, help="Image/video input for the TypeScript or C# sample")
@@ -42,11 +42,11 @@ if args.sample == "web":
     cwd = SAMPLES / "TurboJev-js-native"
 else:
     if not (stage / "build-info.json").exists():
-        raise SystemExit("First run: python samples/build.py native --download-model")
+        raise SystemExit("Build the native samples first: python samples/build.py native")
     if args.media is not None and args.sample not in ("ts", "csharp"):
         parser.error("--media is available for the ts and csharp samples")
-    if args.media is None and not args.model.is_file():
-        raise SystemExit("Model not found. Use --model /path/model.gguf or build.py native --download-model")
+    if args.media is None and (args.model is None or not args.model.is_file()):
+        raise SystemExit("Provide a local GGUF model with --model /path/model.gguf")
     executables = {
         "ts": ["node", str(SAMPLES / "TurboJev-TS-node/dist/main.js")],
         "python": [sys.executable, str(SAMPLES / "TurboJev-Python/main.py")],
