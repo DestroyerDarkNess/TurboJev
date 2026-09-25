@@ -219,6 +219,24 @@ function Publish-NpmPackage {
     Invoke-Tool $NpmCommand @('publish', '--access', 'public') $PackagePath
 }
 
+function Publish-Wasm {
+    $output = Join-Path $Root "artifacts/npm-wasm"
+    $toolsRoot = Join-Path $Root ".cache/wasm-tools"
+    $wasmBindgen = Join-Path $toolsRoot ("bin/wasm-bindgen" + $(if ($IsWindows -or $env:OS -eq "Windows_NT") { ".exe" } else { "" }))
+    if (Test-Path -LiteralPath $output) { Remove-Item -LiteralPath $output -Recurse -Force }
+    New-Item -ItemType Directory -Force -Path $output | Out-Null
+
+    Invoke-Tool "rustup" @("target", "add", "wasm32-unknown-unknown")
+    Invoke-Tool "cargo" @("build", "--locked", "--release", "-p", "turbojev-wasm", "--target", "wasm32-unknown-unknown")
+    if (-not (Test-Path -LiteralPath $wasmBindgen)) {
+        Invoke-Tool "cargo" @("install", "wasm-bindgen-cli", "--version", "0.2.100", "--locked", "--root", $toolsRoot)
+    }
+    Invoke-Tool $wasmBindgen @((Join-Path $Root "target/wasm32-unknown-unknown/release/turbojev_wasm.wasm"), "--target", "web", "--out-dir", $output, "--out-name", "turbojev_wasm")
+    Copy-Item -LiteralPath (Join-Path $Root "bindings/wasm/package.json") -Destination $output -Force
+    Copy-Item -LiteralPath (Join-Path $Root "LICENSE") -Destination (Join-Path $output "LICENSE") -Force
+    Publish-NpmPackage $script:NpmCommand $output
+}
+
 function Publish-Node {
     param([string]$NpmCommand)
 
@@ -287,6 +305,8 @@ function Publish-Npm {
     try {
         Set-Content -LiteralPath $tempNpmrc -Value ("//registry.npmjs.org/:_authToken={0}" -f $env:NPM_TOKEN) -NoNewline
         $env:NPM_CONFIG_USERCONFIG = $tempNpmrc
+        $script:NpmCommand = $npm
+        Publish-Wasm
 
         foreach ($package in @("bindings/web", "bindings/web-runtimes/transformersjs")) {
             Invoke-Tool $npm @("install", "--ignore-scripts", "--no-audit", "--no-fund", "--package-lock=false") (Join-Path $Root $package)

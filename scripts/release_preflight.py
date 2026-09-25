@@ -44,6 +44,7 @@ def main() -> int:
         require("Cargo.toml", match.group(1), expected, errors)
 
     for path in (
+        "bindings/wasm/package.json",
         "bindings/node/package.json",
         "bindings/web/package.json",
         "bindings/web-runtimes/transformersjs/package.json",

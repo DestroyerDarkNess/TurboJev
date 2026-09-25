@@ -1,0 +1,24 @@
+{
+  "name": "@turbojev/wasm",
+  "version": "0.28.6",
+  "description": "TurboJev WebAssembly core for browser applications",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/DestroyerDarkNess/TurboJev.git",
+    "directory": "bindings/wasm"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "type": "module",
+  "main": "turbojev_wasm.js",
+  "types": "turbojev_wasm.d.ts",
+  "files": [
+    "turbojev_wasm.js",
+    "turbojev_wasm.d.ts",
+    "turbojev_wasm_bg.wasm",
+    "turbojev_wasm_bg.wasm.d.ts",
+    "LICENSE"
+  ]
+}
