@@ -10,7 +10,7 @@ def main() -> int:
     directory = Path(sys.argv[1])
     manifest = json.loads((directory / "package.json").read_text(encoding="utf-8"))
     required = {"turbojev.node", "turbojev_llama_shim.dll", "llama.dll", "ggml.dll", "ggml-base.dll", "ggml-cpu.dll"}
-    if "ia32" not in manifest.get("name", ""):
+    if "x64" in manifest.get("name", ""):
         required.add("ggml-vulkan.dll")
     missing = sorted(name for name in required if not (directory / name).is_file())
     if missing:

@@ -102,7 +102,7 @@ function Build-NativeRuntime {
     $runtimeDirectory = Join-Path $NativeRuntimeRoot $rid
     $shimLib = Join-Path $runtimeDirectory "turbojev_llama_shim.lib"
     $requiredDlls = @("turbojev_llama_shim.dll", "llama.dll", "ggml.dll", "ggml-base.dll", "ggml-cpu.dll")
-    $enableVulkan = $Architecture -in @("x64", "arm64")
+    $enableVulkan = $Architecture -eq "x64"
     $vulkanLibrary = $null
     if ($enableVulkan) {
         if ([string]::IsNullOrWhiteSpace($env:VULKAN_SDK)) { throw "VULKAN_SDK is required to build the GPU runtime for $rid." }

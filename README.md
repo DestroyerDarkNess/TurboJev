@@ -63,8 +63,8 @@ print(result["probabilities"])
 ```
 
 Native runtimes use CPU by default. To request GPU offload, set `device="gpu"`
-in Python or `device: "gpu"` in Node/.NET load options. The Windows x64 and
-ARM64 native packages include Vulkan support; x86 is CPU-only. A GPU request
+in Python or `device: "gpu"` in Node/.NET load options. The Windows x64 native
+package includes Vulkan support; x86 and ARM64 are CPU-only. A GPU request
 fails with the runtime error if no supported GPU backend or device is available.
 
 Use `evaluate` when one state needs several typed decisions at once:

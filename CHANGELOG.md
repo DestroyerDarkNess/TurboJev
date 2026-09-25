@@ -5,7 +5,7 @@
 ## 0.28.6
 
 - Make CPU the native runtime default and add an explicit `device: "cpu" | "gpu"` load option across bindings.
-- Build Windows x64 and ARM64 llama.cpp packages with Vulkan GPU support; x86 remains CPU-only.
+- Build the Windows x64 llama.cpp package with Vulkan GPU support; x86 and ARM64 remain CPU-only.
 - Return a clear error when GPU is requested but the native build has no GPU backend/device.
 
 ## 0.28.5
