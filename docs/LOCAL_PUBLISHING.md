@@ -11,7 +11,7 @@ GitHub trusted-publisher configurations alone do not authenticate local uploads.
 
 ## Prerequisites
 
-- Windows with Rust, Python 3.11 or newer, Node.js/npm, and the .NET 8 SDK.
+- Windows with Rust, Python 3.11 or newer, Node.js/npm, .NET 8, CMake 3.24+, and Git.
 - Visual Studio C++ x86/x64 and ARM64 build tools, Windows SDK, and LLVM tools.
 - npm membership and token write access to the `@turbojev` organization.
 - A verified email address on crates.io and publishing permission.
@@ -29,11 +29,11 @@ GitHub trusted-publisher configurations alone do not authenticate local uploads.
 - crates.io publishes source packages once. The facade's internal dependencies
   are published first. Cargo verifies each packaged crate before upload.
 
-This local Windows matrix does not produce Linux or macOS binaries. It also
-does not execute x86 or ARM64 binaries on an x64 host. Native packages use the
-default Cargo features; in-process llama.cpp requires a separate build with
-the `llamacpp` feature and its runtime dependencies. External worker integrations
-remain available in the default build.
+The publisher builds the pinned llama.cpp revision once per Windows target and
+enables the `llamacpp` feature for each native binding. The shim and llama.cpp
+runtime DLLs are bundled in npm packages, Python wheels, and NuGet runtime
+folders. This Windows matrix does not produce Linux or macOS binaries and does
+not execute x86 or ARM64 binaries on an x64 host.
 
 ## Retry after a failure
 

@@ -14,11 +14,16 @@ set(LLAMA_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 set(LLAMA_BUILD_TOOLS OFF CACHE BOOL "" FORCE)
 set(LLAMA_BUILD_SERVER OFF CACHE BOOL "" FORCE)
 set(LLAMA_CURL OFF CACHE BOOL "" FORCE)
+set(LLAMA_OPENSSL OFF CACHE BOOL "" FORCE)
 set(GGML_NATIVE OFF CACHE BOOL "" FORCE)
 if(WIN32)
   # MSVC OpenMP can retain threads executing unloaded DLL code when a Node
   # worker exits. Use ggml's native thread pool for unloadable Windows hosts.
   set(GGML_OPENMP OFF CACHE BOOL "Disable OpenMP for Windows worker teardown")
+endif()
+if(CMAKE_GENERATOR_PLATFORM STREQUAL "Win32")
+  # ggml's BMI2 implementation can reference the 64-bit PDEP intrinsic on x86 MSVC.
+  set(GGML_BMI2 OFF CACHE BOOL "Disable BMI2 for 32-bit Windows" FORCE)
 endif()
 
 add_subdirectory("${LLAMA_CPP_SOURCE_DIR}" "${CMAKE_BINARY_DIR}/llama.cpp" EXCLUDE_FROM_ALL)

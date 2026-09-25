@@ -12,7 +12,7 @@ homepage.workspace = true
 indexmap.workspace = true
 serde.workspace = true
 thiserror.workspace = true
-turbojev-schema = { version = "=0.28.4", path = "../turbojev-schema" }
+turbojev-schema = { version = "=0.28.5", path = "../turbojev-schema" }
 
 [lints]
 workspace = true

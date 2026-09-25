@@ -27,7 +27,7 @@ def require(name: str, actual: str, expected: str, errors: list[str]) -> None:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--tag", required=True, help="Release tag, for example v0.28.4")
+    parser.add_argument("--tag", required=True, help="Release tag, for example v0.28.5")
     args = parser.parse_args()
 
     if not re.fullmatch(r"v\d+\.\d+\.\d+", args.tag):

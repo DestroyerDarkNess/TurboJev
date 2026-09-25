@@ -19,6 +19,10 @@ $NodeArchitectures = @{
     x64 = "x64"
     arm64 = "arm64"
 }
+$LlamaPlan = Get-Content (Join-Path $Root "tests/e2e/final-plan.json") -Raw | ConvertFrom-Json
+$LlamaSource = Join-Path $Root ".cache/real-validation/llama.cpp"
+$NativeRuntimeRoot = Join-Path $Root "artifacts/native-runtime"
+$ReleaseVersion = [regex]::Match((Get-Content (Join-Path $Root "Cargo.toml") -Raw), '(?m)^version = "([0-9.]+)"').Groups[1].Value
 
 function Import-DotEnv {
     param([string]$Path)
@@ -79,6 +83,107 @@ function Require-Value {
     return $value
 }
 
+function Ensure-LlamaCppSource {
+    if (-not (Test-Path -LiteralPath (Join-Path $LlamaSource "CMakeLists.txt"))) {
+        New-Item -ItemType Directory -Force -Path (Split-Path $LlamaSource) | Out-Null
+        Invoke-Tool "git" @("clone", "--depth", "1", "--branch", $LlamaPlan.llamaCpp.tag, $LlamaPlan.llamaCpp.repository, $LlamaSource)
+    }
+    $revision = (& git -C $LlamaSource rev-parse HEAD).Trim()
+    if ($LASTEXITCODE -ne 0 -or -not $revision.StartsWith($LlamaPlan.llamaCpp.commitPrefix)) {
+        throw "Cached llama.cpp checkout does not match pinned revision $($LlamaPlan.llamaCpp.commitPrefix)."
+    }
+    $script:LlamaCppRevision = $revision
+}
+
+function Build-NativeRuntime {
+    param([Parameter(Mandatory = $true)][string]$Architecture)
+
+    $rid = "win-$Architecture"
+    $runtimeDirectory = Join-Path $NativeRuntimeRoot $rid
+    $shimLib = Join-Path $runtimeDirectory "turbojev_llama_shim.lib"
+    $requiredDlls = @("turbojev_llama_shim.dll", "llama.dll", "ggml.dll", "ggml-base.dll", "ggml-cpu.dll")
+    $markerPath = Join-Path $runtimeDirectory "runtime-build.json"
+    $markerMatches = $false
+    if (Test-Path -LiteralPath $markerPath) {
+        $marker = Get-Content $markerPath -Raw | ConvertFrom-Json
+        $markerMatches = $marker.turbojevVersion -eq $ReleaseVersion -and $marker.llamaCppRevision.StartsWith($LlamaPlan.llamaCpp.commitPrefix)
+    }
+    $missingRuntimeDlls = @($requiredDlls | Where-Object { -not (Test-Path -LiteralPath (Join-Path $runtimeDirectory $_)) })
+    if ($markerMatches -and (Test-Path -LiteralPath $shimLib) -and $missingRuntimeDlls.Count -eq 0) {
+        $env:TURBOJEV_LLAMA_SHIM_LIB_DIR = $runtimeDirectory
+        return
+    }
+
+    Ensure-LlamaCppSource
+    $revision = $script:LlamaCppRevision
+    $buildDirectory = Join-Path $Root "artifacts/llama-build/$rid"
+    New-Item -ItemType Directory -Force -Path $runtimeDirectory | Out-Null
+    $cmakeArguments = @(
+        "--fresh",
+        "-S", (Join-Path $Root "crates/turbojev-runtime-llamacpp/native"),
+        "-B", $buildDirectory,
+        "-DLLAMA_CPP_SOURCE_DIR=$LlamaSource",
+        "-DGGML_OPENMP=OFF",
+        "-DLLAMA_OPENSSL=OFF"
+    )
+    $restoreEnvironment = $null
+    if ($Architecture -eq "arm64") {
+        $restoreEnvironment = @{}
+        Get-ChildItem Env: | ForEach-Object { $restoreEnvironment[$_.Name] = $_.Value }
+        $vswhere = Join-Path ${env:ProgramFiles(x86)} "Microsoft Visual Studio/Installer/vswhere.exe"
+        $vsInstall = (& $vswhere -latest -products "*" -requires Microsoft.VisualStudio.Component.VC.Tools.ARM64 -property installationPath).Trim()
+        if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($vsInstall)) { throw "Visual Studio ARM64 C++ tools were not found." }
+        $vcvars = Join-Path $vsInstall "VC/Auxiliary/Build/vcvarsall.bat"
+        $clang = Join-Path $vsInstall "VC/Tools/Llvm/bin/clang-cl.exe"
+        if (-not (Test-Path -LiteralPath $clang)) { throw "Visual Studio clang-cl was not found: $clang" }
+        $environmentLines = & $env:ComSpec /d /s /c ('"{0}" x64_arm64 > nul && set' -f $vcvars)
+        if ($LASTEXITCODE -ne 0) { throw "vcvarsall failed to configure the ARM64 compiler environment." }
+        foreach ($line in $environmentLines) {
+            if ($line -match '^([^=]+)=(.*)$') { [Environment]::SetEnvironmentVariable($matches[1], $matches[2], "Process") }
+        }
+        $buildDirectory = Join-Path $Root "artifacts/llama-build/$rid-clang"
+        $cmakeArguments += @(
+            "-G", "Ninja",
+            "-DCMAKE_C_COMPILER=$clang",
+            "-DCMAKE_CXX_COMPILER=$clang",
+            "-DCMAKE_C_COMPILER_TARGET=arm64-pc-windows-msvc",
+            "-DCMAKE_CXX_COMPILER_TARGET=arm64-pc-windows-msvc",
+            "-DCMAKE_SYSTEM_NAME=Windows",
+            "-DCMAKE_SYSTEM_PROCESSOR=ARM64",
+            "-DCMAKE_BUILD_TYPE=Release"
+        )
+        $cmakeArguments[3] = "-B"
+        $cmakeArguments[4] = $buildDirectory
+    } else {
+        $platform = @{ x86 = "Win32"; x64 = "x64" }[$Architecture]
+        $cmakeArguments += @("-A", $platform)
+    }
+    try {
+        Invoke-Tool "cmake" $cmakeArguments
+        Invoke-Tool "cmake" @("--build", $buildDirectory, "--config", "Release", "--target", "turbojev_llama_shim", "--parallel", "4")
+    } finally {
+        if ($null -ne $restoreEnvironment) {
+            foreach ($item in Get-ChildItem Env:) {
+                if (-not $restoreEnvironment.ContainsKey($item.Name)) { Remove-Item "Env:$($item.Name)" -ErrorAction SilentlyContinue }
+            }
+            foreach ($name in $restoreEnvironment.Keys) { [Environment]::SetEnvironmentVariable($name, $restoreEnvironment[$name], "Process") }
+        }
+    }
+
+    foreach ($library in Get-ChildItem -LiteralPath $buildDirectory -Filter "*.dll" -File -Recurse) {
+        Copy-Item -LiteralPath $library.FullName -Destination (Join-Path $runtimeDirectory $library.Name) -Force
+    }
+    $shimImportLibrary = Get-ChildItem -LiteralPath $buildDirectory -Filter "turbojev_llama_shim.lib" -File -Recurse | Select-Object -First 1
+    if (-not $shimImportLibrary) { throw "CMake did not produce the llama shim import library for $rid." }
+    Copy-Item -LiteralPath $shimImportLibrary.FullName -Destination $shimLib -Force
+    $missingDlls = @($requiredDlls | Where-Object { -not (Test-Path -LiteralPath (Join-Path $runtimeDirectory $_)) })
+    if ($missingDlls.Count -gt 0) { throw "CMake runtime for $rid is incomplete: $($missingDlls -join ', ')." }
+    @{ turbojevVersion = $ReleaseVersion; llamaCppRevision = $revision; target = $rid } |
+        ConvertTo-Json | Set-Content -LiteralPath $markerPath -Encoding utf8
+
+    $env:TURBOJEV_LLAMA_SHIM_LIB_DIR = $runtimeDirectory
+}
+
 function Publish-NpmPackage {
     param([string]$NpmCommand, [string]$PackagePath)
     $manifest = Get-Content -Raw (Join-Path $PackagePath 'package.json') | ConvertFrom-Json
@@ -103,16 +208,19 @@ function Publish-Node {
     $output = Join-Path $Root "artifacts/npm-native"
     $manifest = Get-Content -Raw (Join-Path $nodePackage "package.json") | ConvertFrom-Json
     $platformPackages = @()
+    if (Test-Path -LiteralPath $output) { Remove-Item -LiteralPath $output -Recurse -Force }
     New-Item -ItemType Directory -Force -Path $output | Out-Null
 
-    Invoke-Tool $NpmCommand @("install", "--ignore-scripts", "--no-audit", "--no-fund", "--package-lock=false") $nodePackage
+    Invoke-Tool $NpmCommand @("install", "--ignore-scripts", "--no-audit", "--no-fund", "--package-lock=false", "--omit=optional") $nodePackage
     Invoke-Tool $NpmCommand @("run", "build") $nodePackage
 
     foreach ($architecture in $AllArchitectures) {
         $target = $RustTargets[$architecture]
         $nodeArchitecture = $NodeArchitectures[$architecture]
+        Build-NativeRuntime $architecture
+        $runtimeDirectory = Join-Path $NativeRuntimeRoot "win-$architecture"
         Invoke-Tool "rustup" @("target", "add", $target)
-        Invoke-Tool "cargo" @("build", "--locked", "--release", "--target", $target, "-p", "turbojev-node")
+        Invoke-Tool "cargo" @("build", "--locked", "--release", "--target", $target, "-p", "turbojev-node", "--features", "turbojev-node/llamacpp")
 
         $native = Join-Path $Root "target/$target/release/turbojev_node.dll"
         if (-not (Test-Path -LiteralPath $native)) {
@@ -122,6 +230,7 @@ function Publish-Node {
         $platformPackage = Join-Path $output ("node-win32-{0}" -f $nodeArchitecture)
         New-Item -ItemType Directory -Force -Path $platformPackage | Out-Null
         Copy-Item -LiteralPath $native -Destination (Join-Path $platformPackage "turbojev.node") -Force
+        Get-ChildItem -LiteralPath $runtimeDirectory -Filter "*.dll" -File | Copy-Item -Destination $platformPackage -Force
         $platformManifest = [ordered]@{
             name = "@turbojev/node-win32-$nodeArchitecture"
             version = $manifest.version
@@ -133,8 +242,17 @@ function Publish-Node {
             repository = $manifest.repository
         }
         $platformManifest | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $platformPackage "package.json")
+        Invoke-Tool "python" @("scripts/check-native-node-package.py", $platformPackage)
         $platformPackages += $platformPackage
     }
+
+    $realModel = Join-Path $Root ".cache/real-validation/$($LlamaPlan.model.filename)"
+    if (-not (Test-Path -LiteralPath $realModel)) {
+        Invoke-Tool "python" @("scripts/download_model.py", "--plan", "tests/e2e/final-plan.json")
+    }
+    $hostAddon = Join-Path $output "node-win32-x64/turbojev.node"
+    Invoke-Tool "node" @("tests/e2e/node/real_smoke.mjs", $realModel, $hostAddon)
+    Invoke-Tool $NpmCommand @("test") $nodePackage
 
     foreach ($platformPackage in $platformPackages) {
         Publish-NpmPackage $NpmCommand $platformPackage
@@ -173,8 +291,11 @@ function Publish-Npm {
 function Publish-Python {
     Require-Value "PYPI_API_TOKEN" | Out-Null
     $output = Join-Path $Root "artifacts/pypi"
+    if (Test-Path -LiteralPath $output) {
+        Get-ChildItem -LiteralPath $output -Directory | Remove-Item -Recurse -Force
+    }
     New-Item -ItemType Directory -Force -Path $output | Out-Null
-    Get-ChildItem -LiteralPath $output -Filter "*.whl" -ErrorAction SilentlyContinue | Remove-Item -Force
+    Get-ChildItem -LiteralPath $output -Filter "*.whl" -File -Recurse -ErrorAction SilentlyContinue | Remove-Item -Force
     $env:TWINE_USERNAME = "__token__"
     $env:TWINE_PASSWORD = $env:PYPI_API_TOKEN
     $previousPyConfig = $env:PYO3_CONFIG_FILE
@@ -188,6 +309,8 @@ function Publish-Python {
         Invoke-Tool $python @("-m", "pip", "install", "maturin>=1.7,<2", "twine")
         foreach ($architecture in $AllArchitectures) {
             $target = $RustTargets[$architecture]
+            Build-NativeRuntime $architecture
+            $runtimeDirectory = Join-Path $NativeRuntimeRoot "win-$architecture"
             Invoke-Tool "rustup" @("target", "add", $target)
             $config = Join-Path $output "pyo3-$architecture.txt"
             $width = if ($architecture -eq 'x86') { 32 } else { 64 }
@@ -203,10 +326,15 @@ function Publish-Python {
                 "lib_dir=$importDir" | Add-Content $config
             }
             $env:PYO3_CONFIG_FILE = $config
-            Invoke-Tool $python @("-m", "maturin", "build", "--locked", "--release", "--target", $target, "--out", $output) (Join-Path $Root "bindings/python")
+            $architectureOutput = Join-Path $output $architecture
+            New-Item -ItemType Directory -Force -Path $architectureOutput | Out-Null
+            Invoke-Tool $python @("-m", "maturin", "build", "--locked", "--release", "--target", $target, "--features", "llamacpp", "--out", $architectureOutput) (Join-Path $Root "bindings/python")
+            $wheel = Get-ChildItem -LiteralPath $architectureOutput -Filter "*.whl" | Select-Object -First 1
+            if (-not $wheel) { throw "Maturin did not produce a wheel for $architecture." }
+            Invoke-Tool $python @("scripts/bundle-native-wheel.py", $wheel.FullName, $runtimeDirectory)
         }
 
-        $packages = Get-ChildItem -LiteralPath $output -Filter "*.whl"
+        $packages = Get-ChildItem -LiteralPath $output -Filter "*.whl" -File -Recurse
         if (-not $packages) {
             throw "No Python wheel was produced"
         }
@@ -215,6 +343,11 @@ function Publish-Python {
         $hostWheel = $packages | Where-Object Name -Like '*win_amd64.whl'
         Invoke-Tool $python @('-m', 'pip', 'install', '--force-reinstall', '--no-deps', $hostWheel.FullName)
         Invoke-Tool $python @('scripts/smoke-python-package.py')
+        $realModel = Join-Path $Root ".cache/real-validation/$($LlamaPlan.model.filename)"
+        if (-not (Test-Path -LiteralPath $realModel)) {
+            Invoke-Tool $python @("scripts/download_model.py", "--plan", "tests/e2e/final-plan.json")
+        }
+        Invoke-Tool $python @("tests/e2e/python/real_smoke.py", $realModel, "--report", (Join-Path $output "real-smoke.json"))
         Invoke-Tool $python (@("-m", "twine", "upload", "--non-interactive", "--skip-existing") + @($packages.FullName))
     }
     finally {
@@ -228,24 +361,39 @@ function Publish-NuGet {
     Require-Value "NUGET_API_KEY" | Out-Null
     $nativeRoot = Join-Path $Root "artifacts/nuget-native"
     $output = Join-Path $Root "artifacts/nuget"
+    if (Test-Path -LiteralPath $nativeRoot) { Remove-Item -LiteralPath $nativeRoot -Recurse -Force }
     New-Item -ItemType Directory -Force -Path $nativeRoot | Out-Null
     New-Item -ItemType Directory -Force -Path $output | Out-Null
+    Get-ChildItem -LiteralPath $nativeRoot -Directory -ErrorAction SilentlyContinue | Remove-Item -Recurse -Force
+    Get-ChildItem -LiteralPath $output -Filter "*.nupkg" -File -ErrorAction SilentlyContinue | Remove-Item -Force
 
     foreach ($architecture in $AllArchitectures) {
         $target = $RustTargets[$architecture]
         $rid = "win-$architecture"
         $ridRoot = Join-Path $nativeRoot $rid
         New-Item -ItemType Directory -Force -Path $ridRoot | Out-Null
+        Build-NativeRuntime $architecture
+        $runtimeDirectory = Join-Path $NativeRuntimeRoot $rid
         Invoke-Tool "rustup" @("target", "add", $target)
-        Invoke-Tool "cargo" @("build", "--locked", "--release", "--target", $target, "-p", "turbojev-capi")
+        Invoke-Tool "cargo" @("build", "--locked", "--release", "--target", $target, "-p", "turbojev-capi", "--features", "turbojev-capi/llamacpp")
         $native = Join-Path $Root "target/$target/release/turbojev_capi.dll"
         if (-not (Test-Path -LiteralPath $native)) {
             throw "Native C API was not built for $rid"
         }
         Copy-Item -LiteralPath $native -Destination (Join-Path $ridRoot "turbojev_capi.dll") -Force
+        Get-ChildItem -LiteralPath $runtimeDirectory -Filter "*.dll" -File | Copy-Item -Destination $ridRoot -Force
     }
 
     Invoke-Tool "dotnet" @("pack", "bindings/dotnet/TurboJev/TurboJev.csproj", "--configuration", "Release", "-p:TurboJevNativeRoot=$nativeRoot", "--output", $output)
+
+    $package = Get-ChildItem -LiteralPath $output -Filter "TurboJev.*.nupkg" -File | Select-Object -First 1
+    if (-not $package) { throw "NuGet package was not created." }
+    Invoke-Tool "python" @("scripts/check-native-nuget.py", $package.FullName)
+    $realModel = Join-Path $Root ".cache/real-validation/$($LlamaPlan.model.filename)"
+    if (-not (Test-Path -LiteralPath $realModel)) {
+        Invoke-Tool "python" @("scripts/download_model.py", "--plan", "tests/e2e/final-plan.json")
+    }
+    Invoke-Tool "pwsh" @("-NoProfile", "-File", "scripts/smoke-nuget-package.ps1", $package.FullName, $realModel)
 
     foreach ($package in Get-ChildItem -LiteralPath $output -Filter "*.nupkg") {
         $arguments = @("nuget", "push", $package.FullName, "--api-key", $env:NUGET_API_KEY, "--source", "https://api.nuget.org/v3/index.json", "--skip-duplicate")

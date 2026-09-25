@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 0.28.5
+
+- Build the published Node, Python, and .NET native bindings with the optional llama.cpp runtime enabled.
+- Bundle the pinned llama.cpp shim and its runtime DLLs with each architecture-specific package for Windows x86, x64, and ARM64.
+- Add wheel and NuGet asset checks so packages missing a concrete GGUF runtime fail before publication.
+
 ## 0.28.4
 
 - Make cyclic candidate-order correction opt-in; single-pass scoring is now the default across the Rust core and browser/WASM text playground.

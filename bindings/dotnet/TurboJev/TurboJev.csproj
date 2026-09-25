@@ -4,7 +4,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <PackageId>TurboJev</PackageId>
-    <Version>0.28.4</Version>
+    <Version>0.28.5</Version>
     <Authors>TurboJev contributors</Authors>
     <Description>Typed semantic decisions powered by TurboJev.</Description>
     <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
@@ -20,8 +20,8 @@
     <None Include="..\..\..\README.md" Pack="true" PackagePath="README.md" />
   </ItemGroup>
   <ItemGroup Condition="'$(TurboJevNativeRoot)' != ''">
-    <None Include="$(TurboJevNativeRoot)\win-x86\turbojev_capi.dll" Pack="true" PackagePath="runtimes/win-x86/native/turbojev_capi.dll" />
-    <None Include="$(TurboJevNativeRoot)\win-x64\turbojev_capi.dll" Pack="true" PackagePath="runtimes/win-x64/native/turbojev_capi.dll" />
-    <None Include="$(TurboJevNativeRoot)\win-arm64\turbojev_capi.dll" Pack="true" PackagePath="runtimes/win-arm64/native/turbojev_capi.dll" />
+    <None Include="$(TurboJevNativeRoot)\win-x86\*.dll" Pack="true" PackagePath="runtimes/win-x86/native/" />
+    <None Include="$(TurboJevNativeRoot)\win-x64\*.dll" Pack="true" PackagePath="runtimes/win-x64/native/" />
+    <None Include="$(TurboJevNativeRoot)\win-arm64\*.dll" Pack="true" PackagePath="runtimes/win-arm64/native/" />
   </ItemGroup>
 </Project>
