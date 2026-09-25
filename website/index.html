@@ -1,127 +1,19 @@
 <!doctype html>
 <html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="TurboJev turns local open-weight model signals into typed, auditable decisions across Rust, Node, Python, C, .NET, browser, Android and Swift.">
-  <meta name="theme-color" content="#101515">
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect x='3' y='3' width='34' height='34' rx='9' fill='%23141b1a' stroke='%237c9c92'/%3E%3Cpath d='M12 27V13h5l4 8 4-8h4v14' fill='none' stroke='%23c8e1dc' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
-  <title>TurboJev — Typed decisions from local models</title>
-  <link rel="stylesheet" href="styles.css">
-</head>
-<body class="landing-page">
-  <a class="skip-link" href="#main">Skip to content</a>
-  <div class="site-shell">
-    <header class="site-header">
-      <a class="brand" href="index.html" aria-label="TurboJev home">
-        <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span>
-        <span>Turbo<span>Jev</span></span>
-      </a>
-      <nav class="main-nav" aria-label="Primary navigation">
-        <a href="#principles">Why TurboJev</a>
-        <a href="#surfaces">Surfaces</a>
-        <a href="docs.html">Docs</a>
-        <a href="https://github.com/DestroyerDarkNess/TurboJev" target="_blank" rel="noreferrer">GitHub <span aria-hidden="true">↗</span></a>
-      </nav>
-      <a class="button button-small button-outline" href="docs.html#quickstart">Start building <span aria-hidden="true">→</span></a>
-      <button class="menu-toggle" type="button" aria-label="Open navigation" aria-expanded="false">☰</button>
-    </header>
-
-    <main id="main">
-      <section class="hero section-grid">
-        <div class="hero-copy">
-          <p class="eyebrow"><span class="eyebrow-dot"></span> Local inference · one typed contract</p>
-          <h1>Turn model scores into <em>typed decisions.</em></h1>
-          <p class="hero-lede">TurboJev turns text, structured state, images, audio, or video into a decision your product can trust: a named choice, a boolean gate, or an ordered score.</p>
-          <div class="hero-actions">
-            <a class="button button-primary" href="docs.html#quickstart">Run a real model <span aria-hidden="true">↗</span></a>
-            <a class="text-link" href="docs.html">Read the documentation <span aria-hidden="true">→</span></a>
-          </div>
-          <div class="hero-proof"><span class="proof-line"></span><span>Rust core · local by default · Apache-2.0</span></div>
-        </div>
-        <div class="hero-visual" aria-label="TurboJev decision pipeline illustration">
-          <div class="visual-glow"></div>
-          <div class="pipeline-card glass-card">
-            <div class="card-topline"><span class="live-dot"></span><span>DECISION PIPELINE</span><span class="card-kicker">0 tokens generated</span></div>
-            <div class="pipeline-input">
-              <span class="input-label">STATE</span>
-              <strong>“My package arrived broken.”</strong>
-            </div>
-            <div class="pipeline-line"><span></span><span></span><span></span></div>
-            <div class="pipeline-engine"><span class="engine-glyph">TJ</span><div><strong>TurboJev core</strong><small>validate · plan · score</small></div><span class="engine-arrow">↘</span></div>
-            <div class="pipeline-result">
-              <div class="result-head"><span class="input-label">TYPED ANSWER</span><span class="result-confidence">0.84</span></div>
-              <div class="result-choice"><span>shipping</span><span class="choice-check">✓</span></div>
-              <div class="mini-bars"><i style="width:84%"></i><i style="width:10%"></i><i style="width:4%"></i><i style="width:2%"></i></div>
-              <div class="result-keys"><span>shipping</span><span>technical</span><span>billing</span><span>other</span></div>
-            </div>
-          </div>
-          <div class="floating-chip chip-model"><span class="chip-icon">◎</span> open-weight models</div>
-          <div class="floating-chip chip-contract"><span class="chip-icon">⌘</span> same response everywhere</div>
-        </div>
-      </section>
-
-      <section class="signal-row" aria-label="TurboJev highlights">
-        <div><strong>8</strong><span>host surfaces</span></div>
-        <div><strong>3</strong><span>typed decision kinds</span></div>
-        <div><strong>0</strong><span>mandatory telemetry</span></div>
-        <div><strong>1</strong><span>portable semantic core</span></div>
-      </section>
-
-      <section id="principles" class="content-section split-section">
-        <div class="section-intro">
-          <p class="eyebrow">The useful layer</p>
-          <h2>Models produce signals. Your application needs decisions.</h2>
-          <p>TurboJev keeps the messy model boundary where it belongs and gives every host the same validated response. Your UI, policy, and business logic stay typed while the runtime changes underneath.</p>
-          <a class="text-link" href="docs.html#architecture">See the architecture <span aria-hidden="true">→</span></a>
-        </div>
-        <div class="principle-list">
-          <article class="principle-item"><span class="item-number">01</span><div><h3>Score the allowed answers</h3><p>Candidate logits become a stable choice, noul gate, or ordered score without parsing generated JSON.</p></div></article>
-          <article class="principle-item"><span class="item-number">02</span><div><h3>Keep semantics portable</h3><p>Validation, planning, calibration, and response construction live once in a small Rust core.</p></div></article>
-          <article class="principle-item"><span class="item-number">03</span><div><h3>Bring the runtime you need</h3><p>Use llama.cpp, a browser runtime, or your own scorer through the same backend contract.</p></div></article>
-        </div>
-      </section>
-
-      <section class="feature-band">
-        <div class="feature-band-header"><p class="eyebrow">Three primitives</p><h2>Small API. Clear outcomes.</h2><p>Build routing, approval, evaluation, and multimodal workflows without inventing a second interpretation for every language.</p></div>
-        <div class="feature-grid">
-          <article class="feature-card feature-choice"><div class="feature-icon">↗</div><h3>choice</h3><p>Pick one named option and keep its full distribution for downstream policy.</p><code>result.choice</code></article>
-          <article class="feature-card feature-noul"><div class="feature-icon">◉</div><h3>noul</h3><p>Represent a yes/no decision as a typed value instead of a fragile string.</p><code>result.answer</code></article>
-          <article class="feature-card feature-score"><div class="feature-icon">≋</div><h3>score</h3><p>Evaluate a state against ordered criteria and retain the evidence trail.</p><code>result.score</code></article>
-        </div>
-      </section>
-
-      <section class="content-section steps-section">
-        <div class="section-intro"><p class="eyebrow">How it works</p><h2>One path from input to action.</h2><p>TurboJev does the semantic work once. Every binding exposes the same contract and leaves model-specific processing to its runtime adapter.</p></div>
-        <div class="steps-grid">
-          <article class="step-card"><span>01</span><h3>Describe the state</h3><p>Pass the message, structured state, or a model-independent media envelope.</p><div class="step-code">state + questions</div></article>
-          <article class="step-card"><span>02</span><h3>Score candidates</h3><p>The selected runtime uses its real template and tokenizer to return candidate scores.</p><div class="step-code">logits → probabilities</div></article>
-          <article class="step-card"><span>03</span><h3>Act on typed output</h3><p>Receive the same canonical response in Rust, Node, Python, C, .NET, mobile, or browser.</p><div class="step-code">EvaluationResponse</div></article>
-        </div>
-      </section>
-
-      <section id="surfaces" class="surface-section">
-        <div class="surface-header"><div><p class="eyebrow">Meet your stack where it is</p><h2>One contract. Every surface.</h2></div><a class="text-link" href="docs.html#languages">Open language docs <span aria-hidden="true">→</span></a></div>
-        <div class="surface-grid">
-          <a class="surface-card surface-rust" href="docs.html#rust"><span class="surface-mark">Rs</span><strong>Rust</strong><small>native core</small><span class="surface-arrow">↗</span></a>
-          <a class="surface-card surface-node" href="docs.html#node"><span class="surface-mark">TS</span><strong>Node / TypeScript</strong><small>worker-safe async API</small><span class="surface-arrow">↗</span></a>
-          <a class="surface-card surface-python" href="docs.html#python"><span class="surface-mark">Py</span><strong>Python</strong><small>PyO3 + context manager</small><span class="surface-arrow">↗</span></a>
-          <a class="surface-card surface-csharp" href="docs.html#dotnet"><span class="surface-mark">C#</span><strong>.NET</strong><small>NuGet + stable C ABI</small><span class="surface-arrow">↗</span></a>
-          <a class="surface-card surface-browser" href="docs.html#browser"><span class="surface-mark">◎</span><strong>Browser / WASM</strong><small>local CPU or WebGPU</small><span class="surface-arrow">↗</span></a>
-          <a class="surface-card surface-mobile" href="docs.html#mobile"><span class="surface-mark">⌁</span><strong>Android + Swift</strong><small>native mobile bindings</small><span class="surface-arrow">↗</span></a>
-        </div>
-      </section>
-
-      <section class="multimodal-callout">
-        <div class="media-orbit" aria-hidden="true"><span>IMG</span><span>AUD</span><span>VID</span><i></i></div>
-        <div><p class="eyebrow">Media is evidence, not a new API</p><h2>Text, image, audio, and video. Still one decision.</h2><p>Use the same typed `evaluate` response with an application-selected multimodal runtime. The core stays model-independent; the adapter owns preprocessing.</p><a class="button button-light" href="docs.html#multimodal">Explore multimodal <span aria-hidden="true">→</span></a></div>
-      </section>
-
-      <section class="cta-section"><p class="eyebrow">Start with a real model</p><h2>Ship the decision layer, keep your options open.</h2><p>Install a package, run a sample, and move from prototype to a portable production contract.</p><div class="hero-actions"><a class="button button-primary" href="docs.html#quickstart">Open the quickstart <span aria-hidden="true">↗</span></a><a class="text-link" href="https://github.com/DestroyerDarkNess/TurboJev" target="_blank" rel="noreferrer">Browse the source <span aria-hidden="true">→</span></a></div></section>
-    </main>
-
-    <footer class="site-footer"><a class="brand" href="index.html"><span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span><span>Turbo<span>Jev</span></span></a><span>Typed decisions from local open-weight models.</span><nav><a href="docs.html">Docs</a><a href="https://github.com/DestroyerDarkNess/TurboJev" target="_blank" rel="noreferrer">GitHub ↗</a><a href="https://github.com/DestroyerDarkNess/TurboJev/blob/main/LICENSE" target="_blank" rel="noreferrer">Apache-2.0</a></nav></footer>
-  </div>
-  <script src="app.js" defer></script>
-</body>
-</html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="Run typed decisions with local models in Rust, JavaScript, Python, C and .NET. Try TurboJev in your browser."><title>TurboJev — Give your model a decision to make.</title><link rel="icon" href="favicon.svg"><link rel="stylesheet" href="styles.css?v=23bf0eb2191b"></head>
+<body><a class="skip-link" href="#main">Skip to content</a>
+<header class="site-header"><a class="brand" href="index.html">turbo<span>jev</span><b aria-hidden="true">↗</b></a><nav class="main-nav" aria-label="Main navigation"><a href="#playground">Playground</a><a href="#languages">Languages</a><a href="docs/quickstart.html">Documentation</a></nav><a class="github-link" href="https://github.com/DestroyerDarkNess/TurboJev">GitHub ↗</a><button class="menu-toggle" aria-label="Toggle navigation" aria-expanded="false">☰</button></header>
+<main id="main">
+<section class="hero"><h1>Give your model<br>a <em>decision</em> to make.</h1><div class="hero-bottom"><p>Route a message. Recognize a sound. Classify an image.<br>Define the possible answers and let a local model score them.</p><a class="button primary" href="#playground">Try it yourself <span>↓</span></a></div></section>
+<section id="playground" class="playground-section"><div class="section-heading"><div><h2>The playground</h2><p>Your input. Your choices. A model running in your browser.</p></div><a class="text-link" href="docs/browser.html">How it works ↗</a></div>
+<div class="studio">
+<div class="studio-top"><div class="mode-tabs" role="tablist" aria-label="Input type"><button role="tab" aria-selected="true" data-mode="text">Text</button><button role="tab" aria-selected="false" data-mode="image">Image</button><button role="tab" aria-selected="false" data-mode="audio">Audio</button><button role="tab" aria-selected="false" data-mode="video">Video</button></div><details class="action-menu"><summary aria-label="Playground actions">•••</summary><div><button id="demo-copy">Copy result JSON</button><button id="demo-reset">Reset example</button><button id="demo-unload" disabled>Unload model</button></div></details></div>
+<div class="model-row"><div class="model-picker"><label for="demo-model">Model</label><select id="demo-model"></select></div><div class="device-picker"><label for="demo-device">Run on</label><select id="demo-device"><option value="wasm">CPU · WASM</option><option value="webgpu">GPU · WebGPU</option></select></div><button id="demo-load" class="button secondary">Load model <span>↓</span></button><button id="demo-cancel" class="button secondary" hidden>Cancel</button></div>
+<div class="model-caption"><span id="model-description"></span><a id="model-link" target="_blank" rel="noreferrer">Model card ↗</a></div>
+<div id="download-panel" hidden><div class="download-caption"><span id="download-file">Preparing download…</span><span id="download-percent"></span></div><progress id="download-progress" max="100" aria-label="Model file download"></progress></div>
+<div class="studio-body"><div class="input-panel"><div class="panel-heading"><h3>Input</h3><select id="demo-preset" aria-label="Example"></select></div><label id="state-label" for="demo-state">Message</label><textarea id="demo-state" rows="5"></textarea><div id="media-panel" hidden><label class="upload-area" for="demo-file"><span id="upload-title">Choose an image</span><small id="upload-help">or drop a file here · up to 24 MB</small><input id="demo-file" type="file"></label><div id="media-preview"></div><button id="example-media" class="text-link">Use sample media ↗</button></div><label for="demo-options">Possible answers <small>One per line · 2–20 choices</small></label><textarea id="demo-options" class="options-editor" rows="4"></textarea><p id="mode-note" class="field-note"></p><button id="demo-run" class="button primary run-button" disabled>Evaluate <span>→</span></button></div>
+<div class="output-panel"><div class="panel-heading"><h3>Output</h3><div class="output-tabs"><button data-output="scores" aria-pressed="true">Scores</button><button data-output="json" aria-pressed="false">JSON</button></div></div><div id="result-empty"><span aria-hidden="true">↳</span><h4>A decision starts here.</h4><p>Load a model, edit the input and evaluate.<br>Results come from inference on your device.</p></div><div id="demo-result" hidden><div id="result-scores"><small>SELECTED ANSWER</small><h4 id="demo-choice"></h4><div id="demo-probabilities"></div></div><pre id="result-json" hidden><code></code></pre><p class="field-note">Probabilities are relative to these choices, not calibrated confidence.</p></div><div class="metrics"><div><span>Model load</span><strong id="load-time">—</strong></div><div><span>Last evaluation</span><strong id="run-time">—</strong></div><div><span>Runs</span><strong id="run-count">0</strong></div></div></div></div>
+<div class="studio-status"><span id="demo-status" role="status">Choose a model to begin.</span><span>Local inference</span></div></div>
+<p class="playground-footnote">Model files download from Hugging Face when you press Load. Inputs stay on your device. Larger models need more memory; CPU inference may take time.</p></section>
+<section id="languages" class="language-section-home"><div><h2>Same decisions.<br>Your language.</h2><p>The Rust core handles validation, scoring plans and typed responses. Use the binding that fits your application.</p><a class="text-link" href="docs/architecture.html">Explore the architecture →</a></div><div class="language-links"><a href="docs/rust.html"><span>Rust</span><code>cargo add turbojev</code><b>↗</b></a><a href="docs/node.html"><span>TypeScript</span><code>npm i @turbojev/node</code><b>↗</b></a><a href="docs/python.html"><span>Python</span><code>pip install turbojev</code><b>↗</b></a><a href="docs/dotnet.html"><span>C# / .NET</span><code>dotnet add package TurboJev</code><b>↗</b></a><a href="docs/browser.html"><span>Browser</span><code>npm i @turbojev/web</code><b>↗</b></a><a href="docs/c.html"><span>C & mobile</span><code>Stable C ABI</code><b>↗</b></a></div></section>
+</main><footer class="site-footer"><a class="brand" href="index.html">turbo<span>jev</span></a><span>Built for local decisions.</span><a href="docs/quickstart.html">Documentation</a><a href="https://github.com/DestroyerDarkNess/TurboJev">Source ↗</a></footer><script src="app.js?v=23bf0eb2191b" defer></script><script type="module" src="demo.js?v=23bf0eb2191b"></script></body></html>

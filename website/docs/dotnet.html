@@ -1,0 +1,28 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>.NET / C# — TurboJev</title><meta name="description" content=".NET / C# documentation for TurboJev."><link rel="icon" href="../favicon.svg"><link rel="stylesheet" href="../styles.css?v=23bf0eb2191b"></head><body class="docs-page"><a class="skip-link" href="#article">Skip to content</a><header class="site-header"><a class="brand" href="../index.html">turbo<span>jev</span><b aria-hidden="true">↗</b></a><span class="header-divider">/</span><a href="quickstart.html">Documentation</a><button class="search-trigger" type="button">Search documentation <kbd>Ctrl K</kbd></button><a class="github-link" href="https://github.com/DestroyerDarkNess/TurboJev">GitHub ↗</a><button class="menu-toggle" aria-label="Toggle documentation navigation" aria-expanded="false">☰</button></header><div class="docs-layout"><aside class="docs-sidebar"><nav class="docs-nav" aria-label="Documentation"><p>Get started</p><a  href="quickstart.html">Quickstart</a><a  href="architecture.html">Architecture</a><a  href="api.html">Core API</a><p>Languages</p><a  href="rust.html">Rust</a><a  href="node.html">Node / TypeScript</a><a  href="python.html">Python</a><a  href="c.html">C ABI</a><a aria-current="page" href="dotnet.html">.NET / C#</a><a  href="browser.html">Browser / WASM</a><a  href="mobile.html">Android + Swift</a><p>Guides</p><a  href="multimodal.html">Multimodal</a><a  href="examples.html">Examples</a><a  href="publishing.html">Publishing</a></nav></aside><main id="article" class="docs-content"><div class="breadcrumbs">Docs <span>/</span> .NET / C#</div><article id="dotnet" class="language-card"><div class="language-heading"><div><h1>.NET / C#</h1><p>NuGet package with native assets for three Windows architectures.</p></div><a href="https://www.nuget.org/packages/TurboJev" target="_blank" rel="noreferrer">NuGet ↗</a></div><div class="install-line"><code>dotnet add package TurboJev --version 0.28.2</code><button class="copy-button" type="button">Copy</button></div><div class="code-block"><div class="code-toolbar"><span>Program.cs</span><button class="copy-button" type="button">Copy</button></div><pre class="language-csharp"><code class="language-csharp">using TurboJev;
+
+await using var jev = await TurboJevEngine.LoadAsync(new {
+    model = "./model.gguf", nGpuLayers = 0, nThreads = 4
+});
+var json = await jev.ClassifyJsonAsync(
+    "My package arrived broken",
+    ["billing", "shipping", "technical", "other"]);
+Console.WriteLine(json);</code></pre></div><p class="source-link">The package carries win-x86, win-x64, and win-arm64 native assets.</p><h2>Evaluate an image</h2><p>Prepare the SmolVLM2 worker and run the complete .NET sample. The runner supplies the worker environment and native library paths.</p><div class="code-block"><div class="code-toolbar"><span>Terminal</span><button class="copy-button" type="button">Copy</button></div><pre class="language-bash"><code class="language-bash">python samples/multimodal/setup.py vision
+python samples/run.py csharp --media photo.jpg --modality image --question &quot;What animal is shown?&quot; --options &quot;A cat&quot; &quot;A dog&quot;</code></pre></div><p>With a multimodal engine, serialize the portable request and call <code>EvaluateJsonAsync</code>:</p><div class="code-block"><div class="code-toolbar"><span>Media.cs</span><button class="copy-button" type="button">Copy</button></div><pre class="language-csharp"><code class="language-csharp">using System.Text.Json;
+
+var request = new {
+    state = new {
+        contract = &quot;turbojev.media.v1&quot;,
+        modality = &quot;image&quot;,
+        base64 = Convert.ToBase64String(
+            await File.ReadAllBytesAsync(&quot;photo.jpg&quot;)),
+    },
+    questions = new {
+        scene = new {
+            type = &quot;choice&quot;,
+            instructions = &quot;What animal is shown?&quot;,
+            criteria = new { cat = &quot;A cat&quot;, dog = &quot;A dog&quot; },
+        },
+    },
+};
+Console.WriteLine(await engine.EvaluateJsonAsync(
+    JsonSerializer.Serialize(request)));</code></pre></div></article><nav class="page-turn" aria-label="Adjacent pages"><a href="c.html"><small>Previous</small>← C ABI</a><a href="browser.html"><small>Next</small>Browser / WASM →</a></nav><div class="article-footer"><a href="https://github.com/DestroyerDarkNess/TurboJev/tree/main/website/src">Edit this page ↗</a><a href="../index.html#playground">Open playground →</a></div></main><aside class="on-this-page"><p>On this page</p><nav id="page-outline"></nav></aside></div><dialog id="search-dialog"><form method="dialog"><label for="docs-search">Search documentation</label><button aria-label="Close search">Esc</button></form><input type="search" id="docs-search" placeholder="Search APIs, languages, examples…" autocomplete="off"><div id="search-results" aria-live="polite"></div></dialog><script src="../vendor/prism/prism.js" defer></script><script src="../app.js?v=23bf0eb2191b" defer></script></body></html>

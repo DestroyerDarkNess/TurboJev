@@ -178,10 +178,10 @@ impl Default for PromptProfile {
     }
 }
 fn default_profile() -> String {
-    "browser-generic-en-v1".into()
+    "browser-direct-decision-en-v2".into()
 }
 fn default_system() -> String {
-    "Apply the supplied criterion to the supplied evidence. Reply with exactly one allowed option code and no explanation.".into()
+    "Make the requested decision from the supplied state. Follow the requested output format exactly.".into()
 }
 fn default_best_match() -> String {
     "Choose the allowed option that best matches the supplied evidence.".into()
@@ -261,12 +261,34 @@ impl PromptRenderer for BrowserRenderer {
             PromptCriterion::UserText(t) => t.clone(),
             PromptCriterion::BestMatch => self.profile.best_match_instruction.clone(),
         };
-        let options: Vec<Value> = document
+        let evidence = match &document.evidence {
+            Value::String(text) => text.clone(),
+            value => {
+                serde_json::to_string(value).map_err(|e| PromptError::Renderer(e.to_string()))?
+            }
+        };
+        let options = document
             .options
             .iter()
-            .map(|o| serde_json::json!({"code":o.code,"description":o.description}))
-            .collect();
-        let user=serde_json::to_string(&serde_json::json!({"evidence":document.evidence,"criterion":criterion,"options":options})).map_err(|e|PromptError::Renderer(e.to_string()))?;
+            .map(|option| format!("{}. {}", option.code, option.description))
+            .collect::<Vec<_>>()
+            .join("\n");
+        let codes = document
+            .options
+            .iter()
+            .map(|option| option.code.as_str())
+            .collect::<Vec<_>>()
+            .join(", ");
+        let label = if document.options.iter().all(|option| {
+            option.code.len() == 1 && option.code.bytes().all(|c| c.is_ascii_alphabetic())
+        }) {
+            "letter"
+        } else {
+            "code"
+        };
+        let user = format!(
+            "State:\n{evidence}\n\nQuestion:\n{criterion}\n\nAllowed options:\n{options}\n\nReply with exactly one option {label} from: {codes}."
+        );
         Ok(RenderedMessages {
             system: Some(self.profile.system_instruction.clone()),
             user,
