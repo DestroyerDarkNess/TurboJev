@@ -45,7 +45,8 @@ if (mediaIndex >= 0) {
     };
     Console.WriteLine(await engine.EvaluateJsonAsync(JsonSerializer.Serialize(request)));
 } else {
-    await using var engine = await TurboJevEngine.LoadAsync(new { model = args[0], nGpuLayers = 0, nThreads = 4 });
+    // CPU is the default. Set device = "gpu" to request GPU offload explicitly.
+    await using var engine = await TurboJevEngine.LoadAsync(new { model = args[0], device = "cpu", nGpuLayers = 0, nThreads = 4 });
     var json = await engine.ClassifyJsonAsync(args.Length > 1 ? args[1] : "My package arrived broken",
         ["billing", "shipping", "technical", "other"]);
     using var result = JsonDocument.Parse(json);

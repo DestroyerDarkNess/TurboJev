@@ -192,7 +192,15 @@ fn default_n_seq_max() -> u32 {
     8
 }
 fn default_gpu_layers() -> i32 {
-    -1
+    0
+}
+
+/// Accelerator requested for the llama.cpp model runtime.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum NativeDevice {
+    Cpu,
+    Gpu,
 }
 
 /// Host-neutral native model/session options. `model` must already be a local path.
@@ -211,6 +219,9 @@ pub struct NativeLoadOptions {
     pub n_seq_max: u32,
     #[serde(default = "default_gpu_layers")]
     pub n_gpu_layers: i32,
+    /// Explicit runtime device. Omitted means CPU unless legacy GPU layers were requested.
+    #[serde(default)]
+    pub device: Option<NativeDevice>,
     #[serde(default)]
     pub n_threads: i32,
     #[serde(default)]
@@ -234,6 +245,11 @@ impl NativeLoadOptions {
                 "nCtx, nBatch and nSeqMax must be greater than zero".into(),
             ));
         }
+        if self.device == Some(NativeDevice::Cpu) && self.n_gpu_layers != 0 {
+            return Err(HostError::InvalidOptions(
+                "device=cpu cannot be combined with nonzero nGpuLayers".into(),
+            ));
+        }
         if self.prompt.profile.trim().is_empty()
             || self.prompt.system_instruction.trim().is_empty()
             || self.prompt.best_match_instruction.trim().is_empty()
@@ -243,6 +259,15 @@ impl NativeLoadOptions {
             ));
         }
         Ok(())
+    }
+
+    #[cfg(feature = "llamacpp")]
+    fn effective_gpu_layers(&self) -> i32 {
+        match self.device {
+            Some(NativeDevice::Cpu) => 0,
+            Some(NativeDevice::Gpu) if self.n_gpu_layers == 0 => -1,
+            Some(NativeDevice::Gpu) | None => self.n_gpu_layers,
+        }
     }
 }
 
@@ -311,7 +336,7 @@ impl NativeSession {
                 n_ctx: options.n_ctx,
                 n_batch: options.n_batch,
                 n_seq_max: options.n_seq_max,
-                n_gpu_layers: options.n_gpu_layers,
+                n_gpu_layers: options.effective_gpu_layers(),
                 n_threads: options.n_threads,
                 n_threads_batch: options.n_threads_batch,
             };
@@ -630,6 +655,7 @@ mod tests {
             n_batch: 64,
             n_seq_max: 2,
             n_gpu_layers: 0,
+            device: None,
             n_threads: 0,
             n_threads_batch: 0,
             execution: HostExecutionOptions {
@@ -660,6 +686,7 @@ mod tests {
             n_batch: 64,
             n_seq_max: 2,
             n_gpu_layers: 0,
+            device: None,
             n_threads: 0,
             n_threads_batch: 0,
             execution: HostExecutionOptions {
@@ -733,5 +760,28 @@ mod tests {
                 .expect("opening without a runtime must fail");
             assert_eq!(err.code(), "RUNTIME_UNAVAILABLE");
         }
+    }
+
+    #[test]
+    fn cpu_is_default_and_gpu_is_explicit() {
+        let cpu: NativeLoadOptions = serde_json::from_str(r#"{"model":"fixture://cpu"}"#).unwrap();
+        assert_eq!(cpu.device, None);
+        assert_eq!(cpu.n_gpu_layers, 0);
+        #[cfg(feature = "llamacpp")]
+        assert_eq!(cpu.effective_gpu_layers(), 0);
+
+        let gpu: NativeLoadOptions =
+            serde_json::from_str(r#"{"model":"fixture://gpu","device":"gpu"}"#).unwrap();
+        #[cfg(feature = "llamacpp")]
+        assert_eq!(gpu.effective_gpu_layers(), -1);
+        let _ = gpu;
+    }
+
+    #[test]
+    fn explicit_cpu_rejects_gpu_layer_override() {
+        let options: NativeLoadOptions =
+            serde_json::from_str(r#"{"model":"fixture://conflict","device":"cpu","nGpuLayers":4}"#)
+                .unwrap();
+        assert!(options.validate().is_err());
     }
 }

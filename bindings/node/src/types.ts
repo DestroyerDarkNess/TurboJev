@@ -1,6 +1,8 @@
 export type PlanningPolicy = "auto" | "reference" | "deterministic-reuse";
 export interface LoadOptions {
   model: string;
+  /** Defaults to CPU. GPU requires a native package built with a supported GPU backend. */
+  device?: "cpu" | "gpu";
   worker?: { program: string; args?: string[]; timeoutSeconds?: number };
   cacheDir?: string;
   execution?: { policy?: PlanningPolicy; orderRobustness?: "none" | "cyclic"; maxParallelTasks?: number; memoryBudgetBytes?: number; llamacppMultiRootFused?: boolean };

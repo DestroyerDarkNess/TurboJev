@@ -37,7 +37,7 @@ impl Default for NativeConfig {
             n_ctx: 2048,
             n_batch: 512,
             n_seq_max: 8,
-            n_gpu_layers: -1,
+            n_gpu_layers: 0,
             n_threads: 0,
             n_threads_batch: 0,
         }

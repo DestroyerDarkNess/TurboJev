@@ -1,7 +1,7 @@
 from __future__ import annotations
 import json
 from dataclasses import dataclass
-from typing import Any, Iterable, Mapping
+from typing import Any, Iterable, Literal, Mapping
 
 try:
     from ._native import NativeEngine
@@ -20,7 +20,8 @@ class LoadOptions:
     n_ctx: int = 4096
     n_batch: int = 512
     n_seq_max: int = 8
-    n_gpu_layers: int = -1
+    n_gpu_layers: int = 0
+    device: Literal["cpu", "gpu"] | None = None
     worker: Mapping[str, Any] | None = None
     execution: Mapping[str, Any] | None = None
 
@@ -33,6 +34,8 @@ class LoadOptions:
             "nGpuLayers": self.n_gpu_layers,
             "worker": self.worker,
         }
+        if self.device is not None:
+            options["device"] = self.device
         if self.execution is not None:
             options["execution"] = self.execution
         return options

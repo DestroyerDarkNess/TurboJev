@@ -1464,6 +1464,7 @@ mod tests {
                 n_batch: 64,
                 n_seq_max: 2,
                 n_gpu_layers: 0,
+                device: None,
                 n_threads: 0,
                 n_threads_batch: 0,
                 execution: turbojev_host_native::HostExecutionOptions {

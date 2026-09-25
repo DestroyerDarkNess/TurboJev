@@ -11,8 +11,8 @@ homepage.workspace = true
 [dependencies]
 serde.workspace = true
 serde_json.workspace = true
-turbojev-specialized = { version = "=0.28.5", path = "../turbojev-specialized" }
-turbojev-specialized-eval = { version = "=0.28.5", path = "../turbojev-specialized-eval" }
+turbojev-specialized = { version = "=0.28.6", path = "../turbojev-specialized" }
+turbojev-specialized-eval = { version = "=0.28.6", path = "../turbojev-specialized-eval" }
 
 [lints]
 workspace = true

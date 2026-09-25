@@ -24,6 +24,10 @@ def test_order_robustness_configuration_reaches_native_load():
 def test_default_execution_is_omitted_for_native_serde_defaults():
     assert "execution" not in LoadOptions(model="fixture://test").to_wire()
 
+def test_cpu_is_the_default_and_gpu_is_explicit():
+    assert LoadOptions(model="fixture://test").to_wire()["nGpuLayers"] == 0
+    assert LoadOptions(model="fixture://test", device="gpu").to_wire()["device"] == "gpu"
+
 def test_wrapper_roundtrip():
     jev = TurboJev.load("fixture://test")
     assert jev.classify("x", ["a", "b"])["choice"] == "b"

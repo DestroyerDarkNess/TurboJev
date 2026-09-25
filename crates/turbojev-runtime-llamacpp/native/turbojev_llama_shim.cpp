@@ -1,6 +1,7 @@
 #include "turbojev_llama_shim.h"
 
 #include "llama.h"
+#include "ggml-backend.h"
 
 #include <algorithm>
 #include <cstring>
@@ -406,6 +407,13 @@ tj_llama_runtime * tj_llama_open(
         return nullptr;
     }
     init_backend_once();
+
+    if (config->n_gpu_layers != 0
+        && ggml_backend_dev_by_type(GGML_BACKEND_DEVICE_TYPE_GPU) == nullptr) {
+        set_error(error, error_capacity,
+            "GPU was requested, but this llama.cpp build has no available GPU backend/device");
+        return nullptr;
+    }
 
     auto runtime = std::make_unique<tj_llama_runtime>();
     llama_model_params model_params = llama_model_default_params();

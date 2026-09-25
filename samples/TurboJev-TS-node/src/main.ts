@@ -72,6 +72,8 @@ if (mediaFlag >= 0) {
   const engine = await TurboJev.load({
     model,
     nativePath: join(stage, "turbojev.node"),
+    // CPU is the default. Set device: "gpu" to request GPU offload explicitly.
+    device: "cpu",
     nGpuLayers: 0,
     nThreads: 4,
   });

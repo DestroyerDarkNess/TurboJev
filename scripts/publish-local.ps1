@@ -102,11 +102,22 @@ function Build-NativeRuntime {
     $runtimeDirectory = Join-Path $NativeRuntimeRoot $rid
     $shimLib = Join-Path $runtimeDirectory "turbojev_llama_shim.lib"
     $requiredDlls = @("turbojev_llama_shim.dll", "llama.dll", "ggml.dll", "ggml-base.dll", "ggml-cpu.dll")
+    $enableVulkan = $Architecture -in @("x64", "arm64")
+    $vulkanLibrary = $null
+    if ($enableVulkan) {
+        if ([string]::IsNullOrWhiteSpace($env:VULKAN_SDK)) { throw "VULKAN_SDK is required to build the GPU runtime for $rid." }
+        $vulkanLibDir = if ($Architecture -eq "arm64") { Join-Path $env:VULKAN_SDK "Lib-ARM64" } else { Join-Path $env:VULKAN_SDK "Lib" }
+        $vulkanLibrary = Join-Path $vulkanLibDir "vulkan-1.lib"
+        if (-not (Test-Path -LiteralPath (Join-Path $env:VULKAN_SDK "Include/vulkan/vulkan.h")) -or -not (Test-Path -LiteralPath $vulkanLibrary)) {
+            throw "The Vulkan SDK does not contain headers and a $Architecture import library for $rid."
+        }
+        $requiredDlls += "ggml-vulkan.dll"
+    }
     $markerPath = Join-Path $runtimeDirectory "runtime-build.json"
     $markerMatches = $false
     if (Test-Path -LiteralPath $markerPath) {
         $marker = Get-Content $markerPath -Raw | ConvertFrom-Json
-        $markerMatches = $marker.turbojevVersion -eq $ReleaseVersion -and $marker.llamaCppRevision.StartsWith($LlamaPlan.llamaCpp.commitPrefix)
+        $markerMatches = $marker.turbojevVersion -eq $ReleaseVersion -and $marker.llamaCppRevision.StartsWith($LlamaPlan.llamaCpp.commitPrefix) -and $marker.vulkanEnabled -eq $enableVulkan
     }
     $missingRuntimeDlls = @($requiredDlls | Where-Object { -not (Test-Path -LiteralPath (Join-Path $runtimeDirectory $_)) })
     if ($markerMatches -and (Test-Path -LiteralPath $shimLib) -and $missingRuntimeDlls.Count -eq 0) {
@@ -123,9 +134,16 @@ function Build-NativeRuntime {
         "-S", (Join-Path $Root "crates/turbojev-runtime-llamacpp/native"),
         "-B", $buildDirectory,
         "-DLLAMA_CPP_SOURCE_DIR=$LlamaSource",
+        "-DGGML_VULKAN=$(if ($enableVulkan) { 'ON' } else { 'OFF' })",
         "-DGGML_OPENMP=OFF",
         "-DLLAMA_OPENSSL=OFF"
     )
+    if ($enableVulkan) {
+        $cmakeArguments += @(
+            "-DVulkan_INCLUDE_DIR=$(Join-Path $env:VULKAN_SDK 'Include')",
+            "-DVulkan_LIBRARY=$vulkanLibrary"
+        )
+    }
     $restoreEnvironment = $null
     if ($Architecture -eq "arm64") {
         $restoreEnvironment = @{}
@@ -178,7 +196,7 @@ function Build-NativeRuntime {
     Copy-Item -LiteralPath $shimImportLibrary.FullName -Destination $shimLib -Force
     $missingDlls = @($requiredDlls | Where-Object { -not (Test-Path -LiteralPath (Join-Path $runtimeDirectory $_)) })
     if ($missingDlls.Count -gt 0) { throw "CMake runtime for $rid is incomplete: $($missingDlls -join ', ')." }
-    @{ turbojevVersion = $ReleaseVersion; llamaCppRevision = $revision; target = $rid } |
+    @{ turbojevVersion = $ReleaseVersion; llamaCppRevision = $revision; target = $rid; vulkanEnabled = $enableVulkan } |
         ConvertTo-Json | Set-Content -LiteralPath $markerPath -Encoding utf8
 
     $env:TURBOJEV_LLAMA_SHIM_LIB_DIR = $runtimeDirectory
