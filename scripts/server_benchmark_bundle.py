@@ -32,7 +32,7 @@ def main() -> None:
     parser.add_argument("load_plan", type=Path)
     parser.add_argument("load_report", type=Path)
     parser.add_argument("output", type=Path)
-    parser.add_argument("--server-version", default="0.28.3")
+    parser.add_argument("--server-version", default="0.28.4")
     args = parser.parse_args()
 
     for source in (args.config, args.load_plan, args.load_report):

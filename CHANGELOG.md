@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+## 0.28.4
+
+- Make cyclic candidate-order correction opt-in; single-pass scoring is now the default across the Rust core and browser/WASM text playground.
+- Add a browser playground toggle for cyclic correction and regenerate the WASM interface and published site assets.
+
 ## 0.28.3
 
 - Made cyclic candidate-order averaging the default for unordered `choice`
@@ -8,8 +15,6 @@
   option probabilities mapped to their original keys.
 - Added cyclic order correction to the async core used by browser/WASM.
 - Added an explicit `orderRobustness: "none"` override for single-pass latency.
-
-## Unreleased
 
 ## 0.28.2
 - Project licensing and package metadata now use Apache-2.0 for commercial-friendly distribution.
