@@ -5,6 +5,7 @@ fn open(mode: &str, timeout: u64) -> NativeSession {
     NativeSession::open_json(
         &json!({
             "model": "protocol-fixture",
+            "execution": {"orderRobustness": "none"},
             "worker": {
                 "program": std::env::var("PYTHON").unwrap_or_else(|_| "python".into()),
                 "args": [format!("{}/tests/scorer_fixture.py", env!("CARGO_MANIFEST_DIR")), mode],

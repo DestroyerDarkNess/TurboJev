@@ -8,7 +8,7 @@
 use js_sys::{Function, Promise, Reflect};
 use serde::Deserialize;
 use serde_json::Value;
-use turbojev::{schema::EvaluationRequest, TurboJevAsync};
+use turbojev::{schema::EvaluationRequest, OrderRobustness, TurboJevAsync};
 use turbojev_backend::{
     AsyncScoringBackend, BackendCapabilities, BackendError, BackendFuture, BackendMetrics,
     BackendOutput, BackendResourceHints, DecisionBatch, ExecutionPlan, TaskScores,
@@ -519,6 +519,7 @@ impl WasmEngine {
         Ok(Self {
             engine: TurboJevAsync::new(BrowserBackend::Tokens(backend))
                 .with_planning_policy(PlanningPolicy::Auto)
+                .with_order_robustness(OrderRobustness::Cyclic)
                 .with_execution_budget(ExecutionBudget::unlimited()),
         })
     }

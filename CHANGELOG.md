@@ -1,13 +1,15 @@
 # Changelog
 
-## Unreleased
+## 0.28.3
 
-- Added an opt-in native `execution.orderRobustness: "cyclic"` policy for
-  unordered `choice` questions. It averages raw logits across cyclic candidate
-  rotations, reports the policy and evaluation count in response metadata, and
-  is shared by Rust, Node/TypeScript, Python, C, and .NET native hosts.
-- The native `classify` helper now honors the same policy. Cross-request fused
-  execution is conservatively disabled when order correction is active.
+- Made cyclic candidate-order averaging the default for unordered `choice`
+  questions across sync and async engines and native language bindings. This
+  removes candidate-position changes in the browser's text path and keeps
+  option probabilities mapped to their original keys.
+- Added cyclic order correction to the async core used by browser/WASM.
+- Added an explicit `orderRobustness: "none"` override for single-pass latency.
+
+## Unreleased
 
 ## 0.28.2
 - Project licensing and package metadata now use Apache-2.0 for commercial-friendly distribution.

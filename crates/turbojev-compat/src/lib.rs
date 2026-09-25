@@ -378,6 +378,8 @@ mod tests {
                 calibrated: false,
                 confidence_method: "selected-candidate-probability".into(),
                 contract: "turbojev.core.v4".into(),
+                order_robustness: "none".into(),
+                order_evaluations: 0,
                 execution: ExecutionMetadata {
                     prefix_reuse: "none".into(),
                     scheduling: "serial".into(),

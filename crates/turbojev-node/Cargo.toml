@@ -16,7 +16,7 @@ default = []
 llamacpp = ["turbojev-host-native/llamacpp"]
 
 [dependencies]
-turbojev-host-native = { version = "=0.28.2", path = "../turbojev-host-native" }
+turbojev-host-native = { version = "=0.28.3", path = "../turbojev-host-native" }
 napi = { version = "=3.0.0", default-features = false, features = ["napi8"] }
 napi-derive = "=3.0.0"
 

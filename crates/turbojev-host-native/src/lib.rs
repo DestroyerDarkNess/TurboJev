@@ -47,8 +47,8 @@ pub enum HostPlanningPolicy {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 #[serde(rename_all = "kebab-case")]
 pub enum HostOrderRobustness {
-    #[default]
     None,
+    #[default]
     Cyclic,
 }
 
@@ -632,7 +632,10 @@ mod tests {
             n_gpu_layers: 0,
             n_threads: 0,
             n_threads_batch: 0,
-            execution: HostExecutionOptions::default(),
+            execution: HostExecutionOptions {
+                order_robustness: HostOrderRobustness::None,
+                ..HostExecutionOptions::default()
+            },
             prompt: HostPromptProfile::default(),
             fixture_logits: BTreeMap::from([("route".into(), vec![0.0, 3.0])]),
         })
@@ -659,7 +662,10 @@ mod tests {
             n_gpu_layers: 0,
             n_threads: 0,
             n_threads_batch: 0,
-            execution: HostExecutionOptions::default(),
+            execution: HostExecutionOptions {
+                order_robustness: HostOrderRobustness::None,
+                ..HostExecutionOptions::default()
+            },
             prompt: HostPromptProfile::default(),
             fixture_logits: BTreeMap::from([("route".into(), vec![0.0, 3.0])]),
         })
@@ -693,7 +699,7 @@ mod tests {
         assert!(!options.execution.llamacpp_multi_root_fused);
         assert_eq!(
             options.execution.order_robustness,
-            HostOrderRobustness::None
+            HostOrderRobustness::Cyclic
         );
 
         let enabled: NativeLoadOptions = serde_json::from_str(
@@ -710,6 +716,12 @@ mod tests {
             corrected.execution.order_robustness,
             HostOrderRobustness::Cyclic
         );
+
+        let fast: NativeLoadOptions = serde_json::from_str(
+            r#"{"model":"model.gguf","execution":{"orderRobustness":"none"}}"#,
+        )
+        .unwrap();
+        assert_eq!(fast.execution.order_robustness, HostOrderRobustness::None);
     }
 
     #[test]

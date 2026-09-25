@@ -1466,7 +1466,10 @@ mod tests {
                 n_gpu_layers: 0,
                 n_threads: 0,
                 n_threads_batch: 0,
-                execution: Default::default(),
+                execution: turbojev_host_native::HostExecutionOptions {
+                    order_robustness: turbojev_host_native::HostOrderRobustness::None,
+                    ..Default::default()
+                },
                 prompt: Default::default(),
                 fixture_logits: BTreeMap::from([("route".to_owned(), vec![0.0, 4.0])]),
             },

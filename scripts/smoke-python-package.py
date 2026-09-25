@@ -8,6 +8,9 @@ with TurboJev.load('fixture://package-smoke') as engine:
 
 with TurboJev(NativeEngine.load_json(json.dumps({
     'model': 'fixture://package-smoke',
+    # Fixture logits are positional; disable the production default's cyclic
+    # order-robustness passes so this smoke test checks the supplied scores.
+    'execution': {'orderRobustness': 'none'},
     'fixtureLogits': {'classification': [0.0, 3.0]},
 }))) as engine:
     response = engine.classify('Package smoke test', ['a', 'b'])

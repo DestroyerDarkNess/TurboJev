@@ -1798,10 +1798,12 @@ mod tests {
         let reference =
             turbojev::TurboJev::new(reference_backend(Renderer, FamilyApi::qwen_style()))
                 .with_planning_policy(PlanningPolicy::Reference)
+                .with_order_robustness(turbojev::OrderRobustness::None)
                 .evaluate(request.clone())
                 .unwrap();
         let reused = turbojev::TurboJev::new(reference_backend(Renderer, FamilyApi::qwen_style()))
             .with_planning_policy(PlanningPolicy::DeterministicReuse)
+            .with_order_robustness(turbojev::OrderRobustness::None)
             .evaluate(request)
             .unwrap();
 

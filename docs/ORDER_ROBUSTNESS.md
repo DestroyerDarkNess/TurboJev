@@ -4,7 +4,9 @@
 models show a positional preference. TurboJev can remove a repeatable cyclic
 position effect at inference time without relying on a model-specific head.
 
-Enable the policy when the order of a `choice` question is not meaningful:
+The default policy is `cyclic` for Rust, Node/TypeScript, Python, C, C#/.NET,
+and browser token-scoring engines. Set `none` only when latency matters more
+than resistance to positional bias:
 
 ```json
 {
@@ -14,7 +16,9 @@ Enable the policy when the order of a `choice` question is not meaningful:
 ```
 
 This is a load-time native-host option, shared by Rust, Node/TypeScript,
-Python, C, and .NET bindings. `none` is the default.
+Python, C, and .NET bindings. `cyclic` is the default; the browser/WASM text
+engine uses the same policy. Custom decision-scoring runtimes keep their own
+scoring behavior.
 
 For a choice with `K` candidates, TurboJev evaluates all `K` cyclic rotations.
 Each returned logit row is mapped back to the caller's original candidate keys;
@@ -30,7 +34,10 @@ probabilities. The response records:
 
 `orderEvaluations` is the actual number of backend calls used for correction;
 other question types in the same request add their normal call. `noul` and
-`score` are not rotated because their candidate order carries meaning.
+`score` are not rotated because their candidate order carries meaning. This
+uses one backend evaluation per candidate in each choice, so a four-option
+choice costs four evaluations. Set `orderRobustness: "none"` explicitly to
+restore single-pass latency.
 
 The policy is bounded to 32 candidates per `choice`, is also respected by the
 native `classify` helper, and deliberately disables cross-request fused

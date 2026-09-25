@@ -12,11 +12,11 @@ homepage.workspace = true
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-turbojev = { version = "=0.28.2", path = "../turbojev" }
-turbojev-runtime = { version = "=0.28.2", path = "../turbojev-runtime" }
-turbojev-prompt = { version = "=0.28.2", path = "../turbojev-prompt" }
-turbojev-backend = { version = "=0.28.2", path = "../turbojev-backend" }
-turbojev-engine = { version = "=0.28.2", path = "../turbojev-engine" }
+turbojev = { version = "=0.28.3", path = "../turbojev" }
+turbojev-runtime = { version = "=0.28.3", path = "../turbojev-runtime" }
+turbojev-prompt = { version = "=0.28.3", path = "../turbojev-prompt" }
+turbojev-backend = { version = "=0.28.3", path = "../turbojev-backend" }
+turbojev-engine = { version = "=0.28.3", path = "../turbojev-engine" }
 serde.workspace = true
 serde_json.workspace = true
 wasm-bindgen = "=0.2.100"
