@@ -4,7 +4,7 @@ onmessage=async({data:{id,op,args}})=>{try{
   if(op==="load"){
     const runtimeModule=await import(args.runtimeModuleUrl); runtime=await runtimeModule.createRuntime(); descriptor=await runtime.initialize({model:args.model,...(args.runtimeOptions??{})});
     const wasm=await import(args.wasmModuleUrl); if(typeof wasm.default==="function") await wasm.default(); if(!wasm.WasmEngine) throw new Error("WASM module does not export WasmEngine");
-    engine=new wasm.WasmEngine(runtime,JSON.stringify(descriptor),args.prompt?JSON.stringify(args.prompt):undefined); return reply(id,true,descriptor);
+    engine=new wasm.WasmEngine(runtime,JSON.stringify(descriptor),args.prompt?JSON.stringify(args.prompt):undefined,args.cyclicOrderRobustness===true); return reply(id,true,descriptor);
   }
   if(!engine)throw new Error("ENGINE_NOT_LOADED");
   if(op==="classify")return reply(id,true,JSON.parse(await engine.classify_json(args.state,JSON.stringify(args.options))));

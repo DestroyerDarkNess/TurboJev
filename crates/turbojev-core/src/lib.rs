@@ -24,16 +24,16 @@ pub const CORE_CONTRACT: &str = "turbojev.core.v4";
 
 /// Mitigation for positional bias in unordered `choice` questions.
 ///
-/// By default, `Cyclic` evaluates each cyclic candidate order, maps each score
-/// row back to the caller's stable candidate keys, and averages raw logits. It
-/// costs one model evaluation per candidate. Ordered score levels and `noul`
-/// remain single-pass because their order has semantic meaning.
+/// `None` scores the supplied order once. Opt-in `Cyclic` evaluates each cyclic
+/// candidate order, maps scores back to stable keys, and averages raw logits;
+/// it costs one model evaluation per candidate. Ordered score levels and
+/// `noul` remain single-pass because their order has semantic meaning.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum OrderRobustness {
     /// Score the caller's supplied order once.
+    #[default]
     None,
     /// Average every cyclic rotation for each unordered choice question.
-    #[default]
     Cyclic,
 }
 
@@ -79,7 +79,7 @@ where
             backend,
             calibrator: SoftmaxCalibrator,
             planner: ExecutionPlanner::default(),
-            order_robustness: OrderRobustness::Cyclic,
+            order_robustness: OrderRobustness::None,
         }
     }
 }
@@ -95,7 +95,7 @@ where
             backend,
             calibrator,
             planner: ExecutionPlanner::default(),
-            order_robustness: OrderRobustness::Cyclic,
+            order_robustness: OrderRobustness::None,
         }
     }
 
@@ -573,7 +573,7 @@ where
             backend,
             calibrator: SoftmaxCalibrator,
             planner: ExecutionPlanner::default(),
-            order_robustness: OrderRobustness::Cyclic,
+            order_robustness: OrderRobustness::None,
         }
     }
 }
@@ -589,7 +589,7 @@ where
             backend,
             calibrator,
             planner: ExecutionPlanner::default(),
-            order_robustness: OrderRobustness::Cyclic,
+            order_robustness: OrderRobustness::None,
         }
     }
 
@@ -1227,10 +1227,11 @@ mod tests {
 
     #[test]
     fn produces_typed_choice_from_backend_logits() {
+        assert_eq!(OrderRobustness::default(), OrderRobustness::None);
         let backend = FixtureBackend::builder()
             .with_logits("route", vec![0.1, 4.0, -2.0])
             .build();
-        let engine = TurboJevEngine::new(backend).with_order_robustness(OrderRobustness::None);
+        let engine = TurboJevEngine::new(backend);
         let request = EvaluationRequest {
             model: None,
             state: serde_json::json!({"message": "package missing"}),
@@ -1252,6 +1253,8 @@ mod tests {
             _ => panic!("wrong answer type"),
         }
         assert_eq!(response.usage.generated_tokens, 0);
+        assert_eq!(response.metadata.order_robustness, "none");
+        assert_eq!(response.metadata.order_evaluations, 0);
     }
 
     struct PositionBiasedBackend;

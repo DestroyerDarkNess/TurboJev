@@ -463,6 +463,7 @@ impl WasmEngine {
         runtime: JsValue,
         descriptor_json: &str,
         prompt_profile_json: Option<String>,
+        cyclic_order_robustness: Option<bool>,
     ) -> Result<WasmEngine, JsValue> {
         let descriptor: RuntimeDescriptor =
             serde_json::from_str(descriptor_json).map_err(js_json)?;
@@ -519,7 +520,11 @@ impl WasmEngine {
         Ok(Self {
             engine: TurboJevAsync::new(BrowserBackend::Tokens(backend))
                 .with_planning_policy(PlanningPolicy::Auto)
-                .with_order_robustness(OrderRobustness::Cyclic)
+                .with_order_robustness(if cyclic_order_robustness.unwrap_or(false) {
+                    OrderRobustness::Cyclic
+                } else {
+                    OrderRobustness::None
+                })
                 .with_execution_budget(ExecutionBudget::unlimited()),
         })
     }

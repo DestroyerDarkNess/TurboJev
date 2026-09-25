@@ -6,7 +6,7 @@ export function turbojev_wasm_contract(): string;
  */
 export class WasmEngine {
   free(): void;
-  constructor(runtime: any, descriptor_json: string, prompt_profile_json?: string | null);
+  constructor(runtime: any, descriptor_json: string, prompt_profile_json?: string | null, cyclic_order_robustness?: boolean | null);
   evaluate_json(input: string): Promise<string>;
   classify_json(state: string, options_json: string): Promise<string>;
   evaluate_compatible_json(profile: string, input: string): Promise<string>;
@@ -17,7 +17,7 @@ export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembl
 export interface InitOutput {
   readonly memory: WebAssembly.Memory;
   readonly __wbg_wasmengine_free: (a: number, b: number) => void;
-  readonly wasmengine_new: (a: any, b: number, c: number, d: number, e: number) => [number, number, number];
+  readonly wasmengine_new: (a: any, b: number, c: number, d: number, e: number, f: number) => [number, number, number];
   readonly wasmengine_evaluate_json: (a: number, b: number, c: number) => any;
   readonly wasmengine_classify_json: (a: number, b: number, c: number, d: number, e: number) => any;
   readonly wasmengine_evaluate_compatible_json: (a: number, b: number, c: number, d: number, e: number) => any;

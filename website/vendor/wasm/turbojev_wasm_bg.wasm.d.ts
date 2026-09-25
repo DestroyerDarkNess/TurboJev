@@ -2,7 +2,7 @@
 /* eslint-disable */
 export const memory: WebAssembly.Memory;
 export const __wbg_wasmengine_free: (a: number, b: number) => void;
-export const wasmengine_new: (a: any, b: number, c: number, d: number, e: number) => [number, number, number];
+export const wasmengine_new: (a: any, b: number, c: number, d: number, e: number, f: number) => [number, number, number];
 export const wasmengine_evaluate_json: (a: number, b: number, c: number) => any;
 export const wasmengine_classify_json: (a: number, b: number, c: number, d: number, e: number) => any;
 export const wasmengine_evaluate_compatible_json: (a: number, b: number, c: number, d: number, e: number) => any;

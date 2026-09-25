@@ -21,7 +21,7 @@ const model = () => catalog.find(m => m.id === $('demo-model').value);
 const status = (message,kind='') => { $('demo-status').textContent=message; $('demo-status').dataset.kind=kind; };
 function controls() {
  $('demo-load').disabled=busy||ready; $('demo-run').disabled=busy||!ready;
- $('demo-unload').disabled=busy||!worker; $('demo-model').disabled=busy||ready; $('demo-device').disabled=busy||ready;
+ $('demo-unload').disabled=busy||!worker; $('demo-model').disabled=busy||ready; $('demo-device').disabled=busy||ready;$('demo-cyclic').disabled=busy||ready;
  $('demo-cancel').hidden=!busy; $('demo-preset').disabled=busy; $('demo-file').disabled=busy; $('example-media').disabled=busy;
  $('demo-state').disabled=busy; $('demo-options').disabled=busy;
  document.querySelectorAll('[data-mode]').forEach(b=>b.disabled=busy||ready);
@@ -47,7 +47,7 @@ function preset(){const p=presets[mode][Number($('demo-preset').value)];$('demo-
 function configure() {
  $('demo-model').replaceChildren(...catalog.filter(m=>m.modes.includes(mode)).map(m=>new Option(m.name,m.id)));
  $('demo-preset').replaceChildren(...presets[mode].map((p,i)=>new Option(p[0],i)));
- const text=mode==='text';$('demo-state').hidden=!text;$('state-label').hidden=!text;$('media-panel').hidden=text;
+ const text=mode==='text';$('demo-cyclic').closest('label').hidden=!text;$('demo-state').hidden=!text;$('state-label').hidden=!text;$('media-panel').hidden=text;
  $('demo-file').accept=mode+'/*';$('upload-title').textContent=`Choose ${mode==='image'?'an image':mode==='audio'?'an audio clip':'a video'}`;
  $('example-media').hidden=mode==='video';$('example-media').textContent=mode==='audio'?'Use dog barking sample ↗':'Use tiger photo ↗';
  $('mode-note').textContent=text?'The model scores the candidate answers without generating a response.':mode==='video'?'Four evenly spaced frames are averaged. Audio and motion are not analyzed. Maximum clip length: 60 seconds.':mode==='audio'?'Audio is mixed to mono at 48 kHz. Maximum length: 10 seconds.':'Compare an image with the descriptions above. This model does not follow arbitrary instructions.';
@@ -71,7 +71,7 @@ $('demo-load').addEventListener('click',async()=>{
  worker=new Worker(workerURL,{type:'module'});
  worker.onmessage=({data})=>{if(data.progress){progress(data.progress);return;}const p=pending.get(data.id);if(!p)return;pending.delete(data.id);data.error?p.reject(new Error(data.error)):p.resolve(data.value);};
  worker.onerror=e=>{for(const p of pending.values())p.reject(new Error(e.message||'Worker failed'));pending.clear();};
- try{await call('load',{model:model().id,modality:mode,dtype:model().dtype,family:model().family,device:$('demo-device').value});if(turn!==lifecycle)return;ready=true;$('download-progress').value=100;$('download-file').textContent='Model ready';$('download-percent').textContent='';status('Ready. Edit the input and evaluate.','ready');}
+ try{await call('load',{model:model().id,modality:mode,dtype:model().dtype,family:model().family,device:$('demo-device').value,cyclicOrderRobustness:$('demo-cyclic').checked});if(turn!==lifecycle)return;ready=true;$('download-progress').value=100;$('download-file').textContent='Model ready';$('download-percent').textContent='';status('Ready. Edit the input and evaluate.','ready');}
  catch(e){if(turn===lifecycle){stop();status(e.message,'error');$('download-panel').hidden=true;}}
  finally{if(turn===lifecycle){clearInterval(timer);busy=false;controls();}}
 });
