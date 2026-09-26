@@ -11,7 +11,7 @@ with TurboJev(NativeEngine.load_json(json.dumps({
     # Fixture logits are positional; disable the production default's cyclic
     # order-robustness passes so this smoke test checks the supplied scores.
     'execution': {'orderRobustness': 'none'},
-    'fixtureLogits': {'classification': [0.0, 3.0]},
+    'fixtureLogits': {'route': [0.0, 3.0]},
 }))) as engine:
     response = engine.evaluate({'state': {'message': 'Package smoke test'}, 'questions': {
         'route': {'type': 'choice', 'instructions': 'Choose a route.', 'criteria': {'a': 'A', 'b': 'B'}}
