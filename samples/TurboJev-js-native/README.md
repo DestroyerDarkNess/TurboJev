@@ -3,7 +3,8 @@
 HTML + vanilla JavaScript, Rust/WASM and browser-local model runtimes.
 
 The setup panel lets you choose **Transformers.js (ONNX)** or **llama.cpp
-WASM (GGUF)**. The default GGUF is Qwen3 0.6B Q4_K_M. You can replace the
+WASM (GGUF)**. The default GGUF is Qwen3 0.6B Q8_0, matching the SemIf local
+comparison project. You can replace the
 model field with another ONNX model ID or a direct GGUF URL, respectively.
 The text form sends its question as a typed `choice` instruction; the model is
 not asked to guess the task from the message and answer list alone.

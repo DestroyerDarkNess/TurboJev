@@ -35,7 +35,7 @@ Deploy the entire `website/` directory as the hosting output directory. The site
 
 ## Playground behavior
 
-Text: Qwen2.5 0.5B and Qwen3 0.6B use Transformers.js/ONNX. Text presets send a specific question in a typed `choice` request, shared by either runtime. The additional llama.cpp WASM runtime loads Qwen3 0.6B Q4_K_M as GGUF and can be pointed at other GGUF URLs supported by llama.cpp. CPU uses WASM; GPU requests WebGPU. llama.cpp is loaded from the pinned `@wllama/wllama` 3.6.1 CDN release.
+Text: Qwen2.5 0.5B and Qwen3 0.6B use Transformers.js/ONNX. Text presets send a specific question in a typed `choice` request, shared by either runtime. The additional llama.cpp WASM runtime loads Qwen3 0.6B Q8_0 as GGUF to match the SemIf comparison example, and can be pointed at other GGUF URLs supported by llama.cpp. CPU uses WASM; GPU requests WebGPU. llama.cpp is loaded from the pinned `@wllama/wllama` 3.6.1 CDN release.
 
 Images: CLIP B/32 and B/16 score image–text similarity. SmolVLM 256M and SmolVLM2 256M score answer codes with model-derived token IDs and the model's chat template.
 
