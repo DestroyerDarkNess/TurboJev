@@ -50,6 +50,7 @@ pub enum HostOrderRobustness {
     None,
     #[default]
     Cyclic,
+    Binary,
 }
 
 impl From<HostOrderRobustness> for OrderRobustness {
@@ -57,6 +58,7 @@ impl From<HostOrderRobustness> for OrderRobustness {
         match value {
             HostOrderRobustness::None => OrderRobustness::None,
             HostOrderRobustness::Cyclic => OrderRobustness::Cyclic,
+            HostOrderRobustness::Binary => OrderRobustness::Binary,
         }
     }
 }
@@ -711,6 +713,15 @@ mod tests {
         assert_eq!(
             corrected.execution.order_robustness,
             HostOrderRobustness::Cyclic
+        );
+
+        let binary: NativeLoadOptions = serde_json::from_str(
+            r#"{"model":"model.gguf","execution":{"orderRobustness":"binary"}}"#,
+        )
+        .unwrap();
+        assert_eq!(
+            binary.execution.order_robustness,
+            HostOrderRobustness::Binary
         );
 
         let fast: NativeLoadOptions = serde_json::from_str(

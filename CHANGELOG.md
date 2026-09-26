@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Add an opt-in `orderRobustness: "binary"` strategy that evaluates each choice candidate independently as a yes/no match and normalizes the resulting yes probabilities, matching the one-vs-rest decision pattern used by LLM2Jev.
+
 ## 0.29.0
 
 - Remove the legacy `classify` API from Rust, native, C, Node, Python, .NET, Android, Swift, and browser/WASM bindings. Submit text choices through the canonical typed `evaluate` request like every other decision.

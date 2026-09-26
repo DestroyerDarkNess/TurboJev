@@ -23,9 +23,9 @@ pub const CORE_CONTRACT: &str = "turbojev.core.v4";
 
 /// Mitigation for positional bias in unordered `choice` questions.
 ///
-/// `None` scores the supplied order once. Opt-in `Cyclic` evaluates each cyclic
-/// candidate order, maps scores back to stable keys, and averages raw logits;
-/// it costs one model evaluation per candidate. Ordered score levels and
+/// `None` scores the supplied order once. `Cyclic` averages rotations.
+/// `Binary` asks an independent yes/no question for every choice candidate,
+/// then normalizes those candidate-match scores. Ordered score levels and
 /// `noul` remain single-pass because their order has semantic meaning.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum OrderRobustness {
@@ -34,6 +34,8 @@ pub enum OrderRobustness {
     None,
     /// Average every cyclic rotation for each unordered choice question.
     Cyclic,
+    /// Score every choice candidate independently as a yes/no match.
+    Binary,
 }
 
 impl OrderRobustness {
@@ -43,6 +45,7 @@ impl OrderRobustness {
         match self {
             Self::None => "none",
             Self::Cyclic => "cyclic",
+            Self::Binary => "binary",
         }
     }
 }
@@ -123,6 +126,7 @@ where
                 (output, scores, plan, 0)
             }
             OrderRobustness::Cyclic => self.score_cyclic_choices(&request, &batch)?,
+            OrderRobustness::Binary => self.score_binary_choices(&request, &batch)?,
         };
         let mut response = build_evaluation_response(
             &request,
@@ -281,6 +285,86 @@ where
             })?,
             evaluations,
         ))
+    }
+
+    fn score_binary_choices(
+        &self,
+        request: &EvaluationRequest,
+        batch: &DecisionBatch,
+    ) -> Result<
+        (
+            BackendOutput,
+            HashMap<String, Vec<f32>>,
+            ExecutionPlan,
+            usize,
+        ),
+        Error,
+    > {
+        let choice_ids: HashSet<&str> = request
+            .questions
+            .iter()
+            .filter_map(|(id, question)| {
+                matches!(question, Question::Choice { .. }).then_some(id.as_str())
+            })
+            .collect();
+        let mut transformed = Vec::with_capacity(batch.tasks.len());
+        let mut mappings: Vec<(String, Vec<String>)> = Vec::new();
+        for task in &batch.tasks {
+            if !choice_ids.contains(task.id.as_str()) {
+                transformed.push(task.clone());
+                continue;
+            }
+            if task.candidates.len() > OrderRobustness::MAX_CYCLIC_CANDIDATES {
+                return Err(Error::OrderRobustnessCandidateLimit {
+                    question: task.id.clone(),
+                    actual: task.candidates.len(),
+                    max: OrderRobustness::MAX_CYCLIC_CANDIDATES,
+                });
+            }
+            let mut ids = Vec::with_capacity(task.candidates.len());
+            for (index, candidate) in task.candidates.iter().enumerate() {
+                let id = format!("{}::binary::{index}", task.id);
+                ids.push(id.clone());
+                let criterion = task
+                    .instruction
+                    .as_deref()
+                    .unwrap_or("Select the best matching option");
+                transformed.push(DecisionTask {
+                    id,
+                    intent: DecisionIntent::Criterion,
+                    instruction: Some(format!("{criterion}\nCandidate to assess: {}. Does this candidate satisfy the criterion? Choose yes if it does, otherwise no.", candidate.description)),
+                    candidates: vec![
+                        Candidate { key: "no".into(), description: "No, this candidate does not satisfy the criterion".into() },
+                        Candidate { key: "yes".into(), description: "Yes, this candidate satisfies the criterion".into() },
+                    ],
+                });
+            }
+            mappings.push((task.id.clone(), ids));
+        }
+        let transformed_batch = DecisionBatch {
+            state: batch.state.clone(),
+            tasks: transformed,
+        };
+        let evaluations = mappings.iter().map(|(_, ids)| ids.len()).sum();
+        let (output, mut scores, plan) = self.score_batch(&transformed_batch)?;
+        for (original_id, ids) in mappings {
+            let mut candidate_scores = Vec::with_capacity(ids.len());
+            for id in ids {
+                let binary = scores
+                    .remove(&id)
+                    .ok_or_else(|| Error::MissingBackendScores(id.clone()))?;
+                if binary.len() != 2 {
+                    return Err(Error::CandidateCountMismatch {
+                        question: id,
+                        expected: 2,
+                        actual: binary.len(),
+                    });
+                }
+                candidate_scores.push(binary_yes_log_probability(&binary));
+            }
+            scores.insert(original_id, candidate_scores);
+        }
+        Ok((output, scores, plan, evaluations))
     }
 }
 
@@ -490,6 +574,7 @@ where
                 (output, scores, plan, 0)
             }
             OrderRobustness::Cyclic => self.score_cyclic_choices(&request, &batch).await?,
+            OrderRobustness::Binary => self.score_binary_choices(&request, &batch).await?,
         };
         let mut response = build_evaluation_response(
             &request,
@@ -627,6 +712,86 @@ where
             })?,
             evaluations,
         ))
+    }
+
+    async fn score_binary_choices(
+        &self,
+        request: &EvaluationRequest,
+        batch: &DecisionBatch,
+    ) -> Result<
+        (
+            BackendOutput,
+            HashMap<String, Vec<f32>>,
+            ExecutionPlan,
+            usize,
+        ),
+        Error,
+    > {
+        let choice_ids: HashSet<&str> = request
+            .questions
+            .iter()
+            .filter_map(|(id, question)| {
+                matches!(question, Question::Choice { .. }).then_some(id.as_str())
+            })
+            .collect();
+        let mut transformed = Vec::with_capacity(batch.tasks.len());
+        let mut mappings: Vec<(String, Vec<String>)> = Vec::new();
+        for task in &batch.tasks {
+            if !choice_ids.contains(task.id.as_str()) {
+                transformed.push(task.clone());
+                continue;
+            }
+            if task.candidates.len() > OrderRobustness::MAX_CYCLIC_CANDIDATES {
+                return Err(Error::OrderRobustnessCandidateLimit {
+                    question: task.id.clone(),
+                    actual: task.candidates.len(),
+                    max: OrderRobustness::MAX_CYCLIC_CANDIDATES,
+                });
+            }
+            let mut ids = Vec::with_capacity(task.candidates.len());
+            for (index, candidate) in task.candidates.iter().enumerate() {
+                let id = format!("{}::binary::{index}", task.id);
+                ids.push(id.clone());
+                let criterion = task
+                    .instruction
+                    .as_deref()
+                    .unwrap_or("Select the best matching option");
+                transformed.push(DecisionTask {
+                    id,
+                    intent: DecisionIntent::Criterion,
+                    instruction: Some(format!("{criterion}\nCandidate to assess: {}. Does this candidate satisfy the criterion? Choose yes if it does, otherwise no.", candidate.description)),
+                    candidates: vec![
+                        Candidate { key: "no".into(), description: "No, this candidate does not satisfy the criterion".into() },
+                        Candidate { key: "yes".into(), description: "Yes, this candidate satisfies the criterion".into() },
+                    ],
+                });
+            }
+            mappings.push((task.id.clone(), ids));
+        }
+        let evaluations = mappings.iter().map(|(_, ids)| ids.len()).sum();
+        let transformed_batch = DecisionBatch {
+            state: batch.state.clone(),
+            tasks: transformed,
+        };
+        let (output, mut scores, plan) = self.score_batch(&transformed_batch).await?;
+        for (original_id, ids) in mappings {
+            let mut candidate_scores = Vec::with_capacity(ids.len());
+            for id in ids {
+                let binary = scores
+                    .remove(&id)
+                    .ok_or_else(|| Error::MissingBackendScores(id.clone()))?;
+                if binary.len() != 2 {
+                    return Err(Error::CandidateCountMismatch {
+                        question: id,
+                        expected: 2,
+                        actual: binary.len(),
+                    });
+                }
+                candidate_scores.push(binary_yes_log_probability(&binary));
+            }
+            scores.insert(original_id, candidate_scores);
+        }
+        Ok((output, scores, plan, evaluations))
     }
 
     async fn score_batch(
@@ -777,6 +942,14 @@ fn candidates_for(question: &Question) -> Vec<Candidate> {
             })
             .collect(),
     }
+}
+
+/// Convert a two-way backend score into log P(yes), so the core's outer
+/// softmax produces the same L1-normalized distribution as one-vs-rest scorers.
+fn binary_yes_log_probability(logits: &[f32]) -> f32 {
+    let max = logits[0].max(logits[1]);
+    let log_normalizer = max + ((logits[0] - max).exp() + (logits[1] - max).exp()).ln();
+    logits[1] - log_normalizer
 }
 
 fn index_backend_scores(
@@ -1099,6 +1272,102 @@ mod tests {
         }
         assert_eq!(corrected.metadata.order_robustness, "cyclic");
         assert_eq!(corrected.metadata.order_evaluations, 3);
+    }
+
+    struct CandidateMatchBackend;
+
+    impl ScoringBackend for CandidateMatchBackend {
+        fn name(&self) -> &'static str {
+            "candidate-match-fixture"
+        }
+        fn capabilities(&self) -> turbojev_backend::BackendCapabilities {
+            turbojev_backend::BackendCapabilities::default()
+        }
+        fn score(
+            &self,
+            batch: &DecisionBatch,
+            _plan: ExecutionPlan,
+        ) -> Result<BackendOutput, BackendError> {
+            let scores = batch
+                .tasks
+                .iter()
+                .map(|task| {
+                    let semantic = task
+                        .instruction
+                        .as_deref()
+                        .unwrap_or_default()
+                        .contains("Candidate to assess: option b.");
+                    TaskScores {
+                        id: task.id.clone(),
+                        logits: if semantic {
+                            vec![2.0, 6.0]
+                        } else {
+                            vec![6.0, 2.0]
+                        },
+                    }
+                })
+                .collect();
+            Ok(BackendOutput {
+                model: Some("candidate-match-fixture".into()),
+                scores,
+                metrics: Default::default(),
+            })
+        }
+    }
+
+    impl AsyncScoringBackend for CandidateMatchBackend {
+        fn name(&self) -> &'static str {
+            "candidate-match-fixture"
+        }
+        fn capabilities(&self) -> turbojev_backend::BackendCapabilities {
+            turbojev_backend::BackendCapabilities::default()
+        }
+        fn score_async<'a>(
+            &'a self,
+            batch: &'a DecisionBatch,
+            plan: ExecutionPlan,
+        ) -> turbojev_backend::BackendFuture<'a, Result<BackendOutput, BackendError>> {
+            Box::pin(std::future::ready(ScoringBackend::score(self, batch, plan)))
+        }
+    }
+
+    #[test]
+    fn binary_mode_scores_each_candidate_independently_and_reassembles_choice() {
+        let response = TurboJevEngine::new(CandidateMatchBackend)
+            .with_order_robustness(OrderRobustness::Binary)
+            .evaluate(position_biased_request())
+            .unwrap();
+        match &response.answers["route"] {
+            Answer::Choice { choice, .. } => assert_eq!(choice, "b"),
+            _ => panic!("wrong answer type"),
+        }
+        assert_eq!(response.metadata.order_robustness, "binary");
+        assert_eq!(response.metadata.order_evaluations, 3);
+        if let Answer::Choice { probabilities, .. } = &response.answers["route"] {
+            let sum: f64 = probabilities.values().sum();
+            assert!((sum - 1.0).abs() < 1e-12);
+            assert!(probabilities["b"] > 0.95);
+        }
+    }
+
+    #[test]
+    fn binary_yes_scores_are_l1_normalized_probabilities() {
+        let yes = binary_yes_log_probability(&[0.0, 0.0]);
+        assert!((yes.exp() - 0.5).abs() < 1e-6);
+        let yes = binary_yes_log_probability(&[0.0, 2.0]);
+        assert!((yes.exp() - (2.0f32.exp() / (1.0 + 2.0f32.exp()))).abs() < 1e-6);
+    }
+
+    #[test]
+    fn async_binary_mode_scores_each_candidate_independently() {
+        let engine = TurboJevAsyncEngine::new(CandidateMatchBackend)
+            .with_order_robustness(OrderRobustness::Binary);
+        let response = block_on(engine.evaluate(position_biased_request())).unwrap();
+        match &response.answers["route"] {
+            Answer::Choice { choice, .. } => assert_eq!(choice, "b"),
+            _ => panic!("wrong answer type"),
+        }
+        assert_eq!(response.metadata.order_evaluations, 3);
     }
 
     struct AsyncFixtureBackend;
