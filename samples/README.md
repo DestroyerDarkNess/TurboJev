@@ -4,7 +4,7 @@ Small projects using compiled TurboJev libraries and local inference.
 
 | Project | Interface | Engine |
 |---|---|---|
-| TurboJev-js-native | HTML + vanilla JS decision studio | Rust/WASM + Transformers.js, browser only |
+| TurboJev-js-native | HTML + vanilla JS decision studio | Rust/WASM + Transformers.js (ONNX) or llama.cpp WASM (GGUF) |
 | TurboJev-TS-node | Typed async console application, plus image/video decisions | Node-API + llama.cpp or SmolVLM2 worker |
 | TurboJev-Python | Context-managed Python console application | PyO3 + llama.cpp |
 | TurboJev-csharp-NET | C# `await using` console application, plus image/video decisions | Native C ABI + SmolVLM2 worker |
@@ -158,8 +158,9 @@ prepared library.
 
 ### `TurboJev-js-native`
 
-This example runs in the browser with Rust/WASM and Transformers.js; it does
-not use a native DLL. Its commands are:
+This example runs in the browser with Rust/WASM and lets you select either
+Transformers.js for ONNX models or llama.cpp WASM for GGUF models. It does not
+use a native DLL. Its commands are:
 
 ```sh
 python samples/build.py web
@@ -175,7 +176,8 @@ npm run build
 npm run dev
 ```
 
-Open the local Vite URL, click **Load model**, and then **Evaluate message**.
+Open the local Vite URL, choose the runtime and model, click **Load model**, and
+then **Evaluate message**. The default GGUF example uses Qwen3 0.6B Q4_K_M.
 
 The first build fetches pinned llama.cpp; later builds reuse the compilation cache.
 Provide your own local GGUF with `--model`. Use `--debug` for faster Rust
@@ -205,12 +207,11 @@ python samples/run.py web
 ```
 
 Open the localhost URL printed by Vite. The build installs the pinned local
-wasm-bindgen CLI, compiles the Rust core to WASM, and bundles the browser runtime.
-Click **Load model**, then **Evaluate message**. CPU is the compatible default;
-WebGPU is optional. Model files are downloaded by the browser only after clicking.
-Use an ONNX-compatible model ID, not a GGUF file. Native and browser models use
-different formats. The page has no inference server and does not upload the input
-text. Internet access is needed for the initial model/runtime installation.
+wasm-bindgen CLI, compiles the Rust core to WASM, and prepares both browser
+adapters. Select **Transformers.js** with an ONNX model ID or **llama.cpp** with
+a direct GGUF URL. CPU is the default; WebGPU can be selected explicitly.
+Model files load only after you click **Load model**. Inference runs in the
+browser; the page does not upload the input text.
 
 WebAssembly is architecture independent: it does not need x86/x64 DLLs. `npm run
 build` in the browser project produces a static `dist/` site. Serve it over HTTP;

@@ -1,6 +1,10 @@
 # TurboJev-js-native
 
-HTML + vanilla JavaScript, Rust/WASM and a browser-local ONNX model.
+HTML + vanilla JavaScript, Rust/WASM and browser-local model runtimes.
+
+The setup panel lets you choose **Transformers.js (ONNX)** or **llama.cpp
+WASM (GGUF)**. The default GGUF is Qwen3 0.6B Q4_K_M. You can replace the
+model field with another ONNX model ID or a direct GGUF URL, respectively.
 
 From the repository root:
 
