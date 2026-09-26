@@ -21,7 +21,6 @@ export class TurboJev {
     } }
     async evaluate(request) { return JSON.parse(await this.#call("evaluate", { request: JSON.stringify(request) })); }
     async evaluateCompatible(profile, request) { return JSON.parse(await this.#call("compatible", { profile, request: JSON.stringify(request) })); }
-    async classify(state, options) { return JSON.parse(await this.#call("classify", { state, options: JSON.stringify(options) })); }
     async info() { return JSON.parse(await this.#call("info", {})); }
     async close() { if (this.#closed)
         return; try {

@@ -36,13 +36,6 @@ impl PyNativeEngine {
             .evaluate_compatible_json(profile, request_json)
             .map_err(py_error)
     }
-    fn classify_json(&self, state: &str, options_json: &str) -> PyResult<String> {
-        self.inner
-            .as_ref()
-            .ok_or_else(|| PyRuntimeError::new_err("engine is closed"))?
-            .classify_json(state, options_json)
-            .map_err(py_error)
-    }
     fn info_json(&self) -> PyResult<String> {
         self.inner
             .as_ref()

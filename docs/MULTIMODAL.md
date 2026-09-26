@@ -26,8 +26,7 @@ All bindings use `evaluate` with the same media evidence:
 Use `audio` or `video` for those modalities. The current envelope carries one
 media file plus text, up to 32 MiB of base64 (24 MiB decoded). The selected runtime
 validates base64 and decodes bytes. The core imposes no model, Python, CUDA,
-frame count, audio duration, download or server requirement. `classify` remains
-a string-only convenience API; ordinary structured JSON evidence still works.
+frame count, audio duration, download or server requirement. All decision types, including plain-text choices, use the typed `evaluate` request.
 
 Rust owns validation, planning, normalization, calibration metadata and typed
 responses. Runtime providers own media preprocessing and candidate scoring.

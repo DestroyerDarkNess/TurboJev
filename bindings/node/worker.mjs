@@ -10,5 +10,5 @@ try {
   engine=mod.NativeEngine.open(JSON.stringify(options));
 }catch(e){initError=e;}
 function answer(id,fn){try{if(initError)throw initError;parentPort.postMessage({id,ok:true,value:fn()});}catch(e){parentPort.postMessage({id,ok:false,error:e?.message??String(e)});}}
-parentPort.on("message",({id,op,args})=>{switch(op){case"ready":answer(id,()=>"ok");break;case"evaluate":answer(id,()=>engine.evaluateJson(args.request));break;case"compatible":answer(id,()=>engine.evaluateCompatibleJson(args.profile,args.request));break;case"classify":answer(id,()=>engine.classifyJson(args.state,args.options));break;case"info":answer(id,()=>engine.infoJson());break;case"close":answer(id,()=>{engine?.close();engine=undefined;return"ok";});break;default:answer(id,()=>{throw new Error(`unknown op ${op}`)});}}
+parentPort.on("message",({id,op,args})=>{switch(op){case"ready":answer(id,()=>"ok");break;case"evaluate":answer(id,()=>engine.evaluateJson(args.request));break;case"compatible":answer(id,()=>engine.evaluateCompatibleJson(args.profile,args.request));break;case"info":answer(id,()=>engine.infoJson());break;case"close":answer(id,()=>{engine?.close();engine=undefined;return"ok";});break;default:answer(id,()=>{throw new Error(`unknown op ${op}`)});}}
 );

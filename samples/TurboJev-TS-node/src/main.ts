@@ -78,12 +78,17 @@ if (mediaFlag >= 0) {
     nThreads: 4,
   });
   try {
-    const result = await engine.classify(
-      argumentsAfterModel[0] ?? "My package arrived broken",
-      ["billing", "shipping", "technical", "other"],
-    );
-    console.log(`Department: ${result.choice}`);
-    console.table(Object.entries(result.probabilities).map(([department, probability]) => ({
+    const result = await engine.evaluate({
+      state: { message: argumentsAfterModel[0] ?? "My package arrived broken" },
+      questions: { department: {
+        type: "choice",
+        instructions: "Which department should handle this message?",
+        criteria: { billing: "Payments and refunds", shipping: "Delivery", technical: "Product issue", other: "Other" },
+      } },
+    });
+    const answer = result.answers.department;
+    console.log(`Department: ${answer.choice}`);
+    console.table(Object.entries(answer.probabilities).map(([department, probability]) => ({
       department,
       probability: `${(probability * 100).toFixed(1)}%`,
     })));

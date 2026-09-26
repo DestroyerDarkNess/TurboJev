@@ -13,6 +13,8 @@ with TurboJev(NativeEngine.load_json(json.dumps({
     'execution': {'orderRobustness': 'none'},
     'fixtureLogits': {'classification': [0.0, 3.0]},
 }))) as engine:
-    response = engine.classify('Package smoke test', ['a', 'b'])
-    assert response['choice'] == 'b', response
+    response = engine.evaluate({'state': {'message': 'Package smoke test'}, 'questions': {
+        'route': {'type': 'choice', 'instructions': 'Choose a route.', 'criteria': {'a': 'A', 'b': 'B'}}
+    }})
+    assert response['answers']['route']['choice'] == 'b', response
 print('Native Python package smoke test passed.')

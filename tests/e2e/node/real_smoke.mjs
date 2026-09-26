@@ -8,15 +8,15 @@ const model = resolve(modelPath), nativePath = resolve(addonPath);
 await assert.rejects(TurboJev.load({model: model + ".missing", nativePath}));
 const engine = await TurboJev.load({model: pathToFileURL(model).href, nativePath, nGpuLayers: 0});
 try {
-  const options = ["billing", "shipping", "other"];
+  const request = message => ({ state: { message }, questions: { route: { type: "choice", instructions: "Which team should handle this?", criteria: { billing: "Payments", shipping: "Delivery", other: "Other" } } } });
   const results = await Promise.all(Array.from({length: 3}, () =>
-    engine.classify("Mi paquete llegó roto 📦", options)));
+    engine.evaluate(request("Mi paquete llegó roto 📦"))));
   for (const result of results) {
-    assert.ok(options.includes(result.choice));
-    assert.deepEqual(result, results[0]);
+    assert.ok(["billing", "shipping", "other"].includes(result.answers.route.choice));
+    assert.deepEqual(result.answers, results[0].answers);
   }
-  await assert.rejects(engine.classify("hello", ["only"]));
-  assert.ok(options.includes((await engine.classify("Refund please", options)).choice));
+  await assert.rejects(engine.evaluate({ state: "hello", questions: { route: { type: "choice", instructions: "Choose", criteria: { only: "Only" } } } }));
+  assert.ok(["billing", "shipping", "other"].includes((await engine.evaluate(request("Refund please"))).answers.route.choice));
 } finally {
   await engine.close();
 }

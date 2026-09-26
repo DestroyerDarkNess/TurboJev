@@ -535,18 +535,6 @@ impl WasmEngine {
         let response = self.engine.evaluate(request).await.map_err(core_error)?;
         turbojev::wire::encode_response(&response).map_err(|e| JsValue::from_str(&e.to_string()))
     }
-    pub async fn classify_json(&self, state: &str, options_json: &str) -> Result<String, JsValue> {
-        let options: Vec<String> = serde_json::from_str(options_json).map_err(js_json)?;
-        let result = self
-            .engine
-            .classify(state.to_owned(), options)
-            .await
-            .map_err(core_error)?;
-        serde_json::to_string(
-            &serde_json::json!({"choice":result.choice,"probabilities":result.probabilities}),
-        )
-        .map_err(js_json)
-    }
     pub async fn evaluate_compatible_json(
         &self,
         profile: &str,

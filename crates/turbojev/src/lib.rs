@@ -6,9 +6,7 @@
 //! The facade exposes portable contracts only. Concrete model runtimes live in
 //! separate optional adapter crates and are intentionally not required here.
 
-pub use turbojev_core::{
-    ClassificationResult, Error, OrderRobustness, TurboJevAsyncEngine, TurboJevEngine,
-};
+pub use turbojev_core::{Error, OrderRobustness, TurboJevAsyncEngine, TurboJevEngine};
 
 /// Default engine alias using the softmax calibrator.
 pub type TurboJev<B> = TurboJevEngine<B, turbojev_calibration::SoftmaxCalibrator>;

@@ -14,7 +14,7 @@ reads candidate logits without generating model text or JSON.
 
 Core types are `choice` (selection among options), `noul` (a boolean decision;
 `boolean` is an input alias), and `score` (evaluation with ordered criteria).
-The API provides a simple `classify` operation and a complete `evaluate` operation.
+The public API uses `evaluate` for typed choices, boolean decisions, scores, and media.
 
 ## Architecture and principles
 

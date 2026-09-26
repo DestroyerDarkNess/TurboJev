@@ -47,11 +47,21 @@ if (mediaIndex >= 0) {
 } else {
     // CPU is the default. Set device = "gpu" to request GPU offload explicitly.
     await using var engine = await TurboJevEngine.LoadAsync(new { model = args[0], device = "cpu", nGpuLayers = 0, nThreads = 4 });
-    var json = await engine.ClassifyJsonAsync(args.Length > 1 ? args[1] : "My package arrived broken",
-        ["billing", "shipping", "technical", "other"]);
+    var request = new {
+        state = new { message = args.Length > 1 ? args[1] : "My package arrived broken" },
+        questions = new {
+            department = new {
+                type = "choice",
+                instructions = "Which department should handle this message?",
+                criteria = new { billing = "Payments and refunds", shipping = "Delivery", technical = "Product issue", other = "Other" },
+            },
+        },
+    };
+    var json = await engine.EvaluateJsonAsync(JsonSerializer.Serialize(request));
     using var result = JsonDocument.Parse(json);
-    Console.WriteLine($"Department: {result.RootElement.GetProperty("choice").GetString()}");
-    foreach (var item in result.RootElement.GetProperty("probabilities").EnumerateObject())
+    var answer = result.RootElement.GetProperty("answers").GetProperty("department");
+    Console.WriteLine($"Department: {answer.GetProperty("choice").GetString()}");
+    foreach (var item in answer.GetProperty("probabilities").EnumerateObject())
         Console.WriteLine($"  {item.Name,-12} {item.Value.GetDouble(),6:P1}");
 }
 

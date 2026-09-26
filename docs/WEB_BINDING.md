@@ -58,10 +58,10 @@ const jev = await TurboJevWeb.load({
   execution: { policy: 'auto', maxParallelTasks: 4 },
 });
 
-const result = await jev.classify(
-  'My package never arrived',
-  ['billing', 'shipping', 'support'],
-);
+const result = await jev.evaluate({
+  state: {message: "My package never arrived"},
+  questions: {route: {type: "choice", instructions: "Choose a team", criteria: {billing: "Billing", shipping: "Shipping", support: "Support"}}},
+});
 ```
 
 A runtime module exports `createRuntime(options)` and returns a `BrowserRuntime`.

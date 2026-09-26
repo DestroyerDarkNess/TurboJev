@@ -15,7 +15,6 @@ export class TurboJevWeb {
         worker.terminate();
         throw error;
     } }
-    async classify(state, options) { return this.#call("classify", { state, options }); }
     async evaluate(request) { return this.#call("evaluate", { request }); }
     async evaluateCompatible(profile, request) { return this.#call("compatible", { profile, request }); }
     async info() { return this.#call("info", {}); }

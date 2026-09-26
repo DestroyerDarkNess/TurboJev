@@ -67,7 +67,8 @@ def main():
             probe = copy.deepcopy(request)
             probe["state"] = state
             check("reject_" + label, lambda probe=probe: rejects(lambda: engine.evaluate(probe)))
-        check("reject_one_option", lambda: rejects(lambda: engine.classify("hello", ["only"])))
+        invalid_choice = {"state": "hello", "questions": {"route": {"type": "choice", "instructions": "Choose", "criteria": {"only": "Only"}}}}
+        check("reject_one_option", lambda: rejects(lambda: engine.evaluate(invalid_choice)))
         check("reject_no_questions", lambda: rejects(lambda: engine.evaluate({"state": "hi", "questions": {}})))
         check("recovery_after_errors", lambda: valid(engine.evaluate(request)))
 

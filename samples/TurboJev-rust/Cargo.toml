@@ -15,3 +15,5 @@ native = ["turbojev-runtime-llamacpp/ffi"]
 [dependencies]
 turbojev = { path = "../../crates/turbojev" }
 turbojev-runtime-llamacpp = { path = "../../crates/turbojev-runtime-llamacpp" }
+indexmap = "2"
+serde_json = "1"

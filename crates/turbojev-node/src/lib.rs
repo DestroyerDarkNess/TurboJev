@@ -47,14 +47,6 @@ impl NativeEngine {
             .map_err(map_error)
     }
     #[napi]
-    pub fn classify_json(&self, state: String, options_json: String) -> Result<String> {
-        self.inner
-            .as_ref()
-            .ok_or_else(|| Error::from_reason("ENGINE_CLOSED"))?
-            .classify_json(&state, &options_json)
-            .map_err(map_error)
-    }
-    #[napi]
     pub fn info_json(&self) -> Result<String> {
         self.inner
             .as_ref()

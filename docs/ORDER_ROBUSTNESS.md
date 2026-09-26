@@ -40,7 +40,7 @@ choice costs four evaluations. The default `none` policy scores a four-option
 choice in one backend evaluation.
 
 The policy is bounded to 32 candidates per `choice`, is also respected by the
-native `classify` helper, and deliberately disables cross-request fused
+native evaluation path, and deliberately disables cross-request fused
 execution for that session. It is an explicit robustness-cost tradeoff, not a
 claim of calibrated confidence. Fit or select a calibration profile for the
 same model, prompt, and order policy used in production.
@@ -70,7 +70,7 @@ Python:
 with TurboJev.load(
     "./model.gguf", execution={"orderRobustness": "cyclic"}
 ) as jev:
-    result = jev.classify("My package never arrived", ["billing", "shipping"])
+    result = jev.evaluate({"state": "My package never arrived", "questions": {"route": {"type": "choice", "instructions": "Choose a team", "criteria": {"billing": "Billing", "shipping": "Shipping"}}}})
 ```
 
 C and .NET pass the same load-options JSON object to `tj_engine_open_json` or

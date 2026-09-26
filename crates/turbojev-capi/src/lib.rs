@@ -185,36 +185,6 @@ pub unsafe extern "C" fn tj_engine_evaluate_compatible_json(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn tj_engine_classify_json(
-    engine: *mut tj_engine,
-    state: *const c_char,
-    options_json: *const c_char,
-    out_json: *mut *mut c_char,
-) -> i32 {
-    match catch_unwind(AssertUnwindSafe(|| {
-        let handle = match unsafe { handle_ref(engine) } {
-            Ok(v) => v,
-            Err(c) => return c,
-        };
-        let state = match unsafe { input(state, "state") } {
-            Ok(v) => v,
-            Err(c) => return c,
-        };
-        let options = match unsafe { input(options_json, "options_json") } {
-            Ok(v) => v,
-            Err(c) => return c,
-        };
-        match handle.session.classify_json(state, options) {
-            Ok(v) => write_output(v, out_json),
-            Err(e) => host_error(e),
-        }
-    })) {
-        Ok(code) => code,
-        Err(_) => set_error("PANIC", "panic contained at TurboJev C ABI boundary"),
-    }
-}
-
-#[no_mangle]
 pub unsafe extern "C" fn tj_engine_info_json(
     engine: *mut tj_engine,
     out_json: *mut *mut c_char,

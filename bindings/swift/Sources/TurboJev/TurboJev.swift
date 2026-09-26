@@ -103,16 +103,6 @@ public final class TurboJevEngine {
         }
     }
 
-    public func classify(state: String, optionsJSON: String) throws -> String {
-        try call { engine, out in
-            state.withCString { statePointer in
-                optionsJSON.withCString { optionsPointer in
-                    tj_engine_classify_json(engine, statePointer, optionsPointer, out)
-                }
-            }
-        }
-    }
-
     public func evaluateCompatible(profile: String, requestJSON: String) throws -> String {
         try call { engine, out in
             profile.withCString { profilePointer in

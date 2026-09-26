@@ -530,7 +530,7 @@ Native exports:
 openEngine(optionsJson) -> sessionId
 closeEngine(sessionId)
 evaluateJson(sessionId, requestJson) -> canonical response JSON
-classifyJson(sessionId, state, optionsJson) -> classification JSON
+evaluateJson(sessionId, requestJson) -> evaluation JSON
 evaluateCompatJson(sessionId, profile, requestJson) -> profile response JSON
 engineInfoJson(sessionId) -> backend/capability JSON
 ```
@@ -661,7 +661,7 @@ compatibility semantics.
 ### .NET
 
 The .NET package consumes the stable C ABI through P/Invoke. The managed engine
-MUST schedule open/evaluate/classify/info/close onto one dedicated managed
+MUST schedule open/evaluate/info/close onto one dedicated managed
 thread. Public Task continuations MAY resume anywhere; native handle calls may
 not. The managed layer owns only JSON transport, P/Invoke lifetime and error
 mapping.

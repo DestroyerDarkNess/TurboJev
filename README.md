@@ -53,10 +53,10 @@ browser-only JavaScript example.
 from turbojev import TurboJev
 
 with TurboJev.load("./model.gguf") as jev:
-    result = jev.classify(
-        "My package arrived broken.",
-        ["billing", "shipping", "technical", "other"],
-    )
+    result = jev.evaluate({
+        "state": {"message": "My package arrived broken."},
+        "questions": {"department": {"type": "choice", "instructions": "Which department should handle this?", "criteria": {"billing": "Payments", "shipping": "Delivery", "technical": "Product issue", "other": "Other"}}},
+    })["answers"]["department"]
 
 print(result["choice"])
 print(result["probabilities"])
@@ -125,7 +125,7 @@ questions, enable cyclic order robustness:
 TurboJev evaluates each cyclic option order, maps scores back to the original
 keys, averages the raw logits, and then calibrates the result. The response
 records both the active policy and the actual number of model evaluations.
-The feature applies to `classify` as well as `evaluate`; it deliberately leaves
+The feature applies to choice questions in `evaluate`; it deliberately leaves
 ordered scores and boolean decisions unchanged. Read the [full contract and
 cost model](docs/ORDER_ROBUSTNESS.md).
 

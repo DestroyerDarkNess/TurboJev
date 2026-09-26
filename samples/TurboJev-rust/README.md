@@ -1,6 +1,6 @@
 # TurboJev-rust
 
-Rust with typed classify(), compiled crates and the llama.cpp adapter.
+Rust with typed evaluate(), compiled crates and the llama.cpp adapter.
 
 From the repository root:
 

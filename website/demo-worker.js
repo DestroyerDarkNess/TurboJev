@@ -7,7 +7,7 @@ self.onmessage = async ({ data: { id, op, args } }) => {
       if (!manifestResponse.ok) throw new Error('Demo assets are missing. Run the website build.');
       const manifest = await manifestResponse.json();
       const runtimeModule = args.backend === 'llamacpp'
-        ? await import('https://cdn.jsdelivr.net/npm/@turbojev/runtime-llamacpp-wasm@0.28.6/+esm')
+        ? await import('https://cdn.jsdelivr.net/npm/@turbojev/runtime-llamacpp-wasm@0.29.0/+esm')
         : await import(`./vendor/studio-runtime.js?v=${manifest.runtime}`);
       const { createRuntime } = runtimeModule;
       runtime = await createRuntime();
@@ -17,7 +17,6 @@ self.onmessage = async ({ data: { id, op, args } }) => {
       engine = new wasm.WasmEngine(runtime, JSON.stringify(descriptor), undefined, args.cyclicOrderRobustness === true);
       value = descriptor;
     } else if (!engine) throw new Error('Load a model first.');
-    else if (op === 'classify') value = JSON.parse(await engine.classify_json(args.state, JSON.stringify(args.options)));
     else if (op === 'evaluate') {
       runtime.setMedia?.(args.media);
       try { value = JSON.parse(await engine.evaluate_json(JSON.stringify(args.request))); }

@@ -13,7 +13,6 @@ export class TurboJevWeb {
   #worker:Worker; #id=1; #pending=new Map<number,{resolve:(v:any)=>void,reject:(e:any)=>void}>(); #closed=false;
   private constructor(worker:Worker){this.#worker=worker;worker.onmessage=({data})=>{const p=this.#pending.get(data.id);if(!p)return;this.#pending.delete(data.id);data.ok?p.resolve(data.value):p.reject(new Error(data.error));};worker.onerror=e=>{for(const p of this.#pending.values())p.reject(e);this.#pending.clear();};}
   static async load(options:WebLoadOptions){const worker=new Worker(options.workerUrl??new URL("../worker.js",import.meta.url),{type:"module"});const x=new TurboJevWeb(worker);try{await x.#call("load",options);return x;}catch(error){worker.terminate();throw error;}}
-  async classify(state:string,options:string[]){return this.#call("classify",{state,options});}
   async evaluate(request:Record<string,unknown>){return this.#call("evaluate",{request});}
   async evaluateCompatible(profile:string,request:Record<string,unknown>){return this.#call("compatible",{profile,request});}
   async info(){return this.#call("info",{});}

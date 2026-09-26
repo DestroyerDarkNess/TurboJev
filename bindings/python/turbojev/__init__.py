@@ -1,7 +1,7 @@
 from __future__ import annotations
 import json
 from dataclasses import dataclass
-from typing import Any, Iterable, Literal, Mapping
+from typing import Any, Literal, Mapping
 
 try:
     from ._native import NativeEngine
@@ -57,9 +57,6 @@ class TurboJev:
 
     def evaluate_compatible(self, profile: str, request: Mapping[str, Any]) -> dict[str, Any]:
         return json.loads(self._call("evaluate_compatible_json", profile, json.dumps(request, ensure_ascii=False)))
-
-    def classify(self, state: str, options: Iterable[str]) -> dict[str, Any]:
-        return json.loads(self._call("classify_json", state, json.dumps(list(options), ensure_ascii=False)))
 
     def info(self) -> dict[str, Any]: return json.loads(self._call("info_json"))
 

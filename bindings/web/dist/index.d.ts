@@ -53,7 +53,6 @@ export declare class TurboJevWeb {
     #private;
     private constructor();
     static load(options: WebLoadOptions): Promise<TurboJevWeb>;
-    classify(state: string, options: string[]): Promise<unknown>;
     evaluate(request: Record<string, unknown>): Promise<unknown>;
     evaluateCompatible(profile: string, request: Record<string, unknown>): Promise<unknown>;
     info(): Promise<unknown>;

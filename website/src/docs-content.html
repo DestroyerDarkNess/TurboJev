@@ -7,7 +7,7 @@ python samples/run.py web</code></pre></div></div></section>
 
       <section id="architecture" class="doc-section searchable"><div class="doc-section-body"><h2>Portable semantics, replaceable runtimes.</h2><p>The core receives state and typed questions. An adapter renders the model's real prompt and tokenizer, returns candidate scores, and lets TurboJev validate, normalize, calibrate, and build the response.</p><div class="architecture-diagram"><div><span>state</span><small>text · JSON · media</small></div><i>→</i><div><span>typed questions</span><small>choice · noul · score</small></div><i>→</i><div class="diagram-core"><span>TurboJev core</span><small>plan · score · respond</small></div><i>→</i><div><span>EvaluationResponse</span><small>same shape everywhere</small></div></div><div class="two-column-notes"><div><h3>Core owns</h3><ul><li>Schema and candidate validation</li><li>Execution planning and calibration metadata</li><li>Typed response construction</li><li>Order robustness and parity contracts</li></ul></div><div><h3>Adapters own</h3><ul><li>Chat template and tokenizer</li><li>GGUF, Transformers.js, or custom runtime</li><li>Media preprocessing and hardware</li><li>Process, file, and network boundaries</li></ul></div></div></div></section>
 
-      <section id="api" class="doc-section searchable"><div class="doc-section-body"><h2>Three operations cover the decision layer.</h2><div class="api-table"><div class="api-row api-head"><span>Operation</span><span>Use it for</span><span>Returns</span></div><div class="api-row"><code>classify(state, options)</code><span>One fast text choice</span><strong>choice + probabilities</strong></div><div class="api-row"><code>evaluate(request)</code><span>Several typed questions or media</span><strong>EvaluationResponse</strong></div><div class="api-row"><code>evaluateCompatible(profile, request)</code><span>Versioned compatibility contracts</span><strong>profile response</strong></div></div><div class="code-block"><div class="code-toolbar"><span>Canonical request</span><button class="copy-button" type="button">Copy</button></div><pre><code>{
+      <section id="api" class="doc-section searchable"><div class="doc-section-body"><h2>One operation covers the decision layer.</h2><div class="api-table"><div class="api-row api-head"><span>Operation</span><span>Use it for</span><span>Returns</span></div><div class="api-row"><code>evaluate(request)</code><span>Several typed questions or media</span><strong>EvaluationResponse</strong></div><div class="api-row"><code>evaluateCompatible(profile, request)</code><span>Versioned compatibility contracts</span><strong>profile response</strong></div></div><div class="code-block"><div class="code-toolbar"><span>Canonical request</span><button class="copy-button" type="button">Copy</button></div><pre><code>{
   "state": {"message": "My package arrived broken."},
   "questions": {
     "route": {
@@ -31,8 +31,16 @@ fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
     let renderer = ReferencePromptRenderer::new(ReferencePromptConfig::new(
         "my-app-v1", "Choose exactly one allowed code.", "Which team should handle this?"));
     let engine = TurboJev::new(reference_backend(renderer, runtime));
-    let answer = engine.classify("My package arrived broken.", ["billing", "shipping", "technical", "other"])?;
-    println!("{}", answer.choice);
+    let request = turbojev::schema::EvaluationRequest {
+        model: None,
+        state: serde_json::json!({"message": "My package arrived broken."}),
+        questions: [("department".to_owned(), turbojev::schema::Question::choice(
+            "Which department should handle this?",
+            [("billing".to_owned(), "Payments".to_owned()), ("shipping".to_owned(), "Delivery".to_owned()), ("other".to_owned(), "Other".to_owned())].into_iter().collect(),
+        ))].into_iter().collect(),
+    };
+    let answer = engine.evaluate(request)?;
+    println!("{:?}", answer.answers);
     Ok(())
 }</code></pre></div><p class="source-link">Runnable source: <a href="https://github.com/DestroyerDarkNess/TurboJev/blob/main/samples/TurboJev-rust/src/main.rs" target="_blank" rel="noreferrer">samples/TurboJev-rust ↗</a></p></article>
 
@@ -40,10 +48,8 @@ fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
 
 const jev = await TurboJev.load({model: "./model.gguf", nGpuLayers: 0, nThreads: 4});
 try {
-  const result = await jev.classify("My package arrived broken.", [
-    "billing", "shipping", "technical", "other",
-  ]);
-  console.log(result.choice, result.probabilities);
+  const result = await jev.evaluate({state: {message: "My package arrived broken."}, questions: {department: {type: "choice", instructions: "Which department should handle this?", criteria: {billing: "Payments", shipping: "Delivery", technical: "Product issue", other: "Other"}}}});
+  console.log(result.answers.department);
 } finally {
   await jev.close();
 }</code></pre></div><p class="source-link">Text and media source: <a href="https://github.com/DestroyerDarkNess/TurboJev/blob/main/samples/TurboJev-TS-node/src/main.ts" target="_blank" rel="noreferrer">TS sample ↗</a></p><h2>Evaluate an image</h2><p>Use a multimodal runtime rather than a text-only GGUF model. The sample runner configures the SmolVLM2 worker for you.</p><div class="code-block"><div class="code-toolbar"><span>Terminal</span><button class="copy-button" type="button">Copy</button></div><pre><code>python samples/multimodal/setup.py vision
@@ -68,10 +74,10 @@ console.log(result.answers.scene);</code></pre></div></article>
         <article id="python" class="language-card"><div class="language-heading"><div><h3>Python</h3><p>A context-managed API that returns ordinary dictionaries.</p></div><a href="https://pypi.org/project/turbojev/" target="_blank" rel="noreferrer">PyPI ↗</a></div><div class="install-line"><code>pip install turbojev</code><button class="copy-button" type="button">Copy</button></div><div class="code-block"><div class="code-toolbar"><span>decision.py</span><button class="copy-button" type="button">Copy</button></div><pre><code>from turbojev import TurboJev
 
 with TurboJev.load("./model.gguf", n_gpu_layers=0) as jev:
-    result = jev.classify(
-        "My package arrived broken.",
-        ["billing", "shipping", "technical", "other"],
-    )
+    result = jev.evaluate({
+        "state": {"message": "My package arrived broken."},
+        "questions": {"department": {"type": "choice", "instructions": "Which department should handle this?", "criteria": {"billing": "Payments", "shipping": "Delivery", "technical": "Product issue", "other": "Other"}}},
+    })["answers"]["department"]
 
 print(result["choice"])
 print(result["probabilities"])</code></pre></div><p class="source-link">Runnable source: <a href="https://github.com/DestroyerDarkNess/TurboJev/blob/main/samples/TurboJev-Python/main.py" target="_blank" rel="noreferrer">samples/TurboJev-Python ↗</a></p></article>
@@ -83,8 +89,8 @@ int main(void) {
     tj_engine *engine = NULL;
     if (tj_engine_open_json("{\"model\":\"./model.gguf\"}", &amp;engine) != TJ_OK) return 1;
     char *json = NULL;
-    int rc = tj_engine_classify_json(engine, "My package arrived broken.",
-        "[\"billing\",\"shipping\",\"technical\",\"other\"]", &amp;json);
+    const char *request = "{\"state\":{\"message\":\"My package arrived broken.\"},\"questions\":{\"route\":{\"type\":\"choice\",\"instructions\":\"Which team?\",\"criteria\":{\"billing\":\"Payments\",\"shipping\":\"Delivery\"}}}}";
+    int rc = tj_engine_evaluate_json(engine, request, &amp;json);
     if (rc == TJ_OK) { puts(json); tj_string_free(json); }
     tj_engine_close(engine);
     return rc != TJ_OK;
@@ -95,9 +101,8 @@ int main(void) {
 await using var jev = await TurboJevEngine.LoadAsync(new {
     model = "./model.gguf", nGpuLayers = 0, nThreads = 4
 });
-var json = await jev.ClassifyJsonAsync(
-    "My package arrived broken",
-    ["billing", "shipping", "technical", "other"]);
+var request = new { state = new { message = "My package arrived broken" }, questions = new { department = new { type = "choice", instructions = "Which department?", criteria = new { billing = "Payments", shipping = "Delivery", technical = "Product issue", other = "Other" } } } };
+var json = await jev.EvaluateJsonAsync(JsonSerializer.Serialize(request));
 Console.WriteLine(json);</code></pre></div><p class="source-link">The package carries win-x86, win-x64, and win-arm64 native assets.</p><h2>Evaluate an image</h2><p>Prepare the SmolVLM2 worker and run the complete .NET sample. The runner supplies the worker environment and native library paths.</p><div class="code-block"><div class="code-toolbar"><span>Terminal</span><button class="copy-button" type="button">Copy</button></div><pre><code>python samples/multimodal/setup.py vision
 python samples/run.py csharp --media photo.jpg --modality image --question &quot;What animal is shown?&quot; --options &quot;A cat&quot; &quot;A dog&quot;</code></pre></div><p>With a multimodal engine, serialize the portable request and call <code>EvaluateJsonAsync</code>:</p><div class="code-block"><div class="code-toolbar"><span>Media.cs</span><button class="copy-button" type="button">Copy</button></div><pre><code>using System.Text.Json;
 
@@ -127,25 +132,19 @@ const jev = await TurboJevWeb.load({
   runtimeModuleUrl: "/my-runtime.js",
   runtimeOptions: {device: "wasm", dtype: "q4"},
 });
-const result = await jev.classify("My package never arrived",
-  ["billing", "shipping", "support"]);
-console.log(result.choice);
+const result = await jev.evaluate({state: {message: "My package never arrived"}, questions: {route: {type: "choice", instructions: "Choose a team", criteria: {billing: "Billing", shipping: "Shipping", support: "Support"}}}});
+console.log(result.answers.route);
 await jev.close();</code></pre></div><p class="source-link">Included vanilla studio: <code>python samples/build.py web</code>.</p><h2>Try the browser playground</h2><p>The <a href="../index.html#playground">playground</a> runs real inference in a worker. Select the input type before loading a model. Unload the current model to change it. Downloads start only when you press Load.</p><h3>Model selection</h3><div class="table-scroll"><table class="model-table"><thead><tr><th>Input</th><th>Models</th><th>Method</th></tr></thead><tbody><tr><td>Text · ONNX</td><td>Qwen2.5 0.5B, Qwen3 0.6B</td><td>Transformers.js candidate-token logits</td></tr><tr><td>Text · GGUF</td><td>Qwen3 0.6B Q4_K_M</td><td>llama.cpp WASM constrained-answer log-probabilities</td></tr><tr><td>Image</td><td>CLIP B/32, CLIP B/16</td><td>Image–text similarity</td></tr><tr><td>Image</td><td>SmolVLM 256M, SmolVLM2 256M</td><td>Vision-language candidate scoring</td></tr><tr><td>Audio</td><td>CLAP HTSAT</td><td>Sound–text similarity</td></tr><tr><td>Video</td><td>CLIP or SmolVLM2</td><td>Average logits from four sampled frames</td></tr></tbody></table></div><h3>Media limits</h3><p>Files must be at most 24 MB. Audio is mixed to mono at 48 kHz and must be 10 seconds or shorter. Video must be 60 seconds or shorter; this demo scores four frames independently, without motion analysis or the audio track. Small models can return incorrect decisions.</p><h3>Runtime assets</h3><p>The package supplies the worker bridge. Host a compiled TurboJev WASM module and an adapter that implements the runtime contract at the URLs above. The repository includes a Transformers.js adapter and a llama.cpp WASM adapter for text-only GGUF inference. Select the llama.cpp runtime and a GGUF model in the playground; the browser loads the model locally from Hugging Face. The <code>samples/build.py web</code> command prepares the TurboJev WASM assets.</p><h3>Troubleshooting</h3><p>If WebGPU is unavailable, select CPU. If initialization runs out of memory, unload the model and try a smaller GGUF quantization. Cancel terminates the worker. Model downloads may take several minutes and require enough browser memory.</p></article>
 
         <article id="mobile" class="language-card mobile-card"><div class="language-heading"><div><h3>Android + Swift</h3><p>Both mobile bindings call the C ABI on a dedicated affinity thread.</p></div><a href="https://github.com/DestroyerDarkNess/TurboJev/tree/main/bindings" target="_blank" rel="noreferrer">sources ↗</a></div><div class="mobile-snippets"><div class="code-block"><div class="code-toolbar"><span>Kotlin</span><button class="copy-button" type="button">Copy</button></div><pre><code>val jev = TurboJev.load(
     JSONObject("{\"model\":\"app/model.gguf\"}")
 ).join()
-val result = jev.classify(
-    "My package arrived broken",
-    listOf("billing", "shipping", "technical", "other")
-).join()
+val request = """{"state":{"message":"My package arrived broken"},"questions":{"department":{"type":"choice","instructions":"Which department?","criteria":{"billing":"Payments","shipping":"Delivery"}}}}"""
+val result = jev.evaluate(request).join()
 jev.close()</code></pre></div><div class="code-block"><div class="code-toolbar"><span>Swift</span><button class="copy-button" type="button">Copy</button></div><pre><code>let jev = try TurboJevEngine(
     optionsJSON: #"{"model":"model.gguf"}"#
 )
-let json = try jev.classify(
-    state: "My package arrived broken",
-    optionsJSON: #"["billing","shipping","technical","other"]"#
-)
+let json = try jev.evaluate(#"{"state":{"message":"My package arrived broken"},"questions":{"department":{"type":"choice","instructions":"Which department?","criteria":{"billing":"Payments","shipping":"Delivery"}}}}"#)
 try jev.close()</code></pre></div></div></article>
       </div></section>
 

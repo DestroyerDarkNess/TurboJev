@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 0.29.0
+
+- Remove the legacy `classify` API from Rust, native, C, Node, Python, .NET, Android, Swift, and browser/WASM bindings. Submit text choices through the canonical typed `evaluate` request like every other decision.
+- Update samples, smoke tests, website documentation, and package versions for the breaking API change.
+
 ## 0.28.6
 
 - Make CPU the native runtime default and add an explicit `device: "cpu" | "gpu"` load option across bindings.

@@ -45,7 +45,7 @@ pub struct ReferencePromptConfig {
     pub profile: String,
     /// System instruction telling the checkpoint to emit exactly one option code.
     pub system_instruction: String,
-    /// Instruction used only by the ergonomic `classify` / `BestMatch` intent.
+    /// Instruction used by the internal best-match prompt criterion.
     pub best_match_instruction: String,
 }
 

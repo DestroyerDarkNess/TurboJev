@@ -13,7 +13,7 @@ use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
-use turbojev::{ClassificationResult, OrderRobustness, TurboJevEngine};
+use turbojev::{OrderRobustness, TurboJevEngine};
 use turbojev_backend::{FusedBackendCapabilities, FusedScoringBackend};
 use turbojev_backend_mock::FixtureBackend;
 use turbojev_compat::{self, WireProfile};
@@ -470,24 +470,6 @@ impl NativeSession {
             .map_err(|e| HostError::Compatibility(e.to_string()))
     }
 
-    /// Classify one state against arbitrary user options.
-    pub fn classify_json(&self, state: &str, options_json: &str) -> Result<String, HostError> {
-        let options: Vec<String> = serde_json::from_str(options_json).map_err(HostError::Json)?;
-        let result = match &self.engine {
-            NativeEngine::Worker(engine) => engine
-                .classify(state.to_owned(), options)
-                .map_err(|e| HostError::Core(e.to_string()))?,
-            NativeEngine::Fixture(engine) => engine
-                .classify(state.to_owned(), options)
-                .map_err(|e| HostError::Core(e.to_string()))?,
-            #[cfg(feature = "llamacpp")]
-            NativeEngine::Llama(engine) => engine
-                .classify(state.to_owned(), options)
-                .map_err(|e| HostError::Core(e.to_string()))?,
-        };
-        serde_json::to_string(&classification_wire(result)).map_err(HostError::Json)
-    }
-
     /// Stable metadata used by bindings for diagnostics.
     pub fn info_json(&self) -> Result<String, HostError> {
         serde_json::to_string(&serde_json::json!({
@@ -579,19 +561,6 @@ fn execution_budget(options: HostExecutionOptions) -> ExecutionBudget {
         budget = budget.with_memory_budget_bytes(value);
     }
     budget
-}
-
-#[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
-struct ClassificationWire {
-    choice: String,
-    probabilities: indexmap::IndexMap<String, f64>,
-}
-fn classification_wire(result: ClassificationResult) -> ClassificationWire {
-    ClassificationWire {
-        choice: result.choice,
-        probabilities: result.probabilities,
-    }
 }
 
 fn parse_profile(value: &str) -> Result<WireProfile, HostError> {

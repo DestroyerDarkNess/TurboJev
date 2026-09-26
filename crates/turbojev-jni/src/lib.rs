@@ -118,31 +118,6 @@ pub extern "system" fn Java_ai_turbojev_NativeBridge_compatible(
     }
 }
 #[no_mangle]
-pub extern "system" fn Java_ai_turbojev_NativeBridge_classify(
-    mut env: JNIEnv<'_>,
-    _: JClass<'_>,
-    raw: jlong,
-    s: JString<'_>,
-    o: JString<'_>,
-) -> jstring {
-    let Some(s) = read(&mut env, s) else {
-        return std::ptr::null_mut();
-    };
-    let Some(o) = read(&mut env, o) else {
-        return std::ptr::null_mut();
-    };
-    let Some(x) = (unsafe { h(&mut env, raw) }) else {
-        return std::ptr::null_mut();
-    };
-    match x.session.classify_json(&s, &o) {
-        Ok(v) => out(&mut env, v),
-        Err(e) => {
-            throw(&mut env, e.to_string());
-            std::ptr::null_mut()
-        }
-    }
-}
-#[no_mangle]
 pub extern "system" fn Java_ai_turbojev_NativeBridge_close(
     mut env: JNIEnv<'_>,
     _: JClass<'_>,

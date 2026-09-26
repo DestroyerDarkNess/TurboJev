@@ -220,11 +220,11 @@ export function turbojev_wasm_contract() {
 }
 
 function __wbg_adapter_22(arg0, arg1, arg2) {
-    wasm.closure62_externref_shim(arg0, arg1, arg2);
+    wasm.closure57_externref_shim(arg0, arg1, arg2);
 }
 
-function __wbg_adapter_42(arg0, arg1, arg2, arg3) {
-    wasm.closure196_externref_shim(arg0, arg1, arg2, arg3);
+function __wbg_adapter_41(arg0, arg1, arg2, arg3) {
+    wasm.closure191_externref_shim(arg0, arg1, arg2, arg3);
 }
 
 const WasmEngineFinalization = (typeof FinalizationRegistry === 'undefined')
@@ -273,19 +273,6 @@ export class WasmEngine {
         const ptr0 = passStringToWasm0(input, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
         const len0 = WASM_VECTOR_LEN;
         const ret = wasm.wasmengine_evaluate_json(this.__wbg_ptr, ptr0, len0);
-        return ret;
-    }
-    /**
-     * @param {string} state
-     * @param {string} options_json
-     * @returns {Promise<string>}
-     */
-    classify_json(state, options_json) {
-        const ptr0 = passStringToWasm0(state, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
-        const len0 = WASM_VECTOR_LEN;
-        const ptr1 = passStringToWasm0(options_json, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
-        const len1 = WASM_VECTOR_LEN;
-        const ret = wasm.wasmengine_classify_json(this.__wbg_ptr, ptr0, len0, ptr1, len1);
         return ret;
     }
     /**
@@ -370,7 +357,7 @@ function __wbg_get_imports() {
                 const a = state0.a;
                 state0.a = 0;
                 try {
-                    return __wbg_adapter_42(a, state0.b, arg0, arg1);
+                    return __wbg_adapter_41(a, state0.b, arg0, arg1);
                 } finally {
                     state0.a = a;
                 }
@@ -429,8 +416,8 @@ function __wbg_get_imports() {
         const ret = false;
         return ret;
     };
-    imports.wbg.__wbindgen_closure_wrapper287 = function(arg0, arg1, arg2) {
-        const ret = makeMutClosure(arg0, arg1, 63, __wbg_adapter_22);
+    imports.wbg.__wbindgen_closure_wrapper268 = function(arg0, arg1, arg2) {
+        const ret = makeMutClosure(arg0, arg1, 58, __wbg_adapter_22);
         return ret;
     };
     imports.wbg.__wbindgen_debug_string = function(arg0, arg1) {

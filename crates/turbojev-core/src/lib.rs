@@ -6,7 +6,6 @@
 use std::collections::{HashMap, HashSet};
 
 use indexmap::IndexMap;
-use serde_json::Value;
 use thiserror::Error;
 use turbojev_backend::{
     AsyncScoringBackend, BackendError, BackendOutput, Candidate, DecisionBatch, DecisionIntent,
@@ -46,15 +45,6 @@ impl OrderRobustness {
             Self::Cyclic => "cyclic",
         }
     }
-}
-
-/// Convenience result returned by [`TurboJevEngine::classify`].
-#[derive(Debug, Clone, PartialEq)]
-pub struct ClassificationResult {
-    /// Selected option.
-    pub choice: String,
-    /// Conditional distribution across supplied options.
-    pub probabilities: IndexMap<String, f64>,
 }
 
 /// Backend-neutral TurboJev engine.
@@ -146,90 +136,6 @@ where
         response.metadata.order_robustness = self.order_robustness.name().to_owned();
         response.metadata.order_evaluations = order_evaluations;
         Ok(response)
-    }
-
-    /// Ergonomic single-choice helper similar to classifier SDKs.
-    ///
-    /// This helper carries a semantic `BestMatch` intent rather than injecting
-    /// an English instruction. The selected model adapter owns the human-language
-    /// rendering for that intent.
-    pub fn classify<I, S>(
-        &self,
-        state: impl Into<String>,
-        options: I,
-    ) -> Result<ClassificationResult, Error>
-    where
-        I: IntoIterator<Item = S>,
-        S: Into<String>,
-    {
-        let options: Vec<String> = options.into_iter().map(Into::into).collect();
-        if options.len() < 2 {
-            return Err(Error::InvalidClassification(
-                "classification requires at least two options".to_owned(),
-            ));
-        }
-        if options.iter().any(|option| option.trim().is_empty()) {
-            return Err(Error::InvalidClassification(
-                "classification options must not be empty".to_owned(),
-            ));
-        }
-        let unique: HashSet<&str> = options.iter().map(String::as_str).collect();
-        if unique.len() != options.len() {
-            return Err(Error::InvalidClassification(
-                "classification options must be unique".to_owned(),
-            ));
-        }
-
-        let candidates: Vec<Candidate> = options
-            .into_iter()
-            .map(|option| Candidate {
-                key: option.clone(),
-                description: option,
-            })
-            .collect();
-        let task = DecisionTask {
-            id: "classification".to_owned(),
-            intent: DecisionIntent::BestMatch,
-            instruction: None,
-            candidates,
-        };
-        let batch = DecisionBatch {
-            state: Value::String(state.into()),
-            tasks: vec![task.clone()],
-        };
-
-        let logits = match self.order_robustness {
-            OrderRobustness::None => {
-                let (_backend_output, indexed_scores, _plan) = self.score_batch(&batch)?;
-                indexed_scores
-                    .get(&task.id)
-                    .cloned()
-                    .ok_or_else(|| Error::MissingBackendScores(task.id.clone()))?
-            }
-            OrderRobustness::Cyclic => self.score_cyclic_task(&batch, &task)?,
-        };
-        if logits.len() != task.candidates.len() {
-            return Err(Error::CandidateCountMismatch {
-                question: task.id.clone(),
-                expected: task.candidates.len(),
-                actual: logits.len(),
-            });
-        }
-        let probabilities = self.calibrator.probabilities(&logits)?;
-        let winner = argmax(&probabilities).ok_or_else(|| {
-            Error::Internal("classification produced no probabilities".to_owned())
-        })?;
-        let distribution = task
-            .candidates
-            .iter()
-            .zip(&probabilities)
-            .map(|(candidate, probability)| (candidate.key.clone(), *probability))
-            .collect();
-
-        Ok(ClassificationResult {
-            choice: task.candidates[winner].key.clone(),
-            probabilities: distribution,
-        })
     }
 
     fn score_batch(
@@ -375,49 +281,6 @@ where
             })?,
             evaluations,
         ))
-    }
-
-    fn score_cyclic_task(
-        &self,
-        batch: &DecisionBatch,
-        task: &DecisionTask,
-    ) -> Result<Vec<f32>, Error> {
-        let count = task.candidates.len();
-        if count > OrderRobustness::MAX_CYCLIC_CANDIDATES {
-            return Err(Error::OrderRobustnessCandidateLimit {
-                question: task.id.clone(),
-                actual: count,
-                max: OrderRobustness::MAX_CYCLIC_CANDIDATES,
-            });
-        }
-
-        let mut total = vec![0.0f32; count];
-        for rotation in 0..count {
-            let mut rotated = task.clone();
-            rotated.candidates.rotate_left(rotation);
-            let rotated_batch = DecisionBatch {
-                state: batch.state.clone(),
-                tasks: vec![rotated],
-            };
-            let (_output, scores, _plan) = self.score_batch(&rotated_batch)?;
-            let logits = scores
-                .get(&task.id)
-                .ok_or_else(|| Error::MissingBackendScores(task.id.clone()))?;
-            if logits.len() != count {
-                return Err(Error::CandidateCountMismatch {
-                    question: task.id.clone(),
-                    expected: count,
-                    actual: logits.len(),
-                });
-            }
-            for (position, value) in logits.iter().enumerate() {
-                total[(position + rotation) % count] += *value;
-            }
-        }
-        for value in &mut total {
-            *value /= count as f32;
-        }
-        Ok(total)
     }
 }
 
@@ -642,30 +505,6 @@ where
         Ok(response)
     }
 
-    /// Ergonomic async single-choice helper.
-    pub async fn classify<I, S>(
-        &self,
-        state: impl Into<String>,
-        options: I,
-    ) -> Result<ClassificationResult, Error>
-    where
-        I: IntoIterator<Item = S>,
-        S: Into<String>,
-    {
-        let (batch, task) = compile_classification(state.into(), options)?;
-        let indexed_scores = match self.order_robustness {
-            OrderRobustness::None => {
-                let (_output, scores, _plan) = self.score_batch(&batch).await?;
-                scores
-            }
-            OrderRobustness::Cyclic => {
-                let logits = self.score_cyclic_task(&batch, &task).await?;
-                HashMap::from([(task.id.clone(), logits)])
-            }
-        };
-        build_classification_result(&task, &indexed_scores, &self.calibrator)
-    }
-
     async fn score_cyclic_choices(
         &self,
         request: &EvaluationRequest,
@@ -790,48 +629,6 @@ where
         ))
     }
 
-    async fn score_cyclic_task(
-        &self,
-        batch: &DecisionBatch,
-        task: &DecisionTask,
-    ) -> Result<Vec<f32>, Error> {
-        let count = task.candidates.len();
-        if count > OrderRobustness::MAX_CYCLIC_CANDIDATES {
-            return Err(Error::OrderRobustnessCandidateLimit {
-                question: task.id.clone(),
-                actual: count,
-                max: OrderRobustness::MAX_CYCLIC_CANDIDATES,
-            });
-        }
-        let mut total = vec![0.0f32; count];
-        for rotation in 0..count {
-            let mut rotated = task.clone();
-            rotated.candidates.rotate_left(rotation);
-            let rotated_batch = DecisionBatch {
-                state: batch.state.clone(),
-                tasks: vec![rotated],
-            };
-            let (_output, scores, _plan) = self.score_batch(&rotated_batch).await?;
-            let logits = scores
-                .get(&task.id)
-                .ok_or_else(|| Error::MissingBackendScores(task.id.clone()))?;
-            if logits.len() != count {
-                return Err(Error::CandidateCountMismatch {
-                    question: task.id.clone(),
-                    expected: count,
-                    actual: logits.len(),
-                });
-            }
-            for (position, value) in logits.iter().enumerate() {
-                total[(position + rotation) % count] += *value;
-            }
-        }
-        for value in &mut total {
-            *value /= count as f32;
-        }
-        Ok(total)
-    }
-
     async fn score_batch(
         &self,
         batch: &DecisionBatch,
@@ -928,83 +725,6 @@ fn execution_metadata(plan: ExecutionPlan) -> ExecutionMetadata {
         }
         .to_owned(),
     }
-}
-
-fn compile_classification<I, S>(
-    state: String,
-    options: I,
-) -> Result<(DecisionBatch, DecisionTask), Error>
-where
-    I: IntoIterator<Item = S>,
-    S: Into<String>,
-{
-    let options: Vec<String> = options.into_iter().map(Into::into).collect();
-    if options.len() < 2 {
-        return Err(Error::InvalidClassification(
-            "classification requires at least two options".to_owned(),
-        ));
-    }
-    if options.iter().any(|option| option.trim().is_empty()) {
-        return Err(Error::InvalidClassification(
-            "classification options must not be empty".to_owned(),
-        ));
-    }
-    let unique: HashSet<&str> = options.iter().map(String::as_str).collect();
-    if unique.len() != options.len() {
-        return Err(Error::InvalidClassification(
-            "classification options must be unique".to_owned(),
-        ));
-    }
-
-    let candidates = options
-        .into_iter()
-        .map(|option| Candidate {
-            key: option.clone(),
-            description: option,
-        })
-        .collect();
-    let task = DecisionTask {
-        id: "classification".to_owned(),
-        intent: DecisionIntent::BestMatch,
-        instruction: None,
-        candidates,
-    };
-    let batch = DecisionBatch {
-        state: Value::String(state),
-        tasks: vec![task.clone()],
-    };
-    Ok((batch, task))
-}
-
-fn build_classification_result<C: Calibrator>(
-    task: &DecisionTask,
-    indexed_scores: &HashMap<String, Vec<f32>>,
-    calibrator: &C,
-) -> Result<ClassificationResult, Error> {
-    let logits = indexed_scores
-        .get(&task.id)
-        .ok_or_else(|| Error::MissingBackendScores(task.id.clone()))?;
-    if logits.len() != task.candidates.len() {
-        return Err(Error::CandidateCountMismatch {
-            question: task.id.clone(),
-            expected: task.candidates.len(),
-            actual: logits.len(),
-        });
-    }
-    let probabilities = calibrator.probabilities(logits)?;
-    let winner = argmax(&probabilities)
-        .ok_or_else(|| Error::Internal("classification produced no probabilities".to_owned()))?;
-    let distribution = task
-        .candidates
-        .iter()
-        .zip(&probabilities)
-        .map(|(candidate, probability)| (candidate.key.clone(), *probability))
-        .collect();
-
-    Ok(ClassificationResult {
-        choice: task.candidates[winner].key.clone(),
-        probabilities: distribution,
-    })
 }
 
 /// Compile a validated public request into the exact semantic decision batch used by inference.
@@ -1195,9 +915,6 @@ pub enum Error {
         expected: usize,
         actual: usize,
     },
-    /// Invalid convenience-classification input.
-    #[error("invalid classification request: {0}")]
-    InvalidClassification(String),
     /// Cyclic order correction would exceed its bounded inference cost.
     #[error(
         "order robustness for question {question:?} has {actual} candidates; maximum is {max}"
@@ -1362,7 +1079,7 @@ mod tests {
     }
 
     #[test]
-    fn cyclic_order_robustness_cancels_position_bias_for_evaluate_and_classify() {
+    fn cyclic_order_robustness_cancels_position_bias_for_evaluate() {
         let baseline = TurboJevEngine::new(PositionBiasedBackend)
             .with_order_robustness(OrderRobustness::None)
             .evaluate(position_biased_request())
@@ -1372,22 +1089,16 @@ mod tests {
             _ => panic!("wrong answer type"),
         }
 
-        let engine = TurboJevEngine::new(PositionBiasedBackend)
-            .with_order_robustness(OrderRobustness::Cyclic);
-        let corrected = engine.evaluate(position_biased_request()).unwrap();
+        let corrected = TurboJevEngine::new(PositionBiasedBackend)
+            .with_order_robustness(OrderRobustness::Cyclic)
+            .evaluate(position_biased_request())
+            .unwrap();
         match &corrected.answers["route"] {
             Answer::Choice { choice, .. } => assert_eq!(choice, "b"),
             _ => panic!("wrong answer type"),
         }
         assert_eq!(corrected.metadata.order_robustness, "cyclic");
         assert_eq!(corrected.metadata.order_evaluations, 3);
-        assert_eq!(
-            engine
-                .classify("route this", ["a", "b", "c"])
-                .unwrap()
-                .choice,
-            "b"
-        );
     }
 
     struct AsyncFixtureBackend;
@@ -1444,38 +1155,42 @@ mod tests {
     }
 
     #[test]
-    fn async_engine_uses_same_typed_decision_contract() {
+    fn async_engine_uses_typed_decision_contract() {
         let engine = TurboJevAsyncEngine::new(AsyncFixtureBackend)
             .with_order_robustness(OrderRobustness::None);
-        let result = block_on(engine.classify("hola", ["uno", "dos", "tres"]))
-            .expect("async classification should succeed");
-        assert_eq!(result.choice, "tres");
+        let result = block_on(engine.evaluate(position_biased_request()))
+            .expect("async evaluation should succeed");
+        match &result.answers["route"] {
+            Answer::Choice { choice, .. } => assert_eq!(choice, "c"),
+            _ => panic!("wrong answer type"),
+        }
     }
 
     #[test]
     fn async_cyclic_order_robustness_is_invariant_to_candidate_rotation() {
-        let engine = TurboJevAsyncEngine::new(PositionBiasedBackend)
-            .with_order_robustness(OrderRobustness::Cyclic);
-        let baseline = block_on(engine.classify("route", ["a", "b", "c"])).unwrap();
-        assert_eq!(baseline.choice, "b");
-        for options in [["b", "c", "a"], ["c", "a", "b"]] {
-            let rotated = block_on(engine.classify("route", options)).unwrap();
-            assert_eq!(rotated.choice, baseline.choice);
-            for (candidate, expected) in &baseline.probabilities {
-                let actual = rotated.probabilities[candidate];
-                assert!((actual - expected).abs() < 1e-6);
-            }
+        let result = block_on(
+            TurboJevAsyncEngine::new(PositionBiasedBackend)
+                .with_order_robustness(OrderRobustness::Cyclic)
+                .evaluate(position_biased_request()),
+        )
+        .unwrap();
+        match &result.answers["route"] {
+            Answer::Choice { choice, .. } => assert_eq!(choice, "b"),
+            _ => panic!("wrong answer type"),
         }
     }
 
     #[test]
     fn reference_policy_remains_available() {
         let backend = FixtureBackend::builder()
-            .with_logits("classification", vec![2.0, 1.0])
+            .with_logits("route", vec![2.0, 1.0, 0.0])
             .build();
         let engine = TurboJevEngine::new(backend).with_planning_policy(PlanningPolicy::Reference);
-        let result = engine.classify("hola", ["si", "no"]).unwrap();
-        assert_eq!(result.choice, "si");
+        let result = engine.evaluate(position_biased_request()).unwrap();
+        match &result.answers["route"] {
+            Answer::Choice { choice, .. } => assert_eq!(choice, "a"),
+            _ => panic!("wrong answer type"),
+        }
     }
 
     #[test]

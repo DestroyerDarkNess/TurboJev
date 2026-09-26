@@ -7,7 +7,6 @@ onmessage=async({data:{id,op,args}})=>{try{
     engine=new wasm.WasmEngine(runtime,JSON.stringify(descriptor),args.prompt?JSON.stringify(args.prompt):undefined,args.cyclicOrderRobustness===true); return reply(id,true,descriptor);
   }
   if(!engine)throw new Error("ENGINE_NOT_LOADED");
-  if(op==="classify")return reply(id,true,JSON.parse(await engine.classify_json(args.state,JSON.stringify(args.options))));
   if(op==="evaluate")return reply(id,true,JSON.parse(await engine.evaluate_json(JSON.stringify(args.request))));
   if(op==="compatible")return reply(id,true,JSON.parse(await engine.evaluate_compatible_json(args.profile,JSON.stringify(args.request))));
   if(op==="info")return reply(id,true,descriptor);

@@ -1,4 +1,8 @@
-use turbojev::TurboJev;
+use indexmap::IndexMap;
+use turbojev::{
+    schema::{EvaluationRequest, Question},
+    TurboJev,
+};
 use turbojev_runtime_llamacpp::{
     ffi::{FfiLlamaCpp, NativeConfig},
     reference_backend, ReferencePromptConfig, ReferencePromptRenderer,
@@ -24,10 +28,40 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         "Which department should handle this message?",
     ));
     let engine = TurboJev::new(reference_backend(renderer, runtime));
-    let answer = engine.classify(text, ["billing", "shipping", "technical", "other"])?;
-    println!("Department: {}", answer.choice);
-    for (label, probability) in answer.probabilities {
-        println!("  {label:12} {:5.1}%", probability * 100.0);
+    let criteria = [
+        ("billing", "Payments and refunds"),
+        ("shipping", "Delivery"),
+        ("technical", "Product issue"),
+        ("other", "Other"),
+    ]
+    .into_iter()
+    .map(|(key, value)| (key.to_owned(), value.to_owned()))
+    .collect::<IndexMap<_, _>>();
+    let request = EvaluationRequest {
+        model: None,
+        state: serde_json::json!({"message": text}),
+        questions: [(
+            "department".to_owned(),
+            Question::choice("Which department should handle this message?", criteria),
+        )]
+        .into_iter()
+        .collect(),
+    };
+    let response = engine.evaluate(request)?;
+    let answer = response
+        .answers
+        .get("department")
+        .expect("department answer");
+    if let turbojev::schema::Answer::Choice {
+        choice,
+        probabilities,
+        ..
+    } = answer
+    {
+        println!("Department: {choice}");
+        for (label, probability) in probabilities {
+            println!("  {label:12} {:5.1}%", probability * 100.0);
+        }
     }
     Ok(())
 }

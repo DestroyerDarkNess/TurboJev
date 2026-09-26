@@ -23,9 +23,14 @@ const engine = await TurboJevWeb.load({
   },
 });
 
-const result = await engine.classify('My package arrived broken', [
-  'billing', 'shipping', 'technical', 'other',
-]);
+const result = await engine.evaluate({
+  state: { message: 'My package arrived broken' },
+  questions: { department: {
+    type: 'choice',
+    instructions: 'Which department should handle this message?',
+    criteria: { billing: 'Billing', shipping: 'Shipping', technical: 'Technical', other: 'Other' },
+  } },
+});
 await engine.close();
 ```
 

@@ -30,9 +30,5 @@ export interface LoadOptions {
     fixtureLogits?: Record<string, number[]>;
     nativePath?: string;
 }
-export interface ClassificationResult {
-    choice: string;
-    probabilities: Record<string, number>;
-}
 export type EvaluationRequest = Record<string, unknown>;
 export type EvaluationResponse = Record<string, unknown>;

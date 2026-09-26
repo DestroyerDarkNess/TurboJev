@@ -5,7 +5,6 @@ class FakeNative:
     def load_json(options): return FakeNative()
     def evaluate_json(self, request): return json.dumps({"answers": {"ok": {"type":"noul","noul":0.8}}})
     def evaluate_compatible_json(self, profile, request): return json.dumps({"profile": profile})
-    def classify_json(self, state, options): return json.dumps({"choice": json.loads(options)[-1], "probabilities": {}})
     def info_json(self): return json.dumps({"runtime":"fixture"})
     def close(self): pass
 
@@ -30,5 +29,6 @@ def test_cpu_is_the_default_and_gpu_is_explicit():
 
 def test_wrapper_roundtrip():
     jev = TurboJev.load("fixture://test")
-    assert jev.classify("x", ["a", "b"])["choice"] == "b"
+    response = jev.evaluate({"state": {"message": "x"}, "questions": {"route": {"type": "choice", "instructions": "Choose", "criteria": {"a": "A", "b": "B"}}}})
+    assert "answers" in response
     assert jev.info()["runtime"] == "fixture"
