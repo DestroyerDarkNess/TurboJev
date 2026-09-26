@@ -206,11 +206,11 @@ function Publish-NpmPackage {
     param([string]$NpmCommand, [string]$PackagePath)
     $manifest = Get-Content -Raw (Join-Path $PackagePath 'package.json') | ConvertFrom-Json
     $packageVersion = "$($manifest.name)@$($manifest.version)"
-    $publishedVersion = & $NpmCommand view $packageVersion version 2>$null
+    $publishedVersion = & $NpmCommand view $packageVersion version --prefer-online 2>$null
     if ($LASTEXITCODE -ne 0) {
         # A package may exist but be hidden by npm's package visibility setting.
         & $NpmCommand access set status=public $manifest.name 2>$null | Out-Null
-        $publishedVersion = & $NpmCommand view $packageVersion version 2>$null
+        $publishedVersion = & $NpmCommand view $packageVersion version --prefer-online 2>$null
     }
     if ($LASTEXITCODE -eq 0 -and $publishedVersion.Trim() -eq $manifest.version) {
         Write-Host "Already published: $packageVersion"
@@ -220,7 +220,7 @@ function Publish-NpmPackage {
     & $NpmCommand access set status=public $manifest.name 2>$null | Out-Null
     $visible = $false
     for ($attempt = 1; $attempt -le 12; $attempt++) {
-        $publishedVersion = & $NpmCommand view $packageVersion version 2>$null
+        $publishedVersion = & $NpmCommand view $packageVersion version --prefer-online 2>$null
         if ($LASTEXITCODE -eq 0 -and $publishedVersion.Trim() -eq $manifest.version) {
             $visible = $true
             break
