@@ -28,7 +28,7 @@ $("load").onclick = async () => {
     const model = $("model").value.trim();
     engine = await TurboJevWeb.load({
       model: llama ? "Qwen/Qwen3-0.6B-GGUF" : model,
-      runtimeModuleUrl: llama ? "https://cdn.jsdelivr.net/npm/@turbojev/runtime-llamacpp-wasm@0.28.6/src/index.js" : "/vendor/runtime.js",
+      runtimeModuleUrl: llama ? "https://cdn.jsdelivr.net/npm/@turbojev/runtime-llamacpp-wasm@0.28.6/+esm" : "/vendor/runtime.js",
       wasmModuleUrl: "/vendor/wasm/turbojev_wasm.js",
       runtimeOptions: {device: $("device").value, dtype: "q4", ...(llama ? {modality: "text", modelUrl: model, modelLabel: "Qwen3 0.6B Q4_K_M"} : {})},
     });

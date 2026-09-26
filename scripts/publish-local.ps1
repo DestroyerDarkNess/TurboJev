@@ -205,18 +205,23 @@ function Build-NativeRuntime {
 function Publish-NpmPackage {
     param([string]$NpmCommand, [string]$PackagePath)
     $manifest = Get-Content -Raw (Join-Path $PackagePath 'package.json') | ConvertFrom-Json
-    $uri = 'https://registry.npmjs.org/' + [uri]::EscapeDataString($manifest.name) + '/' + $manifest.version
-    try {
-        $published = Invoke-RestMethod $uri
-        if ($published.version -eq $manifest.version) {
-            Write-Host "Already published: $($manifest.name)@$($manifest.version)"
-            return
-        }
+    $packageVersion = "$($manifest.name)@$($manifest.version)"
+    $publishedVersion = & $NpmCommand view $packageVersion version 2>$null
+    if ($LASTEXITCODE -ne 0) {
+        # A package may exist but be hidden by npm's package visibility setting.
+        & $NpmCommand access set status=public $manifest.name 2>$null | Out-Null
+        $publishedVersion = & $NpmCommand view $packageVersion version 2>$null
     }
-    catch {
-        if ([int]$_.Exception.Response.StatusCode -ne 404) { throw }
+    if ($LASTEXITCODE -eq 0 -and $publishedVersion.Trim() -eq $manifest.version) {
+        Write-Host "Already published: $packageVersion"
+        return
     }
     Invoke-Tool $NpmCommand @('publish', '--access', 'public') $PackagePath
+    & $NpmCommand access set status=public $manifest.name 2>$null | Out-Null
+    $publishedVersion = & $NpmCommand view $packageVersion version 2>$null
+    if ($LASTEXITCODE -ne 0 -or $publishedVersion.Trim() -ne $manifest.version) {
+        throw "npm did not make $packageVersion visible after publishing. Check package access and registry status."
+    }
 }
 
 function Publish-Wasm {
