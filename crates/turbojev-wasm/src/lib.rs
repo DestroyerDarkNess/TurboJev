@@ -270,7 +270,13 @@ impl PromptRenderer for BrowserRenderer {
         let options = document
             .options
             .iter()
-            .map(|option| format!("{}. {}", option.code, option.description))
+            .map(|option| {
+                if option.key == option.description {
+                    format!("{}. {}", option.code, option.description)
+                } else {
+                    format!("{}. {}: {}", option.code, option.key, option.description)
+                }
+            })
             .collect::<Vec<_>>()
             .join("\n");
         let codes = document

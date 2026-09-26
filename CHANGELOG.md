@@ -3,6 +3,7 @@
 ## Unreleased
 
 - Fix the native GGUF scoring boundary by evaluating the model's actual Jinja chat template with `enable_thinking=false`, rather than the legacy template-family approximation. This preserves Qwen3's closed reasoning prefix before candidate logits are read.
+- Render native choices as explicit labeled options and include both each option key and description. This matches the direct WASM/SemIf prompt structure instead of asking the model to interpret opaque codes inside a JSON array.
 - Keep native choice scoring single-pass by default; cyclic robustness remains opt-in. Remove the unvalidated experimental binary policy.
 - Include the Jinja runtime library in native packages and invalidate cached native builds when shim sources change.
 

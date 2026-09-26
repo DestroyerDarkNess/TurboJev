@@ -79,9 +79,14 @@ export async function createRuntime() {
         const labels = Array.from({ length: candidates.length }, (_, i) => String.fromCharCode(65 + i));
         const isBestMatch = String(task.intent).toLowerCase() === 'bestmatch';
         const criterion = task.instruction || (isBestMatch ? 'Choose the option that best matches the state.' : 'Choose the correct option.');
-        const optionsText = candidates.map((candidate, i) => `${labels[i]}. ${candidate.description || candidate.key}`).join('\n');
+        const optionsText = candidates.map((candidate, i) => {
+          const meaning = candidate.description && candidate.description !== candidate.key
+            ? `${candidate.key}: ${candidate.description}`
+            : candidate.description || candidate.key;
+          return `${labels[i]}. ${meaning}`;
+        }).join('\n');
         const messages = [
-          { role: 'system', content: 'Make the requested decision from the supplied state. Follow the output format exactly.' },
+          { role: 'system', content: 'Apply the supplied criterion to the supplied evidence. Choose exactly one listed option. Respond only with its listed letter, with no explanation or reasoning.' },
           { role: 'user', content: `State:\n${typeof batch.state === 'string' ? batch.state : JSON.stringify(batch.state)}\n\nQuestion:\n${criterion}\n\nAllowed options:\n${optionsText}\n\nReply with exactly one option letter: ${labels.join(', ')}.` },
         ];
         const grammar = `root ::= ${labels.map(label => `"${label}"`).join(' | ')}`;

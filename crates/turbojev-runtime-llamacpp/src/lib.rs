@@ -64,7 +64,7 @@ impl ReferencePromptConfig {
     }
 }
 
-/// Deterministic JSON renderer used by the llama.cpp reference/reuse paths.
+/// Deterministic labeled-choice renderer used by the llama.cpp reference/reuse paths.
 ///
 /// It preserves caller evidence and criterion text without translation. Only
 /// the adapter-owned control instructions come from [`ReferencePromptConfig`].
@@ -104,23 +104,40 @@ impl PromptRenderer for ReferencePromptRenderer {
             PromptCriterion::UserText(text) => text.clone(),
             PromptCriterion::BestMatch => self.config.best_match_instruction.clone(),
         };
-        let options: Vec<serde_json::Value> = document
+        let evidence = match &document.evidence {
+            serde_json::Value::String(text) => text.clone(),
+            value => serde_json::to_string_pretty(value)
+                .map_err(|error| PromptError::Renderer(error.to_string()))?,
+        };
+        let options = document
             .options
             .iter()
             .map(|option| {
-                serde_json::json!({
-                    "code": &option.code,
-                    "description": &option.description,
-                })
+                let meaning = if option.key == option.description {
+                    option.description.clone()
+                } else {
+                    format!("{}: {}", option.key, option.description)
+                };
+                format!("{}. {}", option.code, meaning)
             })
-            .collect();
-        let payload = serde_json::json!({
-            "evidence": &document.evidence,
-            "criterion": criterion,
-            "options": options,
-        });
-        let user = serde_json::to_string(&payload)
-            .map_err(|error| PromptError::Renderer(error.to_string()))?;
+            .collect::<Vec<_>>()
+            .join("\n");
+        let codes = document
+            .options
+            .iter()
+            .map(|option| option.code.as_str())
+            .collect::<Vec<_>>()
+            .join(", ");
+        let label = if document.options.iter().all(|option| {
+            option.code.len() == 1 && option.code.bytes().all(|byte| byte.is_ascii_alphabetic())
+        }) {
+            "letter"
+        } else {
+            "code"
+        };
+        let user = format!(
+            "State:\n{evidence}\n\nQuestion:\n{criterion}\n\nAllowed options:\n{options}\n\nReply with exactly one option {label} from: {codes}."
+        );
         Ok(RenderedMessages {
             system: Some(self.config.system_instruction.clone()),
             user,

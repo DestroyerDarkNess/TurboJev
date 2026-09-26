@@ -174,10 +174,10 @@ impl Default for HostPromptProfile {
 }
 
 fn default_profile() -> String {
-    "generic-decision-en-v1".to_owned()
+    "generic-decision-en-v2".to_owned()
 }
 fn default_system_instruction() -> String {
-    "Apply the supplied criterion to the supplied evidence. Reply with exactly one allowed option code and no explanation.".to_owned()
+    "Apply the supplied criterion to the supplied evidence. Choose exactly one listed option. Respond only with its listed letter or code, with no explanation or reasoning.".to_owned()
 }
 fn default_best_match_instruction() -> String {
     "Choose the allowed option that best matches the supplied evidence.".to_owned()
