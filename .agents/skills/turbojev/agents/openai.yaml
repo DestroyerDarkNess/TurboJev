@@ -1,0 +1,4 @@
+interface:
+  display_name: "TurboJev"
+  short_description: "Install, integrate, and use TurboJev"
+  default_prompt: "Use the TurboJev skill to help with this integration."
