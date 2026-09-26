@@ -9,9 +9,9 @@ repository.workspace = true
 homepage.workspace = true
 
 [dependencies]
-turbojev-backend = { version = "=0.29.0", path = "../turbojev-backend" }
-turbojev-prompt = { version = "=0.29.0", path = "../turbojev-prompt" }
-turbojev-tokenizer = { version = "=0.29.0", path = "../turbojev-tokenizer" }
+turbojev-backend = { version = "=0.29.1", path = "../turbojev-backend" }
+turbojev-prompt = { version = "=0.29.1", path = "../turbojev-prompt" }
+turbojev-tokenizer = { version = "=0.29.1", path = "../turbojev-tokenizer" }
 thiserror.workspace = true
 serde_json.workspace = true
 

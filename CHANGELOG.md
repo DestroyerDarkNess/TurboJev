@@ -7,6 +7,10 @@
 - Keep native choice scoring single-pass by default; cyclic robustness remains opt-in. Remove the unvalidated experimental binary policy.
 - Include the Jinja runtime library in native packages and invalidate cached native builds when shim sources change.
 
+## 0.29.1
+
+- Align native GGUF choice prompts with direct labeled scoring to improve parity across runtimes.
+
 ## 0.29.0
 
 - Remove the legacy `classify` API from Rust, native, C, Node, Python, .NET, Android, Swift, and browser/WASM bindings. Submit text choices through the canonical typed `evaluate` request like every other decision.

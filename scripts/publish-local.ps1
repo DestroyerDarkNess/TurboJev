@@ -155,14 +155,20 @@ function Build-NativeRuntime {
         $vsInstall = (& $vswhere -latest -products "*" -requires Microsoft.VisualStudio.Component.VC.Tools.ARM64 -property installationPath).Trim()
         if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($vsInstall)) { throw "Visual Studio ARM64 C++ tools were not found." }
         $vcvars = Join-Path $vsInstall "VC/Auxiliary/Build/vcvarsall.bat"
-        $clang = Join-Path $vsInstall "VC/Tools/Llvm/bin/clang-cl.exe"
-        if (-not (Test-Path -LiteralPath $clang)) { throw "Visual Studio clang-cl was not found: $clang" }
+        $vsClang = Join-Path $vsInstall "VC/Tools/Llvm/bin/clang-cl.exe"
+        $systemClang = Join-Path $env:ProgramFiles "LLVM/bin/clang-cl.exe"
+        $clang = if (Test-Path -LiteralPath $systemClang) { $systemClang } else { $vsClang }
+        if (-not (Test-Path -LiteralPath $clang)) { throw "clang-cl was not found at $systemClang or $vsClang." }
+        $clangVersion = (& $clang --version | Select-Object -First 1)
+        if ($clangVersion -notmatch 'clang version (\d+)' -or [int]$Matches[1] -lt 22) {
+            throw "Windows ARM64 llama.cpp builds require clang-cl 22 or newer; found '$clangVersion'."
+        }
         $environmentLines = & $env:ComSpec /d /s /c ('"{0}" x64_arm64 > nul && set' -f $vcvars)
         if ($LASTEXITCODE -ne 0) { throw "vcvarsall failed to configure the ARM64 compiler environment." }
         foreach ($line in $environmentLines) {
             if ($line -match '^([^=]+)=(.*)$') { [Environment]::SetEnvironmentVariable($matches[1], $matches[2], "Process") }
         }
-        $buildDirectory = Join-Path $Root "artifacts/llama-build/$rid-clang"
+        $buildDirectory = Join-Path $Root "artifacts/llama-build/$rid-llvm22"
         $cmakeArguments += @(
             "-G", "Ninja",
             "-DCMAKE_C_COMPILER=$clang",

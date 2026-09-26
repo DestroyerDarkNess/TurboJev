@@ -8,7 +8,7 @@ repository.workspace = true
 description = "Model-agnostic decision execution engine for TurboJev"
 
 [dependencies]
-turbojev-backend = { version = "=0.29.0", path = "../turbojev-backend" }
+turbojev-backend = { version = "=0.29.1", path = "../turbojev-backend" }
 
 [lints]
 workspace = true

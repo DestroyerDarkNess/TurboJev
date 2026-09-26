@@ -13,16 +13,16 @@ default = []
 llamacpp = ["dep:turbojev-runtime-llamacpp", "turbojev-runtime-llamacpp/ffi"]
 
 [dependencies]
-turbojev = { version = "=0.29.0", path = "../turbojev" }
-turbojev-schema = { version = "=0.29.0", path = "../turbojev-schema" }
-turbojev-wire = { version = "=0.29.0", path = "../turbojev-wire" }
-turbojev-compat = { version = "=0.29.0", path = "../turbojev-compat" }
-turbojev-engine = { version = "=0.29.0", path = "../turbojev-engine" }
-turbojev-backend = { version = "=0.29.0", path = "../turbojev-backend" }
-turbojev-backend-mock = { version = "=0.29.0", path = "../turbojev-backend-mock" }
-turbojev-runtime = { version = "=0.29.0", path = "../turbojev-runtime" }
-turbojev-runtime-qualification = { version = "=0.29.0", path = "../turbojev-runtime-qualification" }
-turbojev-runtime-llamacpp = { version = "=0.29.0", path = "../turbojev-runtime-llamacpp", optional = true }
+turbojev = { version = "=0.29.1", path = "../turbojev" }
+turbojev-schema = { version = "=0.29.1", path = "../turbojev-schema" }
+turbojev-wire = { version = "=0.29.1", path = "../turbojev-wire" }
+turbojev-compat = { version = "=0.29.1", path = "../turbojev-compat" }
+turbojev-engine = { version = "=0.29.1", path = "../turbojev-engine" }
+turbojev-backend = { version = "=0.29.1", path = "../turbojev-backend" }
+turbojev-backend-mock = { version = "=0.29.1", path = "../turbojev-backend-mock" }
+turbojev-runtime = { version = "=0.29.1", path = "../turbojev-runtime" }
+turbojev-runtime-qualification = { version = "=0.29.1", path = "../turbojev-runtime-qualification" }
+turbojev-runtime-llamacpp = { version = "=0.29.1", path = "../turbojev-runtime-llamacpp", optional = true }
 serde.workspace = true
 serde_json.workspace = true
 thiserror.workspace = true

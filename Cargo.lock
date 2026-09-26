@@ -545,7 +545,7 @@ dependencies = [
 
 [[package]]
 name = "turbojev"
-version = "0.29.0"
+version = "0.29.1"
 dependencies = [
  "indexmap",
  "serde_json",
@@ -576,7 +576,7 @@ dependencies = [
 
 [[package]]
 name = "turbojev-backend"
-version = "0.29.0"
+version = "0.29.1"
 dependencies = [
  "serde",
  "serde_json",
@@ -585,7 +585,7 @@ dependencies = [
 
 [[package]]
 name = "turbojev-backend-custom"
-version = "0.29.0"
+version = "0.29.1"
 dependencies = [
  "serde_json",
  "turbojev-backend",
@@ -593,7 +593,7 @@ dependencies = [
 
 [[package]]
 name = "turbojev-backend-mock"
-version = "0.29.0"
+version = "0.29.1"
 dependencies = [
  "indexmap",
  "serde_json",
@@ -602,7 +602,7 @@ dependencies = [
 
 [[package]]
 name = "turbojev-benchmark"
-version = "0.29.0"
+version = "0.29.1"
 dependencies = [
  "serde",
  "serde_json",
@@ -613,7 +613,7 @@ dependencies = [
 
 [[package]]
 name = "turbojev-calibrate"
-version = "0.29.0"
+version = "0.29.1"
 dependencies = [
  "serde_json",
  "turbojev-calibration",
@@ -621,7 +621,7 @@ dependencies = [
 
 [[package]]
 name = "turbojev-calibration"
-version = "0.29.0"
+version = "0.29.1"
 dependencies = [
  "serde",
  "thiserror 2.0.11",
@@ -629,14 +629,14 @@ dependencies = [
 
 [[package]]
 name = "turbojev-capi"
-version = "0.29.0"
+version = "0.29.1"
 dependencies = [
  "turbojev-host-native",
 ]
 
 [[package]]
 name = "turbojev-compat"
-version = "0.29.0"
+version = "0.29.1"
 dependencies = [
  "indexmap",
  "serde_json",
@@ -646,7 +646,7 @@ dependencies = [
 
 [[package]]
 name = "turbojev-conformance"
-version = "0.29.0"
+version = "0.29.1"
 dependencies = [
  "indexmap",
  "serde",
@@ -656,7 +656,7 @@ dependencies = [
 
 [[package]]
 name = "turbojev-core"
-version = "0.29.0"
+version = "0.29.1"
 dependencies = [
  "indexmap",
  "serde_json",
@@ -670,7 +670,7 @@ dependencies = [
 
 [[package]]
 name = "turbojev-engine"
-version = "0.29.0"
+version = "0.29.1"
 dependencies = [
  "serde_json",
  "turbojev-backend",
@@ -678,7 +678,7 @@ dependencies = [
 
 [[package]]
 name = "turbojev-host-native"
-version = "0.29.0"
+version = "0.29.1"
 dependencies = [
  "indexmap",
  "serde",
@@ -698,7 +698,7 @@ dependencies = [
 
 [[package]]
 name = "turbojev-jni"
-version = "0.29.0"
+version = "0.29.1"
 dependencies = [
  "jni",
  "turbojev-host-native",
@@ -706,7 +706,7 @@ dependencies = [
 
 [[package]]
 name = "turbojev-model"
-version = "0.29.0"
+version = "0.29.1"
 dependencies = [
  "serde",
  "serde_json",
@@ -715,7 +715,7 @@ dependencies = [
 
 [[package]]
 name = "turbojev-node"
-version = "0.29.0"
+version = "0.29.1"
 dependencies = [
  "napi",
  "napi-build",
@@ -725,7 +725,7 @@ dependencies = [
 
 [[package]]
 name = "turbojev-projection"
-version = "0.29.0"
+version = "0.29.1"
 dependencies = [
  "serde",
  "thiserror 2.0.11",
@@ -733,7 +733,7 @@ dependencies = [
 
 [[package]]
 name = "turbojev-prompt"
-version = "0.29.0"
+version = "0.29.1"
 dependencies = [
  "serde",
  "serde_json",
@@ -743,7 +743,7 @@ dependencies = [
 
 [[package]]
 name = "turbojev-python"
-version = "0.29.0"
+version = "0.29.1"
 dependencies = [
  "pyo3",
  "turbojev-host-native",
@@ -751,7 +751,7 @@ dependencies = [
 
 [[package]]
 name = "turbojev-runtime"
-version = "0.29.0"
+version = "0.29.1"
 dependencies = [
  "serde_json",
  "thiserror 2.0.11",
@@ -762,7 +762,7 @@ dependencies = [
 
 [[package]]
 name = "turbojev-runtime-conformance"
-version = "0.29.0"
+version = "0.29.1"
 dependencies = [
  "serde",
  "thiserror 2.0.11",
@@ -776,7 +776,7 @@ dependencies = [
 
 [[package]]
 name = "turbojev-runtime-llamacpp"
-version = "0.29.0"
+version = "0.29.1"
 dependencies = [
  "serde_json",
  "thiserror 2.0.11",
@@ -791,7 +791,7 @@ dependencies = [
 
 [[package]]
 name = "turbojev-runtime-projection"
-version = "0.29.0"
+version = "0.29.1"
 dependencies = [
  "thiserror 2.0.11",
  "turbojev-backend",
@@ -803,7 +803,7 @@ dependencies = [
 
 [[package]]
 name = "turbojev-runtime-qualification"
-version = "0.29.0"
+version = "0.29.1"
 dependencies = [
  "serde",
  "thiserror 2.0.11",
@@ -821,7 +821,7 @@ dependencies = [
 
 [[package]]
 name = "turbojev-schema"
-version = "0.29.0"
+version = "0.29.1"
 dependencies = [
  "indexmap",
  "serde",
@@ -831,14 +831,14 @@ dependencies = [
 
 [[package]]
 name = "turbojev-sequence"
-version = "0.29.0"
+version = "0.29.1"
 dependencies = [
  "thiserror 2.0.11",
 ]
 
 [[package]]
 name = "turbojev-server"
-version = "0.29.0"
+version = "0.29.1"
 dependencies = [
  "serde",
  "serde_json",
@@ -851,7 +851,7 @@ dependencies = [
 
 [[package]]
 name = "turbojev-server-execution"
-version = "0.29.0"
+version = "0.29.1"
 dependencies = [
  "serde",
  "serde_json",
@@ -861,7 +861,7 @@ dependencies = [
 
 [[package]]
 name = "turbojev-server-protocol"
-version = "0.29.0"
+version = "0.29.1"
 dependencies = [
  "serde",
  "serde_json",
@@ -874,7 +874,7 @@ dependencies = [
 
 [[package]]
 name = "turbojev-specialized"
-version = "0.29.0"
+version = "0.29.1"
 dependencies = [
  "serde",
  "serde_json",
@@ -884,7 +884,7 @@ dependencies = [
 
 [[package]]
 name = "turbojev-specialized-artifact"
-version = "0.29.0"
+version = "0.29.1"
 dependencies = [
  "serde",
  "serde_json",
@@ -902,7 +902,7 @@ dependencies = [
 
 [[package]]
 name = "turbojev-specialized-eval"
-version = "0.29.0"
+version = "0.29.1"
 dependencies = [
  "serde",
  "thiserror 2.0.11",
@@ -913,7 +913,7 @@ dependencies = [
 
 [[package]]
 name = "turbojev-specialized-report"
-version = "0.29.0"
+version = "0.29.1"
 dependencies = [
  "serde",
  "serde_json",
@@ -923,14 +923,14 @@ dependencies = [
 
 [[package]]
 name = "turbojev-tokenizer"
-version = "0.29.0"
+version = "0.29.1"
 dependencies = [
  "thiserror 2.0.11",
 ]
 
 [[package]]
 name = "turbojev-training-data"
-version = "0.29.0"
+version = "0.29.1"
 dependencies = [
  "indexmap",
  "serde",
@@ -946,7 +946,7 @@ dependencies = [
 
 [[package]]
 name = "turbojev-wasm"
-version = "0.29.0"
+version = "0.29.1"
 dependencies = [
  "js-sys",
  "serde",
@@ -963,7 +963,7 @@ dependencies = [
 
 [[package]]
 name = "turbojev-wire"
-version = "0.29.0"
+version = "0.29.1"
 dependencies = [
  "serde_json",
  "thiserror 2.0.11",
