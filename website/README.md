@@ -28,7 +28,7 @@ The PowerShell script uses the cached wasm-bindgen installed by `python samples/
 - `app.js`: navigation, search dialog, keyboard controls, and code copying.
 - `src/docs-content.html`: documentation source; `build.mjs` generates `docs/*.html` and the search index. Each topic has its own URL. Legacy `docs.html#python` links redirect to the corresponding page.
 - `demo.js`: model catalog, presets, download progress, media decoding, and UI state.
-- `demo-worker.js`, `src/runtime.ts`, `llamacpp-runtime.js`: inference worker and runtime adapters. Text is available through Transformers.js/ONNX or llama.cpp WASM/GGUF; Rust/WASM constructs the final typed responses.
+- `demo-worker.js`, `src/runtime.ts`: inference worker and Transformers.js adapter. The published llama.cpp WASM adapter is loaded from jsDelivr; Rust/WASM constructs the final typed responses.
 - `vendor/`: deployable runtime, WASM, Prism syntax highlighting, licenses, and content hashes. Rebuild after changing sources. Asset versions prevent stale cached WASM from being paired with new JavaScript.
 
 Deploy the entire `website/` directory as the hosting output directory. The site uses relative links and works under a subdirectory. If using GitHub Pages, upload this directory as the Pages artifact; the Pages branch UI does not offer an arbitrary `website/` folder.

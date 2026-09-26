@@ -19,8 +19,10 @@ GitHub trusted-publisher configurations alone do not authenticate local uploads.
 
 ## Packages and architectures
 
-- npm publishes web packages once, then Windows native Node packages for ia32,
-  x64, and arm64 and the Node wrapper.
+- npm publishes the web binding and browser runtime adapters once, then Windows
+  native Node packages for ia32, x64, and arm64 and the Node wrapper. Browser
+  demos load the published llama.cpp runtime from jsDelivr; they do not copy it
+  from the repository source.
 - PyPI publishes three Windows wheels: x86, x64, and ARM64, using the CPython
   stable ABI (Python 3.9+). Publishing tools use `artifacts/publish-tools` so they
   do not modify globally installed Python packages.

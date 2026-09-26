@@ -308,10 +308,14 @@ function Publish-Npm {
         $script:NpmCommand = $npm
         Publish-Wasm
 
-        foreach ($package in @("bindings/web", "bindings/web-runtimes/transformersjs")) {
-            Invoke-Tool $npm @("install", "--ignore-scripts", "--no-audit", "--no-fund", "--package-lock=false") (Join-Path $Root $package)
-            Invoke-Tool $npm @("run", "build") (Join-Path $Root $package)
-            Publish-NpmPackage $npm (Join-Path $Root $package)
+        foreach ($package in @("bindings/web", "bindings/web-runtimes/transformersjs", "bindings/web-runtimes/llamacpp-wasm")) {
+            $packagePath = Join-Path $Root $package
+            $packageManifest = Get-Content -Raw (Join-Path $packagePath "package.json") | ConvertFrom-Json
+            if ($packageManifest.scripts.build) {
+                Invoke-Tool $npm @("install", "--ignore-scripts", "--no-audit", "--no-fund", "--package-lock=false") $packagePath
+                Invoke-Tool $npm @("run", "build") $packagePath
+            }
+            Publish-NpmPackage $npm $packagePath
         }
         Publish-Node $npm
     }

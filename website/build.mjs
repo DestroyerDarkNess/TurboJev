@@ -9,9 +9,8 @@ await build({ entryPoints: [root + 'src/runtime.ts'], outfile: root + 'vendor/st
   bundle: true, format: 'esm', platform: 'browser', target: 'es2022', minify: true,
   nodePaths: [fileURLToPath(new URL('../samples/TurboJev-js-native/node_modules', import.meta.url))],
   define: { 'process.env.NODE_ENV': '"production"' } });
-await writeFile(root + 'vendor/llamacpp-runtime.js', await readFile(root + '../bindings/web-runtimes/llamacpp-wasm/src/index.js'));
 const digest = async file => createHash('sha256').update(await readFile(root + file)).digest('hex').slice(0,12);
-const manifest = { runtime: await digest('vendor/studio-runtime.js'), llamacpp: await digest('vendor/llamacpp-runtime.js'), wasm: await digest('vendor/wasm/turbojev_wasm_bg.wasm') };
+const manifest = { runtime: await digest('vendor/studio-runtime.js'), wasm: await digest('vendor/wasm/turbojev_wasm_bg.wasm') };
 await writeFile(root + 'vendor/manifest.json', JSON.stringify(manifest));
 const version = createHash('sha256').update(JSON.stringify(manifest) + await digest('demo.js') + await digest('demo-worker.js') + await digest('app.js') + await digest('styles.css')).digest('hex').slice(0,12);
 const landing = (await readFile(root + 'index.html','utf8')).replace(/(src="(?:demo|app)\.js|href="styles\.css)(?:\?v=[a-z0-9]+)?/g, `$1?v=${version}`);

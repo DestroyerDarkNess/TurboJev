@@ -7,7 +7,7 @@ self.onmessage = async ({ data: { id, op, args } }) => {
       if (!manifestResponse.ok) throw new Error('Demo assets are missing. Run the website build.');
       const manifest = await manifestResponse.json();
       const runtimeModule = args.backend === 'llamacpp'
-        ? await import(`./vendor/llamacpp-runtime.js?v=${manifest.llamacpp}`)
+        ? await import('https://cdn.jsdelivr.net/npm/@turbojev/runtime-llamacpp-wasm@0.28.6/src/index.js')
         : await import(`./vendor/studio-runtime.js?v=${manifest.runtime}`);
       const { createRuntime } = runtimeModule;
       runtime = await createRuntime();

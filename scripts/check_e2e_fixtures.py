@@ -39,7 +39,7 @@ assert '"-c", "Release", "--no-build"' in text, '.NET E2E must execute the alrea
 final_text=(ROOT/'scripts/final_e2e_linux.py').read_text()
 for snippet in ['turbojev.final-validation-report.v2','require_toolchain_versions','hardware_identity','--driver','cargoLockSha256','nodePackageLockSha256','cargo", "generate-lockfile','--locked','npm", "ci']:
     assert snippet in final_text, snippet
-for rel in ['bindings/node/package.json','bindings/web/package.json','bindings/web-runtimes/transformersjs/package.json']:
+for rel in ['bindings/node/package.json','bindings/web/package.json','bindings/web-runtimes/transformersjs/package.json','bindings/web-runtimes/llamacpp-wasm/package.json']:
     package=load(ROOT/rel)
     assert not str(package.get('devDependencies',{}).get('typescript','')).startswith('^'), rel
 workspace_cargo = (ROOT / 'Cargo.toml').read_text()

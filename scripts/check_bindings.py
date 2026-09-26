@@ -3,7 +3,7 @@ from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
 required=[
 'crates/turbojev-host-native/src/lib.rs','crates/turbojev-node/src/lib.rs','crates/turbojev-wasm/src/lib.rs','crates/turbojev-capi/src/lib.rs','crates/turbojev-python/src/lib.rs','crates/turbojev-jni/src/lib.rs',
-'bindings/node/package.json','bindings/web/package.json','bindings/web-runtimes/transformersjs/package.json','bindings/c/include/turbojev.h','bindings/python/turbojev/__init__.py','bindings/dotnet/TurboJev/TurboJevEngine.cs','bindings/android/src/main/kotlin/ai/turbojev/TurboJev.kt','bindings/swift/Sources/TurboJev/TurboJev.swift']
+'bindings/node/package.json','bindings/web/package.json','bindings/web-runtimes/transformersjs/package.json','bindings/web-runtimes/llamacpp-wasm/package.json','bindings/c/include/turbojev.h','bindings/python/turbojev/__init__.py','bindings/dotnet/TurboJev/TurboJevEngine.cs','bindings/android/src/main/kotlin/ai/turbojev/TurboJev.kt','bindings/swift/Sources/TurboJev/TurboJev.swift']
 missing=[x for x in required if not (ROOT/x).is_file()]
 if missing: raise SystemExit('BINDING CHECK FAILED: missing '+', '.join(missing))
 android=(ROOT/'bindings/android/src/main/kotlin/ai/turbojev/TurboJev.kt').read_text(); swift=(ROOT/'bindings/swift/Sources/TurboJev/TurboJev.swift').read_text();

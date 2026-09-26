@@ -48,6 +48,7 @@ def main() -> int:
         "bindings/node/package.json",
         "bindings/web/package.json",
         "bindings/web-runtimes/transformersjs/package.json",
+        "bindings/web-runtimes/llamacpp-wasm/package.json",
     ):
         require(path, json_version(path), expected, errors)
 

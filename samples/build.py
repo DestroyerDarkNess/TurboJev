@@ -109,6 +109,8 @@ def native(args):
 
 def web():
     sample = SAMPLES / "TurboJev-js-native"
+    llama_manifest = json.loads((ROOT / "bindings/web-runtimes/llamacpp-wasm/package.json").read_text())
+    run("npm", "view", f"{llama_manifest['name']}@{llama_manifest['version']}", "version")
     cli = ROOT / ".cache/wasm-tools/bin" / ("wasm-bindgen.exe" if os.name == "nt" else "wasm-bindgen")
     if not cli.exists():
         run("cargo", "install", "wasm-bindgen-cli", "--version", "0.2.100", "--locked", "--root", ROOT / ".cache/wasm-tools")
