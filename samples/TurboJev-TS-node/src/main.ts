@@ -86,7 +86,9 @@ if (mediaFlag >= 0) {
         criteria: { billing: "Payments and refunds", shipping: "Delivery", technical: "Product issue", other: "Other" },
       } },
     });
-    const answer = result.answers.department;
+    const answer = (result as {
+      answers: Record<string, { choice: string; probabilities: Record<string, number> }>;
+    }).answers.department;
     console.log(`Department: ${answer.choice}`);
     console.table(Object.entries(answer.probabilities).map(([department, probability]) => ({
       department,

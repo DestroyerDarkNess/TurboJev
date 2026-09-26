@@ -2,6 +2,7 @@
 use std::io::{BufRead, BufReader, Read, Write};
 use std::process::{Child, Command, Stdio};
 use std::sync::{mpsc, Mutex};
+use std::thread::JoinHandle;
 use std::time::Duration;
 
 use serde::{Deserialize, Serialize};
@@ -25,14 +26,25 @@ fn default_timeout() -> u64 {
 
 struct Process {
     child: Child,
-    requests: mpsc::SyncSender<Vec<u8>>,
+    requests: Option<mpsc::SyncSender<Vec<u8>>>,
     written: mpsc::Receiver<Result<(), String>>,
     lines: mpsc::Receiver<Result<String, String>>,
+    writer: Option<JoinHandle<()>>,
+    reader: Option<JoinHandle<()>>,
 }
 impl Drop for Process {
     fn drop(&mut self) {
+        // Disconnect the writer first so an idle thread can leave its receive loop.
+        drop(self.requests.take());
         let _ = self.child.kill();
         let _ = self.child.wait();
+        // Join both pipe threads before an embedding host unloads this native library.
+        if let Some(writer) = self.writer.take() {
+            let _ = writer.join();
+        }
+        if let Some(reader) = self.reader.take() {
+            let _ = reader.join();
+        }
     }
 }
 impl Process {
@@ -72,7 +84,7 @@ impl WorkerBackend {
         let output = child.stdout.take().expect("piped stdout");
         let (requests, pending) = mpsc::sync_channel::<Vec<u8>>(1);
         let (writes, written) = mpsc::sync_channel(1);
-        std::thread::spawn(move || {
+        let writer = std::thread::spawn(move || {
             while let Ok(payload) = pending.recv() {
                 let result = input
                     .write_all(&payload)
@@ -86,7 +98,7 @@ impl WorkerBackend {
             }
         });
         let (tx, lines) = mpsc::sync_channel(1);
-        std::thread::spawn(move || {
+        let reader = std::thread::spawn(move || {
             let mut reader = BufReader::new(output);
             loop {
                 let mut line = String::new();
@@ -108,9 +120,11 @@ impl WorkerBackend {
         let timeout = Duration::from_secs(options.timeout_seconds);
         let mut process = Process {
             child,
-            requests,
+            requests: Some(requests),
             written,
             lines,
+            writer: Some(writer),
+            reader: Some(reader),
         };
         let hello: serde_json::Value = serde_json::from_str(&process.receive(timeout)?)
             .map_err(|e| BackendError::NotReady(e.to_string()))?;
@@ -166,6 +180,8 @@ impl ScoringBackend for WorkerBackend {
             .map_err(|e| BackendError::Inference(e.to_string()))?;
         process
             .requests
+            .as_ref()
+            .expect("worker process remains open while scoring")
             .try_send(payload)
             .map_err(|e| BackendError::Inference(e.to_string()))?;
         match process.written.recv_timeout(self.timeout) {
