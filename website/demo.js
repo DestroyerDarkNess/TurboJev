@@ -2,6 +2,7 @@ const $ = id => document.getElementById(id);
 const catalog = [
  {id:'onnx-community/Qwen2.5-0.5B-Instruct',name:'Qwen2.5 · 0.5B',modes:['text'],dtype:'q4',note:'Instruction model · Q4 · multilingual text decisions.'},
  {id:'onnx-community/Qwen3-0.6B-ONNX',name:'Qwen3 · 0.6B',modes:['text'],dtype:'q4',note:'Instruction model · Q4 · allow extra memory and load time.'},
+ {id:'Qwen/Qwen3-0.6B-GGUF',name:'Qwen3 · 0.6B · GGUF',modes:['text'],backend:'llamacpp',modelUrl:'https://huggingface.co/Qwen/Qwen3-0.6B-GGUF/resolve/1208e45d782fe18602c5eaf10e5758d5b0f24c03/Qwen3-0.6B-Q4_K_M.gguf',note:'Q4_K_M · 484 MB · llama.cpp WASM. Model files load directly from Hugging Face.'},
  {id:'Xenova/clip-vit-base-patch32',name:'CLIP · ViT-B/32',modes:['image','video'],dtype:'q8',note:'Image–text similarity · Q8 · video uses four sampled frames, not motion reasoning.'},
  {id:'Xenova/clip-vit-base-patch16',name:'CLIP · ViT-B/16',modes:['image','video'],dtype:'q8',note:'Image–text similarity · Q8 · finer image patches, more compute.'},
  {id:'HuggingFaceTB/SmolVLM-256M-Instruct',name:'SmolVLM · 256M',modes:['image'],dtype:'q4',family:'vlm',note:'Vision-language model · Q4 decoder / FP32 vision · candidate-token scoring.'},
@@ -20,6 +21,7 @@ const status = (message,kind='') => { $('demo-status').textContent=message; $('d
 function controls() {
  $('demo-load').disabled=busy||ready; $('demo-run').disabled=busy||!ready;
  $('demo-unload').disabled=busy||!worker; $('demo-model').disabled=busy||ready; $('demo-device').disabled=busy||ready;$('demo-cyclic').disabled=busy||ready;
+ $('demo-runtime').disabled=busy||ready;
  $('demo-cancel').hidden=!busy; $('demo-preset').disabled=busy; $('demo-file').disabled=busy; $('example-media').disabled=busy;
  $('demo-state').disabled=busy; $('demo-options').disabled=busy;
  document.querySelectorAll('[data-mode]').forEach(b=>b.disabled=busy||ready);
@@ -43,12 +45,15 @@ function clearResult(){result=null;$('demo-result').hidden=true;$('result-empty'
 function resetMedia(){file=null;if(previewURL)URL.revokeObjectURL(previewURL);previewURL=null;$('media-preview').replaceChildren();$('demo-file').value='';}
 function preset(){const p=presets[mode][Number($('demo-preset').value)];$('demo-state').value=p[1];$('demo-options').value=p[2];if(model()?.family==='vlm')$('demo-state').value='Which description best matches the image?';clearResult();}
 function configure() {
- $('demo-model').replaceChildren(...catalog.filter(m=>m.modes.includes(mode)).map(m=>new Option(m.name,m.id)));
+ if(mode!=='text'&&$('demo-runtime').value==='llamacpp')$('demo-runtime').value='transformers';
+ $('demo-runtime').querySelector('option[value="llamacpp"]').disabled=mode!=='text';
+ const backend=$('demo-runtime').value;
+ $('demo-model').replaceChildren(...catalog.filter(m=>m.modes.includes(mode)&&(backend==='llamacpp'?m.backend==='llamacpp':m.backend!=='llamacpp')).map(m=>new Option(m.name,m.id)));
  $('demo-preset').replaceChildren(...presets[mode].map((p,i)=>new Option(p[0],i)));
  const text=mode==='text';$('demo-cyclic').closest('label').hidden=!text;$('demo-state').hidden=!text;$('state-label').hidden=!text;$('media-panel').hidden=text;
  $('demo-file').accept=mode+'/*';$('upload-title').textContent=`Choose ${mode==='image'?'an image':mode==='audio'?'an audio clip':'a video'}`;
  $('example-media').hidden=mode==='video';$('example-media').textContent=mode==='audio'?'Use dog barking sample ↗':'Use tiger photo ↗';
- $('mode-note').textContent=text?'The model scores the candidate answers without generating a response.':mode==='video'?'Four evenly spaced frames are averaged. Audio and motion are not analyzed. Maximum clip length: 60 seconds.':mode==='audio'?'Audio is mixed to mono at 48 kHz. Maximum length: 10 seconds.':'Compare an image with the descriptions above. This model does not follow arbitrary instructions.';
+ $('mode-note').textContent=text?(backend==='llamacpp'?'llama.cpp scores a constrained answer token in one inference pass per decision. CPU runs in WASM; GPU uses WebGPU when selected.':'The model scores the candidate answers without generating a response.'):mode==='video'?'Four evenly spaced frames are averaged. Audio and motion are not analyzed. Maximum clip length: 60 seconds.':mode==='audio'?'Audio is mixed to mono at 48 kHz. Maximum length: 10 seconds.':'Compare an image with the descriptions above. This model does not follow arbitrary instructions.';
  resetMedia();preset();describe();controls();
 }
 function describe(){
@@ -60,6 +65,7 @@ function describe(){
 }
 document.querySelectorAll('[data-mode]').forEach(b=>b.addEventListener('click',()=>{mode=b.dataset.mode;document.querySelectorAll('[data-mode]').forEach(x=>x.setAttribute('aria-selected',String(x===b)));configure();status('Choose a model to begin.');}));
 $('demo-model').addEventListener('change',describe);$('demo-preset').addEventListener('change',preset);
+$('demo-runtime').addEventListener('change',()=>{configure();status('Choose a model to begin.');});
 $('demo-load').addEventListener('click',async()=>{
  if($('demo-device').value==='webgpu'&&!navigator.gpu){status('WebGPU is unavailable. Select CPU to continue.','error');return;}
  const turn=++lifecycle;busy=true;controls();$('download-panel').hidden=false;$('download-progress').removeAttribute('value');$('download-file').textContent='Preparing runtime…';$('download-percent').textContent='';started=performance.now();
@@ -69,7 +75,7 @@ $('demo-load').addEventListener('click',async()=>{
  worker=new Worker(workerURL,{type:'module'});
  worker.onmessage=({data})=>{if(data.progress){progress(data.progress);return;}const p=pending.get(data.id);if(!p)return;pending.delete(data.id);data.error?p.reject(new Error(data.error)):p.resolve(data.value);};
  worker.onerror=e=>{for(const p of pending.values())p.reject(new Error(e.message||'Worker failed'));pending.clear();};
- try{await call('load',{model:model().id,modality:mode,dtype:model().dtype,family:model().family,device:$('demo-device').value,cyclicOrderRobustness:$('demo-cyclic').checked});if(turn!==lifecycle)return;ready=true;$('download-progress').value=100;$('download-file').textContent='Model ready';$('download-percent').textContent='';status('Ready. Edit the input and evaluate.','ready');}
+ try{await call('load',{model:model().id,modelUrl:model().modelUrl,modelLabel:model().name,backend:model().backend||'transformers',modality:mode,dtype:model().dtype,family:model().family,device:$('demo-device').value,cyclicOrderRobustness:$('demo-cyclic').checked});if(turn!==lifecycle)return;ready=true;$('download-progress').value=100;$('download-file').textContent='Model ready';$('download-percent').textContent='';status('Ready. Edit the input and evaluate.','ready');}
  catch(e){if(turn===lifecycle){stop();status(e.message,'error');$('download-panel').hidden=true;}}
  finally{if(turn===lifecycle){clearInterval(timer);busy=false;controls();}}
 });

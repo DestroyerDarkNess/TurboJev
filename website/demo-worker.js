@@ -6,7 +6,10 @@ self.onmessage = async ({ data: { id, op, args } }) => {
       const manifestResponse = await fetch('./vendor/manifest.json', { cache: 'no-cache' });
       if (!manifestResponse.ok) throw new Error('Demo assets are missing. Run the website build.');
       const manifest = await manifestResponse.json();
-      const { createRuntime } = await import(`./vendor/studio-runtime.js?v=${manifest.runtime}`);
+      const runtimeModule = args.backend === 'llamacpp'
+        ? await import(`./vendor/llamacpp-runtime.js?v=${manifest.llamacpp}`)
+        : await import(`./vendor/studio-runtime.js?v=${manifest.runtime}`);
+      const { createRuntime } = runtimeModule;
       runtime = await createRuntime();
       const descriptor = await runtime.initialize({ ...args, progressCallback: (progress) => postMessage({ progress }) });
       const wasm = await import(`./vendor/wasm/turbojev_wasm.js?v=${manifest.wasm}`);

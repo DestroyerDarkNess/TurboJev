@@ -28,14 +28,14 @@ The PowerShell script uses the cached wasm-bindgen installed by `python samples/
 - `app.js`: navigation, search dialog, keyboard controls, and code copying.
 - `src/docs-content.html`: documentation source; `build.mjs` generates `docs/*.html` and the search index. Each topic has its own URL. Legacy `docs.html#python` links redirect to the corresponding page.
 - `demo.js`: model catalog, presets, download progress, media decoding, and UI state.
-- `demo-worker.js`, `src/runtime.ts`: inference worker and runtime adapters. Rust/WASM constructs the final typed responses.
+- `demo-worker.js`, `src/runtime.ts`, `llamacpp-runtime.js`: inference worker and runtime adapters. Text is available through Transformers.js/ONNX or llama.cpp WASM/GGUF; Rust/WASM constructs the final typed responses.
 - `vendor/`: deployable runtime, WASM, Prism syntax highlighting, licenses, and content hashes. Rebuild after changing sources. Asset versions prevent stale cached WASM from being paired with new JavaScript.
 
 Deploy the entire `website/` directory as the hosting output directory. The site uses relative links and works under a subdirectory. If using GitHub Pages, upload this directory as the Pages artifact; the Pages branch UI does not offer an arbitrary `website/` folder.
 
 ## Playground behavior
 
-Text: Qwen2.5 0.5B and Qwen3 0.6B use the existing TurboJev tokenizer/runtime adapter.
+Text: Qwen2.5 0.5B and Qwen3 0.6B use Transformers.js/ONNX. The additional llama.cpp WASM runtime loads Qwen3 0.6B Q4_K_M as GGUF and can be pointed at other GGUF URLs supported by llama.cpp. CPU uses WASM; GPU requests WebGPU. llama.cpp is loaded from the pinned `@wllama/wllama` 3.6.1 CDN release.
 
 Images: CLIP B/32 and B/16 score image–text similarity. SmolVLM 256M and SmolVLM2 256M score answer codes with model-derived token IDs and the model's chat template.
 
