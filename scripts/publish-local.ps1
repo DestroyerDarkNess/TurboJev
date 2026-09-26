@@ -101,7 +101,10 @@ function Build-NativeRuntime {
     $rid = "win-$Architecture"
     $runtimeDirectory = Join-Path $NativeRuntimeRoot $rid
     $shimLib = Join-Path $runtimeDirectory "turbojev_llama_shim.lib"
-    $requiredDlls = @("turbojev_llama_shim.dll", "llama.dll", "ggml.dll", "ggml-base.dll", "ggml-cpu.dll")
+    $requiredDlls = @("turbojev_llama_shim.dll", "llama-common.dll", "llama.dll", "ggml.dll", "ggml-base.dll", "ggml-cpu.dll")
+    $shimSourceHash = (@("turbojev_llama_shim.cpp", "turbojev_llama_shim.h", "decision_chat.h", "CMakeLists.txt") | ForEach-Object {
+        (Get-FileHash -Algorithm SHA256 -LiteralPath (Join-Path $Root "crates/turbojev-runtime-llamacpp/native/$_")).Hash
+    }) -join ":"
     $enableVulkan = $Architecture -eq "x64"
     $vulkanLibrary = $null
     if ($enableVulkan) {
@@ -117,7 +120,7 @@ function Build-NativeRuntime {
     $markerMatches = $false
     if (Test-Path -LiteralPath $markerPath) {
         $marker = Get-Content $markerPath -Raw | ConvertFrom-Json
-        $markerMatches = $marker.turbojevVersion -eq $ReleaseVersion -and $marker.llamaCppRevision.StartsWith($LlamaPlan.llamaCpp.commitPrefix) -and $marker.vulkanEnabled -eq $enableVulkan
+        $markerMatches = $marker.turbojevVersion -eq $ReleaseVersion -and $marker.llamaCppRevision.StartsWith($LlamaPlan.llamaCpp.commitPrefix) -and $marker.vulkanEnabled -eq $enableVulkan -and $marker.shimSourceHash -eq $shimSourceHash
     }
     $missingRuntimeDlls = @($requiredDlls | Where-Object { -not (Test-Path -LiteralPath (Join-Path $runtimeDirectory $_)) })
     if ($markerMatches -and (Test-Path -LiteralPath $shimLib) -and $missingRuntimeDlls.Count -eq 0) {
@@ -196,7 +199,7 @@ function Build-NativeRuntime {
     Copy-Item -LiteralPath $shimImportLibrary.FullName -Destination $shimLib -Force
     $missingDlls = @($requiredDlls | Where-Object { -not (Test-Path -LiteralPath (Join-Path $runtimeDirectory $_)) })
     if ($missingDlls.Count -gt 0) { throw "CMake runtime for $rid is incomplete: $($missingDlls -join ', ')." }
-    @{ turbojevVersion = $ReleaseVersion; llamaCppRevision = $revision; target = $rid; vulkanEnabled = $enableVulkan } |
+    @{ turbojevVersion = $ReleaseVersion; llamaCppRevision = $revision; target = $rid; vulkanEnabled = $enableVulkan; shimSourceHash = $shimSourceHash } |
         ConvertTo-Json | Set-Content -LiteralPath $markerPath -Encoding utf8
 
     $env:TURBOJEV_LLAMA_SHIM_LIB_DIR = $runtimeDirectory

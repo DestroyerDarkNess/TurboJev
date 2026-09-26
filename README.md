@@ -113,20 +113,18 @@ answer, zero-generation usage, execution path, and calibration provenance.
 ### Stable option ordering when order is irrelevant
 
 Many models favor the first or last presented option. For unordered `choice`
-questions, enable order robustness. `cyclic` rotates the full list; `binary`
-asks one yes/no match question per option:
+questions, enable cyclic order robustness:
 
 ```json
 {
   "model": "./model.gguf",
-  "execution": { "orderRobustness": "binary" }
+  "execution": { "orderRobustness": "cyclic" }
 }
 ```
 
-TurboJev evaluates each candidate independently in binary mode, combines the
-yes/no score differences across original keys, then calibrates the result. The
-response records both the active policy and the actual number of model
-evaluations. Use `cyclic` to average scores across rotations instead.
+TurboJev evaluates each cyclic option order, maps scores back to the original
+keys, averages the raw logits, and then calibrates the result. The response
+records both the active policy and the actual number of model evaluations.
 The feature applies to choice questions in `evaluate`; it deliberately leaves
 ordered scores and boolean decisions unchanged. Read the [full contract and
 cost model](docs/ORDER_ROBUSTNESS.md).

@@ -1,4 +1,5 @@
 #include "turbojev_llama_shim.h"
+#include "decision_chat.h"
 
 #include "llama.h"
 #include "ggml-backend.h"
@@ -18,7 +19,13 @@ struct tj_llama_runtime {
     llama_model * model = nullptr;
     llama_context * context = nullptr;
     const llama_vocab * vocab = nullptr;
-    std::string chat_template;
+    common_chat_templates_ptr chat_templates;
+    // Keep template date/time functions stable across prompt/codebook probes.
+    std::chrono::system_clock::time_point chat_time = std::chrono::system_clock::now();
+    std::string cached_system;
+    std::string cached_user;
+    std::string cached_prompt;
+    bool prompt_cached = false;
     size_t shared_prefix_len = 0;
     std::vector<float> shared_prefix_logits;
     bool shared_prefix_ready = false;
@@ -83,32 +90,31 @@ bool render_chat(
         failure = "invalid runtime or user message";
         return false;
     }
-    if (runtime->chat_template.empty()) {
+    if (!runtime->chat_templates) {
         failure = "GGUF model does not expose a llama.cpp-supported chat template";
         return false;
     }
 
-    std::vector<llama_chat_message> messages;
-    if (system != nullptr && system[0] != '\0') {
-        messages.push_back({"system", system});
+    const char * system_text = system == nullptr ? "" : system;
+    if (runtime->prompt_cached && runtime->cached_system == system_text
+        && runtime->cached_user == user) {
+        rendered = runtime->cached_prompt;
+        return true;
     }
-    messages.push_back({"user", user});
 
-    const int32_t needed = llama_chat_apply_template(
-        runtime->chat_template.c_str(), messages.data(), messages.size(), true, nullptr, 0);
-    if (needed < 0) {
-        failure = "llama_chat_apply_template failed while sizing output";
+    try {
+        rendered = tj_render_decision_chat(
+            runtime->chat_templates.get(), system, user, runtime->chat_time);
+    } catch (const std::exception & exception) {
+        failure = std::string("GGUF decision chat template failed: ") + exception.what();
         return false;
     }
-    std::vector<char> buffer(static_cast<size_t>(needed) + 1, '\0');
-    const int32_t written = llama_chat_apply_template(
-        runtime->chat_template.c_str(), messages.data(), messages.size(), true,
-        buffer.data(), static_cast<int32_t>(buffer.size()));
-    if (written < 0) {
-        failure = "llama_chat_apply_template failed";
-        return false;
-    }
-    rendered.assign(buffer.data(), static_cast<size_t>(written));
+    // Codebook probes render the same messages with different answer suffixes.
+    // Reuse their exact prefix instead of re-running Jinja for every candidate.
+    runtime->cached_system = system_text;
+    runtime->cached_user = user;
+    runtime->cached_prompt = rendered;
+    runtime->prompt_cached = true;
     return true;
 }
 
@@ -432,8 +438,18 @@ tj_llama_runtime * tj_llama_open(
     }
 
     const char * chat_template = llama_model_chat_template(runtime->model, nullptr);
-    if (chat_template != nullptr) {
-        runtime->chat_template = chat_template;
+    if (chat_template == nullptr || chat_template[0] == '\0') {
+        set_error(error, error_capacity, "GGUF model does not expose a chat template");
+        llama_model_free(runtime->model);
+        return nullptr;
+    }
+    try {
+        runtime->chat_templates = common_chat_templates_init(runtime->model, chat_template);
+    } catch (const std::exception & exception) {
+        set_error(error, error_capacity,
+            std::string("GGUF chat template initialization failed: ") + exception.what());
+        llama_model_free(runtime->model);
+        return nullptr;
     }
 
     llama_context_params context_params = llama_context_default_params();

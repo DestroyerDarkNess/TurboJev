@@ -9,6 +9,7 @@ if(NOT EXISTS "${LLAMA_CPP_SOURCE_DIR}/CMakeLists.txt")
 endif()
 
 set(BUILD_SHARED_LIBS ON CACHE BOOL "" FORCE)
+set(LLAMA_BUILD_COMMON ON CACHE BOOL "Build the GGUF Jinja chat renderer" FORCE)
 set(LLAMA_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(LLAMA_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 set(LLAMA_BUILD_TOOLS OFF CACHE BOOL "" FORCE)
@@ -20,6 +21,17 @@ if(WIN32)
   # MSVC OpenMP can retain threads executing unloaded DLL code when a Node
   # worker exits. Use ggml's native thread pool for unloadable Windows hosts.
   set(GGML_OPENMP OFF CACHE BOOL "Disable OpenMP for Windows worker teardown")
+endif()
+
+option(TURBOJEV_BUILD_NATIVE_TESTS "Build model-free chat template regression tests" OFF)
+if(TURBOJEV_BUILD_NATIVE_TESTS)
+  enable_testing()
+  add_executable(turbojev_chat_template_test tests/chat_template_test.cpp)
+  target_include_directories(turbojev_chat_template_test PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
+  target_link_libraries(turbojev_chat_template_test PRIVATE llama-common llama)
+  set_target_properties(turbojev_chat_template_test PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
+  add_test(NAME turbojev_chat_template COMMAND turbojev_chat_template_test)
 endif()
 if(CMAKE_GENERATOR_PLATFORM STREQUAL "Win32")
   # ggml's BMI2 implementation can reference the 64-bit PDEP intrinsic on x86 MSVC.
@@ -33,7 +45,7 @@ target_compile_features(turbojev_llama_shim PRIVATE cxx_std_17)
 target_include_directories(turbojev_llama_shim
   PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}"
   PRIVATE "${LLAMA_CPP_SOURCE_DIR}/include")
-target_link_libraries(turbojev_llama_shim PRIVATE llama)
+target_link_libraries(turbojev_llama_shim PRIVATE llama llama-common)
 set_target_properties(turbojev_llama_shim PROPERTIES
   CXX_EXTENSIONS OFF
   POSITION_INDEPENDENT_CODE ON

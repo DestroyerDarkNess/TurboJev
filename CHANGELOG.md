@@ -2,7 +2,9 @@
 
 ## Unreleased
 
-- Add an opt-in `orderRobustness: "binary"` strategy that evaluates each choice candidate independently as a yes/no match and normalizes the resulting yes probabilities, matching the one-vs-rest decision pattern used by LLM2Jev.
+- Fix the native GGUF scoring boundary by evaluating the model's actual Jinja chat template with `enable_thinking=false`, rather than the legacy template-family approximation. This preserves Qwen3's closed reasoning prefix before candidate logits are read.
+- Keep native choice scoring single-pass by default; cyclic robustness remains opt-in. Remove the unvalidated experimental binary policy.
+- Include the Jinja runtime library in native packages and invalidate cached native builds when shim sources change.
 
 ## 0.29.0
 

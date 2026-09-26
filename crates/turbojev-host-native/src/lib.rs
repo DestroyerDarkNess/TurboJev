@@ -47,10 +47,9 @@ pub enum HostPlanningPolicy {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 #[serde(rename_all = "kebab-case")]
 pub enum HostOrderRobustness {
-    None,
     #[default]
+    None,
     Cyclic,
-    Binary,
 }
 
 impl From<HostOrderRobustness> for OrderRobustness {
@@ -58,7 +57,6 @@ impl From<HostOrderRobustness> for OrderRobustness {
         match value {
             HostOrderRobustness::None => OrderRobustness::None,
             HostOrderRobustness::Cyclic => OrderRobustness::Cyclic,
-            HostOrderRobustness::Binary => OrderRobustness::Binary,
         }
     }
 }
@@ -697,7 +695,7 @@ mod tests {
         assert!(!options.execution.llamacpp_multi_root_fused);
         assert_eq!(
             options.execution.order_robustness,
-            HostOrderRobustness::Cyclic
+            HostOrderRobustness::None
         );
 
         let enabled: NativeLoadOptions = serde_json::from_str(
@@ -713,15 +711,6 @@ mod tests {
         assert_eq!(
             corrected.execution.order_robustness,
             HostOrderRobustness::Cyclic
-        );
-
-        let binary: NativeLoadOptions = serde_json::from_str(
-            r#"{"model":"model.gguf","execution":{"orderRobustness":"binary"}}"#,
-        )
-        .unwrap();
-        assert_eq!(
-            binary.execution.order_robustness,
-            HostOrderRobustness::Binary
         );
 
         let fast: NativeLoadOptions = serde_json::from_str(

@@ -42,6 +42,24 @@ Each fused decision task receives its own sequence ID and starts at position zer
 
 Build llama.cpp for the target platform, compile the shim with `native/CMakeLists.txt`, link `turbojev_llama_shim`, and enable this crate's `ffi` feature.
 
+The shim uses llama.cpp's Jinja renderer (`llama-common`) to execute the GGUF
+chat template with `enable_thinking=false`. Candidate logits are read after
+the template's direct-answer prefix. The legacy `llama_chat_apply_template`
+API only approximates template families; for Qwen3 it omits the closed
+reasoning prefix and therefore scores candidates at the wrong boundary.
+No model-specific token IDs or reasoning markers are inserted by TurboJev.
+
+Native packages must include `llama-common` alongside `llama` and the shim.
+The CMake build enables that dependency automatically. The model-free
+regression test checks Qwen-style and non-reasoning boundaries using the real
+Jinja renderer:
+
+```sh
+cmake -S crates/turbojev-runtime-llamacpp/native -B artifacts/chat-check -DLLAMA_CPP_SOURCE_DIR=/path/to/llama.cpp -DTURBOJEV_BUILD_NATIVE_TESTS=ON
+cmake --build artifacts/chat-check --config Release --target turbojev_chat_template_test
+ctest --test-dir artifacts/chat-check -C Release --output-on-failure
+```
+
 The shim contains no Windows/Linux/macOS/Android/iOS policy branches. Accelerator/device selection remains the responsibility of the selected llama.cpp build.
 
 Examples:

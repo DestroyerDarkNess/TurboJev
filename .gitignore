@@ -12,6 +12,7 @@
 *.tgz
 /.e2e-final/
 /artifacts/
+/.artifacts/
 **/bin/
 **/obj/
 /bindings/node/dist/
