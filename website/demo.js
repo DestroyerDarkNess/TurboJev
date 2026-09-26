@@ -10,7 +10,7 @@ const catalog = [
  {id:'Xenova/clap-htsat-unfused',name:'CLAP · HTSAT',modes:['audio'],dtype:'q8',note:'Audio–text similarity · Q8 · classify sounds, not transcribe speech.'},
 ];
 const presets = {
- text:[['Support inbox','My package arrived broken. Please send a replacement.','billing\nshipping\ntechnical\nother'],['Sentiment','The food was delicious and the service was excellent.','positive\nnegative\nneutral'],['Language','¿Puedes ayudarme con mi pedido?','English\nSpanish\nFrench\nGerman'],['Urgency','Production is down. All customers are getting errors.','urgent\nnormal\nlow']],
+ text:[['Support inbox','My package arrived broken. Please send a replacement.','billing\nshipping\ntechnical\nother','Which team should handle this customer request?'],['Sentiment','The food was delicious and the service was excellent.','positive\nnegative\nneutral','What sentiment does this message express?'],['Language','¿Puedes ayudarme con mi pedido?','English\nSpanish\nFrench\nGerman','Which language is this message written in?'],['Urgency','Production is down. All customers are getting errors.','urgent\nnormal\nlow','How urgent is the reported issue?']],
  image:[['Animal recognition','','a tiger\na horse\na dog\na cat'],['Scene classification','','a beach\na city street\na forest\na kitchen']],
  audio:[['Sound recognition','','a dog barking\na vacuum cleaner\nmusic\nrunning water'],['Sound environment','','people talking\ntraffic\nbirds singing\nrain']],
  video:[['Scene across frames','','a person indoors\na street\na forest\na beach'],['Objects across frames','','an animal\na vehicle\na person\nfood']],
@@ -23,7 +23,7 @@ function controls() {
  $('demo-unload').disabled=busy||!worker; $('demo-model').disabled=busy||ready; $('demo-device').disabled=busy||ready;$('demo-cyclic').disabled=busy||ready;
  $('demo-runtime').disabled=busy||ready;
  $('demo-cancel').hidden=!busy; $('demo-preset').disabled=busy; $('demo-file').disabled=busy; $('example-media').disabled=busy;
- $('demo-state').disabled=busy; $('demo-options').disabled=busy;
+ $('demo-state').disabled=busy; $('demo-instruction').disabled=busy; $('demo-options').disabled=busy;
  document.querySelectorAll('[data-mode]').forEach(b=>b.disabled=busy||ready);
  $('demo-reset').disabled=busy;
 }
@@ -43,14 +43,14 @@ function progress(p) {
 }
 function clearResult(){result=null;$('demo-result').hidden=true;$('result-empty').hidden=false;$('run-time').textContent='—';}
 function resetMedia(){file=null;if(previewURL)URL.revokeObjectURL(previewURL);previewURL=null;$('media-preview').replaceChildren();$('demo-file').value='';}
-function preset(){const p=presets[mode][Number($('demo-preset').value)];$('demo-state').value=p[1];$('demo-options').value=p[2];if(model()?.family==='vlm')$('demo-state').value='Which description best matches the image?';clearResult();}
+function preset(){const p=presets[mode][Number($('demo-preset').value)];$('demo-state').value=p[1];$('demo-options').value=p[2];$('demo-instruction').value=p[3]||'Which option best matches the input?';if(model()?.family==='vlm')$('demo-state').value='Which description best matches the image?';clearResult();}
 function configure() {
  if(mode!=='text'&&$('demo-runtime').value==='llamacpp')$('demo-runtime').value='transformers';
  $('demo-runtime').querySelector('option[value="llamacpp"]').disabled=mode!=='text';
  const backend=$('demo-runtime').value;
  $('demo-model').replaceChildren(...catalog.filter(m=>m.modes.includes(mode)&&(backend==='llamacpp'?m.backend==='llamacpp':m.backend!=='llamacpp')).map(m=>new Option(m.name,m.id)));
  $('demo-preset').replaceChildren(...presets[mode].map((p,i)=>new Option(p[0],i)));
- const text=mode==='text';$('demo-cyclic').closest('label').hidden=!text;$('demo-state').hidden=!text;$('state-label').hidden=!text;$('media-panel').hidden=text;
+ const text=mode==='text';$('demo-cyclic').closest('label').hidden=!text;$('demo-state').hidden=!text;$('state-label').hidden=!text;$('demo-instruction').hidden=!text;$('instruction-label').hidden=!text;$('media-panel').hidden=text;
  $('demo-file').accept=mode+'/*';$('upload-title').textContent=`Choose ${mode==='image'?'an image':mode==='audio'?'an audio clip':'a video'}`;
  $('example-media').hidden=mode==='video';$('example-media').textContent=mode==='audio'?'Use dog barking sample ↗':'Use tiger photo ↗';
  $('mode-note').textContent=text?(backend==='llamacpp'?'llama.cpp scores a constrained answer token in one inference pass per decision. CPU runs in WASM; GPU uses WebGPU when selected.':'The model scores the candidate answers without generating a response.'):mode==='video'?'Four evenly spaced frames are averaged. Audio and motion are not analyzed. Maximum clip length: 60 seconds.':mode==='audio'?'Audio is mixed to mono at 48 kHz. Maximum length: 10 seconds.':'Compare an image with the descriptions above. This model does not follow arbitrary instructions.';
@@ -102,13 +102,13 @@ async function prepareMedia(){
  }
  return {media,state:{contract:'turbojev.media.v1',modality:mode,base64:encoded.split(',')[1]}};
 }
-function render(value){result=value;$('result-empty').hidden=true;$('demo-result').hidden=false;const answer=mode==='text'?value:value.answers?.decision; if(!answer)throw new Error('Runtime returned no decision. See the JSON output.');$('demo-choice').textContent=answer.choice??answer.value??'Decision';const probabilities=answer.probabilities??{};$('demo-probabilities').replaceChildren(...Object.entries(probabilities).sort((a,b)=>b[1]-a[1]).map(([label,p])=>{const row=document.createElement('div');row.className='demo-probability';const legend=document.createElement('div');legend.className='demo-probability-label';const name=document.createElement('span');name.textContent=label;const number=document.createElement('span');number.textContent=(p*100).toFixed(1)+'%';legend.append(name,number);const track=document.createElement('div');track.className='demo-track';const fill=document.createElement('i');fill.style.width=Math.max(0,Math.min(100,p*100))+'%';track.append(fill);row.append(legend,track);return row;}));$('result-json').firstElementChild.textContent=JSON.stringify(value,null,2);}
+function render(value){result=value;$('result-empty').hidden=true;$('demo-result').hidden=false;const answer=value.answers?.decision; if(!answer)throw new Error('Runtime returned no decision. See the JSON output.');$('demo-choice').textContent=answer.choice??answer.value??'Decision';const probabilities=answer.probabilities??{};$('demo-probabilities').replaceChildren(...Object.entries(probabilities).sort((a,b)=>b[1]-a[1]).map(([label,p])=>{const row=document.createElement('div');row.className='demo-probability';const legend=document.createElement('div');legend.className='demo-probability-label';const name=document.createElement('span');name.textContent=label;const number=document.createElement('span');number.textContent=(p*100).toFixed(1)+'%';legend.append(name,number);const track=document.createElement('div');track.className='demo-track';const fill=document.createElement('i');fill.style.width=Math.max(0,Math.min(100,p*100))+'%';track.append(fill);row.append(legend,track);return row;}));$('result-json').firstElementChild.textContent=JSON.stringify(value,null,2);}
 $('demo-run').addEventListener('click',async()=>{
  const options=$('demo-options').value.split('\n').map(x=>x.trim()).filter(Boolean),state=$('demo-state').value.trim();
  if(options.length<2||options.length>20||new Set(options).size!==options.length){status('Enter 2–20 different answers, one per line.','error');return;}
- if(mode==='text'&&!state){status('Enter a message first.','error');return;}if(mode!=='text'&&!file){status('Select or upload media first.','error');return;}
+ if(mode==='text'&&(!state||!$('demo-instruction').value.trim())){status('Enter a message and a question for the model.','error');return;}if(mode!=='text'&&!file){status('Select or upload media first.','error');return;}
  busy=true;controls();const start=performance.now();timer=setInterval(()=>{$('run-time').textContent=((performance.now()-start)/1000).toFixed(1)+' s';},100);status('Evaluating on your device…');
- try{let value;if(mode==='text')value=await call('classify',{state,options});else{const prepared=await prepareMedia();value=await call('evaluate',{media:prepared.media,request:{state:prepared.state,questions:{decision:{type:'choice',instructions:model().family==='vlm'?state:'Select the best matching description.',criteria:Object.fromEntries(options.map(x=>[x,x]))}}}});}render(value);runs++;$('run-count').textContent=runs;status('Evaluation complete. Timing includes preprocessing and inference.','ready');}
+ try{let value;if(mode==='text')value=await call('evaluate',{request:{state,questions:{decision:{type:'choice',instructions:$('demo-instruction').value.trim(),criteria:Object.fromEntries(options.map(x=>[x,x]))}}}});else{const prepared=await prepareMedia();value=await call('evaluate',{media:prepared.media,request:{state:prepared.state,questions:{decision:{type:'choice',instructions:model().family==='vlm'?state:'Select the best matching description.',criteria:Object.fromEntries(options.map(x=>[x,x]))}}}});}render(value);runs++;$('run-count').textContent=runs;status('Evaluation complete. Timing includes preprocessing and inference.','ready');}
  catch(e){status(e.message,'error');}
  finally{clearInterval(timer);$('run-time').textContent=((performance.now()-start)/1000).toFixed(2)+' s';busy=false;controls();}
 });

@@ -44,12 +44,22 @@ $("release").onclick = async () => {
 };
 $("run").onclick = async () => {
   const options = $("options").value.split("\n").map(x => x.trim()).filter(Boolean);
-  if (!$("state").value.trim() || options.length < 2 || new Set(options).size !== options.length) return status("Escribe un mensaje y al menos dos opciones distintas.", true);
+  const question = $("question").value.trim();
+  if (!$("state").value.trim() || !question || options.length < 2 || new Set(options).size !== options.length) return status("Escribe el mensaje, una pregunta y al menos dos opciones distintas.", true);
   busy = true; controls(); status("Evaluando el mensaje…"); const start = performance.now();
   try {
-    const answer = await engine.classify($("state").value, options);
+    const criteria = Object.fromEntries(options.map((option, index) => [`option_${index + 1}`, option]));
+    const response = await engine.evaluate({
+      state: $("state").value,
+      questions: { route: { type: "choice", instructions: question, criteria } },
+    });
+    const result = response.answers.route;
+    const answer = {
+      choice: criteria[result.choice] || result.choice,
+      probabilities: Object.fromEntries(Object.entries(result.probabilities).map(([key, value]) => [criteria[key] || key, value])),
+    };
     $("latency").textContent = `${Math.round(performance.now() - start)} ms`;
-    $("winner").textContent = answer.choice; $("json").textContent = JSON.stringify(answer, null, 2); $("bars").replaceChildren();
+    $("winner").textContent = answer.choice; $("json").textContent = JSON.stringify(response, null, 2); $("bars").replaceChildren();
     for (const [label, probability] of Object.entries(answer.probabilities).sort((a,b) => b[1]-a[1])) {
       const row = document.createElement("div"); row.className = "bar-label";
       const name = document.createElement("span"), value = document.createElement("span");

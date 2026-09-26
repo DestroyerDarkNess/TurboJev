@@ -19,9 +19,9 @@ self.onmessage = async ({ data: { id, op, args } }) => {
     } else if (!engine) throw new Error('Load a model first.');
     else if (op === 'classify') value = JSON.parse(await engine.classify_json(args.state, JSON.stringify(args.options)));
     else if (op === 'evaluate') {
-      runtime.setMedia(args.media);
+      runtime.setMedia?.(args.media);
       try { value = JSON.parse(await engine.evaluate_json(JSON.stringify(args.request))); }
-      finally { runtime.setMedia(null); }
+      finally { runtime.setMedia?.(null); }
     } else throw new Error('Unknown operation');
     postMessage({ id, value });
   } catch (error) { postMessage({ id, error: error?.message || String(error) }); }
