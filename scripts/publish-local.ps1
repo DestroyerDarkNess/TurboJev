@@ -218,8 +218,16 @@ function Publish-NpmPackage {
     }
     Invoke-Tool $NpmCommand @('publish', '--access', 'public') $PackagePath
     & $NpmCommand access set status=public $manifest.name 2>$null | Out-Null
-    $publishedVersion = & $NpmCommand view $packageVersion version 2>$null
-    if ($LASTEXITCODE -ne 0 -or $publishedVersion.Trim() -ne $manifest.version) {
+    $visible = $false
+    for ($attempt = 1; $attempt -le 12; $attempt++) {
+        $publishedVersion = & $NpmCommand view $packageVersion version 2>$null
+        if ($LASTEXITCODE -eq 0 -and $publishedVersion.Trim() -eq $manifest.version) {
+            $visible = $true
+            break
+        }
+        if ($attempt -lt 12) { Start-Sleep -Seconds 5 }
+    }
+    if (-not $visible) {
         throw "npm did not make $packageVersion visible after publishing. Check package access and registry status."
     }
 }
