@@ -1,0 +1,1439 @@
+{
+  "model": "C:\\Users\\Administrator\\.cache\\turbojev\\Qwen3.5-2B-Q4_K_M.gguf",
+  "sha256": "aaf42c8b7c3cab2bf3d69c355048d4a0ee9973d48f16c731c0520ee914699223",
+  "config": {
+    "model": "C:\\Users\\Administrator\\.cache\\turbojev\\Qwen3.5-2B-Q4_K_M.gguf",
+    "device": "cpu",
+    "nGpuLayers": 0,
+    "nThreads": 4,
+    "nThreadsBatch": 4,
+    "nCtx": 4096,
+    "nSeqMax": 1,
+    "thinking": false,
+    "maxThinkingTokens": 512,
+    "execution": {
+      "orderRobustness": "none"
+    }
+  },
+  "library": "D:\\Projects\\TurboJev\\target\\release\\turbojev_capi.dll",
+  "correct": 21,
+  "total": 24,
+  "records": [
+    {
+      "case": "replacement",
+      "request": {
+        "state": "My package arrived broken. Please send a replacement.",
+        "questions": {
+          "answer": {
+            "type": "choice",
+            "instructions": "Which team should handle this request?",
+            "criteria": {
+              "dog": "An animal",
+              "billing": "Payments and invoices",
+              "shipping": "Delivery, damage and replacement",
+              "technical": "Software bugs"
+            }
+          }
+        }
+      },
+      "response": {
+        "model": "qwen35 2B Q4_K - Medium",
+        "answers": {
+          "answer": {
+            "type": "choice",
+            "choice": "shipping",
+            "confidence": 0.999734808696607,
+            "probabilities": {
+              "dog": 0.00011398876603349146,
+              "billing": 0.00011675849978704164,
+              "shipping": 0.999734808696607,
+              "technical": 3.4444037572548545e-05
+            }
+          }
+        },
+        "usage": {
+          "decisions": 1,
+          "input_tokens": 108,
+          "generated_tokens": 0
+        },
+        "_turbojev": {
+          "backend": "llamacpp",
+          "calibration": "softmax",
+          "calibrated": false,
+          "confidence_method": "selected-candidate-probability",
+          "contract": "turbojev.core.v4",
+          "order_robustness": "none",
+          "order_evaluations": 0,
+          "execution": {
+            "prefix_reuse": "none",
+            "scheduling": "serial",
+            "parallel_task_limit": 1,
+            "projection": "full-vocabulary"
+          }
+        }
+      },
+      "expected": "shipping",
+      "choice": "shipping",
+      "correct": true,
+      "first": "dog",
+      "seconds": 18.22793459999957
+    },
+    {
+      "case": "replacement",
+      "request": {
+        "state": "My package arrived broken. Please send a replacement.",
+        "questions": {
+          "answer": {
+            "type": "choice",
+            "instructions": "Which team should handle this request?",
+            "criteria": {
+              "billing": "Payments and invoices",
+              "shipping": "Delivery, damage and replacement",
+              "technical": "Software bugs",
+              "dog": "An animal"
+            }
+          }
+        }
+      },
+      "response": {
+        "model": "qwen35 2B Q4_K - Medium",
+        "answers": {
+          "answer": {
+            "type": "choice",
+            "choice": "shipping",
+            "confidence": 0.9993852956249352,
+            "probabilities": {
+              "billing": 0.0005917336838602444,
+              "shipping": 0.9993852956249352,
+              "technical": 2.1161937493814837e-05,
+              "dog": 1.8087537106213602e-06
+            }
+          }
+        },
+        "usage": {
+          "decisions": 1,
+          "input_tokens": 108,
+          "generated_tokens": 0
+        },
+        "_turbojev": {
+          "backend": "llamacpp",
+          "calibration": "softmax",
+          "calibrated": false,
+          "confidence_method": "selected-candidate-probability",
+          "contract": "turbojev.core.v4",
+          "order_robustness": "none",
+          "order_evaluations": 0,
+          "execution": {
+            "prefix_reuse": "none",
+            "scheduling": "serial",
+            "parallel_task_limit": 1,
+            "projection": "full-vocabulary"
+          }
+        }
+      },
+      "expected": "shipping",
+      "choice": "shipping",
+      "correct": true,
+      "first": "billing",
+      "seconds": 11.214995799997268
+    },
+    {
+      "case": "replacement",
+      "request": {
+        "state": "My package arrived broken. Please send a replacement.",
+        "questions": {
+          "answer": {
+            "type": "choice",
+            "instructions": "Which team should handle this request?",
+            "criteria": {
+              "shipping": "Delivery, damage and replacement",
+              "technical": "Software bugs",
+              "dog": "An animal",
+              "billing": "Payments and invoices"
+            }
+          }
+        }
+      },
+      "response": {
+        "model": "qwen35 2B Q4_K - Medium",
+        "answers": {
+          "answer": {
+            "type": "choice",
+            "choice": "shipping",
+            "confidence": 0.9993649004714505,
+            "probabilities": {
+              "shipping": 0.9993649004714505,
+              "technical": 0.0005921822638705503,
+              "dog": 3.2520643541054336e-05,
+              "billing": 1.0396621137705401e-05
+            }
+          }
+        },
+        "usage": {
+          "decisions": 1,
+          "input_tokens": 108,
+          "generated_tokens": 0
+        },
+        "_turbojev": {
+          "backend": "llamacpp",
+          "calibration": "softmax",
+          "calibrated": false,
+          "confidence_method": "selected-candidate-probability",
+          "contract": "turbojev.core.v4",
+          "order_robustness": "none",
+          "order_evaluations": 0,
+          "execution": {
+            "prefix_reuse": "none",
+            "scheduling": "serial",
+            "parallel_task_limit": 1,
+            "projection": "full-vocabulary"
+          }
+        }
+      },
+      "expected": "shipping",
+      "choice": "shipping",
+      "correct": true,
+      "first": "shipping",
+      "seconds": 9.063275799999246
+    },
+    {
+      "case": "replacement",
+      "request": {
+        "state": "My package arrived broken. Please send a replacement.",
+        "questions": {
+          "answer": {
+            "type": "choice",
+            "instructions": "Which team should handle this request?",
+            "criteria": {
+              "technical": "Software bugs",
+              "dog": "An animal",
+              "billing": "Payments and invoices",
+              "shipping": "Delivery, damage and replacement"
+            }
+          }
+        }
+      },
+      "response": {
+        "model": "qwen35 2B Q4_K - Medium",
+        "answers": {
+          "answer": {
+            "type": "choice",
+            "choice": "shipping",
+            "confidence": 0.9836487194819954,
+            "probabilities": {
+              "technical": 0.002046607968451407,
+              "dog": 0.00013471424327004338,
+              "billing": 0.014169958306283174,
+              "shipping": 0.9836487194819954
+            }
+          }
+        },
+        "usage": {
+          "decisions": 1,
+          "input_tokens": 108,
+          "generated_tokens": 0
+        },
+        "_turbojev": {
+          "backend": "llamacpp",
+          "calibration": "softmax",
+          "calibrated": false,
+          "confidence_method": "selected-candidate-probability",
+          "contract": "turbojev.core.v4",
+          "order_robustness": "none",
+          "order_evaluations": 0,
+          "execution": {
+            "prefix_reuse": "none",
+            "scheduling": "serial",
+            "parallel_task_limit": 1,
+            "projection": "full-vocabulary"
+          }
+        }
+      },
+      "expected": "shipping",
+      "choice": "shipping",
+      "correct": true,
+      "first": "technical",
+      "seconds": 9.840925200001948
+    },
+    {
+      "case": "payment",
+      "request": {
+        "state": "I was charged twice for my subscription. Please refund the duplicate payment.",
+        "questions": {
+          "answer": {
+            "type": "choice",
+            "instructions": "Which team should handle this request?",
+            "criteria": {
+              "dog": "An animal",
+              "shipping": "Delivery and replacement",
+              "technical": "Software bugs",
+              "billing": "Payments and refunds"
+            }
+          }
+        }
+      },
+      "response": {
+        "model": "qwen35 2B Q4_K - Medium",
+        "answers": {
+          "answer": {
+            "type": "choice",
+            "choice": "billing",
+            "confidence": 0.8113316982028335,
+            "probabilities": {
+              "dog": 0.003234763516985433,
+              "shipping": 0.16674957425924805,
+              "technical": 0.01868396402093308,
+              "billing": 0.8113316982028335
+            }
+          }
+        },
+        "usage": {
+          "decisions": 1,
+          "input_tokens": 110,
+          "generated_tokens": 0
+        },
+        "_turbojev": {
+          "backend": "llamacpp",
+          "calibration": "softmax",
+          "calibrated": false,
+          "confidence_method": "selected-candidate-probability",
+          "contract": "turbojev.core.v4",
+          "order_robustness": "none",
+          "order_evaluations": 0,
+          "execution": {
+            "prefix_reuse": "none",
+            "scheduling": "serial",
+            "parallel_task_limit": 1,
+            "projection": "full-vocabulary"
+          }
+        }
+      },
+      "expected": "billing",
+      "choice": "billing",
+      "correct": true,
+      "first": "dog",
+      "seconds": 16.62990589999754
+    },
+    {
+      "case": "payment",
+      "request": {
+        "state": "I was charged twice for my subscription. Please refund the duplicate payment.",
+        "questions": {
+          "answer": {
+            "type": "choice",
+            "instructions": "Which team should handle this request?",
+            "criteria": {
+              "shipping": "Delivery and replacement",
+              "technical": "Software bugs",
+              "billing": "Payments and refunds",
+              "dog": "An animal"
+            }
+          }
+        }
+      },
+      "response": {
+        "model": "qwen35 2B Q4_K - Medium",
+        "answers": {
+          "answer": {
+            "type": "choice",
+            "choice": "billing",
+            "confidence": 0.9988693152379752,
+            "probabilities": {
+              "shipping": 0.00022788369980804253,
+              "technical": 0.0008984226380512649,
+              "billing": 0.9988693152379752,
+              "dog": 4.3784241655721595e-06
+            }
+          }
+        },
+        "usage": {
+          "decisions": 1,
+          "input_tokens": 110,
+          "generated_tokens": 0
+        },
+        "_turbojev": {
+          "backend": "llamacpp",
+          "calibration": "softmax",
+          "calibrated": false,
+          "confidence_method": "selected-candidate-probability",
+          "contract": "turbojev.core.v4",
+          "order_robustness": "none",
+          "order_evaluations": 0,
+          "execution": {
+            "prefix_reuse": "none",
+            "scheduling": "serial",
+            "parallel_task_limit": 1,
+            "projection": "full-vocabulary"
+          }
+        }
+      },
+      "expected": "billing",
+      "choice": "billing",
+      "correct": true,
+      "first": "shipping",
+      "seconds": 18.333068300002196
+    },
+    {
+      "case": "payment",
+      "request": {
+        "state": "I was charged twice for my subscription. Please refund the duplicate payment.",
+        "questions": {
+          "answer": {
+            "type": "choice",
+            "instructions": "Which team should handle this request?",
+            "criteria": {
+              "technical": "Software bugs",
+              "billing": "Payments and refunds",
+              "dog": "An animal",
+              "shipping": "Delivery and replacement"
+            }
+          }
+        }
+      },
+      "response": {
+        "model": "qwen35 2B Q4_K - Medium",
+        "answers": {
+          "answer": {
+            "type": "choice",
+            "choice": "billing",
+            "confidence": 0.9988560365553931,
+            "probabilities": {
+              "technical": 0.001089470309834435,
+              "billing": 0.9988560365553931,
+              "dog": 5.417505039553084e-05,
+              "shipping": 3.1808437690502055e-07
+            }
+          }
+        },
+        "usage": {
+          "decisions": 1,
+          "input_tokens": 110,
+          "generated_tokens": 0
+        },
+        "_turbojev": {
+          "backend": "llamacpp",
+          "calibration": "softmax",
+          "calibrated": false,
+          "confidence_method": "selected-candidate-probability",
+          "contract": "turbojev.core.v4",
+          "order_robustness": "none",
+          "order_evaluations": 0,
+          "execution": {
+            "prefix_reuse": "none",
+            "scheduling": "serial",
+            "parallel_task_limit": 1,
+            "projection": "full-vocabulary"
+          }
+        }
+      },
+      "expected": "billing",
+      "choice": "billing",
+      "correct": true,
+      "first": "technical",
+      "seconds": 28.67416460000095
+    },
+    {
+      "case": "payment",
+      "request": {
+        "state": "I was charged twice for my subscription. Please refund the duplicate payment.",
+        "questions": {
+          "answer": {
+            "type": "choice",
+            "instructions": "Which team should handle this request?",
+            "criteria": {
+              "billing": "Payments and refunds",
+              "dog": "An animal",
+              "shipping": "Delivery and replacement",
+              "technical": "Software bugs"
+            }
+          }
+        }
+      },
+      "response": {
+        "model": "qwen35 2B Q4_K - Medium",
+        "answers": {
+          "answer": {
+            "type": "choice",
+            "choice": "billing",
+            "confidence": 0.9998080777723741,
+            "probabilities": {
+              "billing": 0.9998080777723741,
+              "dog": 0.00017951684117922917,
+              "shipping": 1.2034106673145427e-05,
+              "technical": 3.7127977347910703e-07
+            }
+          }
+        },
+        "usage": {
+          "decisions": 1,
+          "input_tokens": 110,
+          "generated_tokens": 0
+        },
+        "_turbojev": {
+          "backend": "llamacpp",
+          "calibration": "softmax",
+          "calibrated": false,
+          "confidence_method": "selected-candidate-probability",
+          "contract": "turbojev.core.v4",
+          "order_robustness": "none",
+          "order_evaluations": 0,
+          "execution": {
+            "prefix_reuse": "none",
+            "scheduling": "serial",
+            "parallel_task_limit": 1,
+            "projection": "full-vocabulary"
+          }
+        }
+      },
+      "expected": "billing",
+      "choice": "billing",
+      "correct": true,
+      "first": "billing",
+      "seconds": 22.755980300000374
+    },
+    {
+      "case": "software",
+      "request": {
+        "state": "The application crashes every time I open the settings screen.",
+        "questions": {
+          "answer": {
+            "type": "choice",
+            "instructions": "Which team should handle this request?",
+            "criteria": {
+              "billing": "Payments and invoices",
+              "dog": "An animal",
+              "shipping": "Delivery and replacement",
+              "technical": "Application bugs and crashes"
+            }
+          }
+        }
+      },
+      "response": {
+        "model": "qwen35 2B Q4_K - Medium",
+        "answers": {
+          "answer": {
+            "type": "choice",
+            "choice": "technical",
+            "confidence": 0.976053842544366,
+            "probabilities": {
+              "billing": 0.0017669575618624632,
+              "dog": 0.00013773256400627035,
+              "shipping": 0.022041467329765203,
+              "technical": 0.976053842544366
+            }
+          }
+        },
+        "usage": {
+          "decisions": 1,
+          "input_tokens": 109,
+          "generated_tokens": 0
+        },
+        "_turbojev": {
+          "backend": "llamacpp",
+          "calibration": "softmax",
+          "calibrated": false,
+          "confidence_method": "selected-candidate-probability",
+          "contract": "turbojev.core.v4",
+          "order_robustness": "none",
+          "order_evaluations": 0,
+          "execution": {
+            "prefix_reuse": "none",
+            "scheduling": "serial",
+            "parallel_task_limit": 1,
+            "projection": "full-vocabulary"
+          }
+        }
+      },
+      "expected": "technical",
+      "choice": "technical",
+      "correct": true,
+      "first": "billing",
+      "seconds": 34.99082900000212
+    },
+    {
+      "case": "software",
+      "request": {
+        "state": "The application crashes every time I open the settings screen.",
+        "questions": {
+          "answer": {
+            "type": "choice",
+            "instructions": "Which team should handle this request?",
+            "criteria": {
+              "dog": "An animal",
+              "shipping": "Delivery and replacement",
+              "technical": "Application bugs and crashes",
+              "billing": "Payments and invoices"
+            }
+          }
+        }
+      },
+      "response": {
+        "model": "qwen35 2B Q4_K - Medium",
+        "answers": {
+          "answer": {
+            "type": "choice",
+            "choice": "technical",
+            "confidence": 0.9992302548673886,
+            "probabilities": {
+              "dog": 0.0006056791989673473,
+              "shipping": 0.00010892960197512006,
+              "technical": 0.9992302548673886,
+              "billing": 5.513633166913793e-05
+            }
+          }
+        },
+        "usage": {
+          "decisions": 1,
+          "input_tokens": 109,
+          "generated_tokens": 0
+        },
+        "_turbojev": {
+          "backend": "llamacpp",
+          "calibration": "softmax",
+          "calibrated": false,
+          "confidence_method": "selected-candidate-probability",
+          "contract": "turbojev.core.v4",
+          "order_robustness": "none",
+          "order_evaluations": 0,
+          "execution": {
+            "prefix_reuse": "none",
+            "scheduling": "serial",
+            "parallel_task_limit": 1,
+            "projection": "full-vocabulary"
+          }
+        }
+      },
+      "expected": "technical",
+      "choice": "technical",
+      "correct": true,
+      "first": "dog",
+      "seconds": 23.282492399997864
+    },
+    {
+      "case": "software",
+      "request": {
+        "state": "The application crashes every time I open the settings screen.",
+        "questions": {
+          "answer": {
+            "type": "choice",
+            "instructions": "Which team should handle this request?",
+            "criteria": {
+              "shipping": "Delivery and replacement",
+              "technical": "Application bugs and crashes",
+              "billing": "Payments and invoices",
+              "dog": "An animal"
+            }
+          }
+        }
+      },
+      "response": {
+        "model": "qwen35 2B Q4_K - Medium",
+        "answers": {
+          "answer": {
+            "type": "choice",
+            "choice": "technical",
+            "confidence": 0.9991233395618848,
+            "probabilities": {
+              "shipping": 0.0007267525129071091,
+              "technical": 0.9991233395618848,
+              "billing": 0.00014952542717580023,
+              "dog": 3.8249803225182337e-07
+            }
+          }
+        },
+        "usage": {
+          "decisions": 1,
+          "input_tokens": 109,
+          "generated_tokens": 0
+        },
+        "_turbojev": {
+          "backend": "llamacpp",
+          "calibration": "softmax",
+          "calibrated": false,
+          "confidence_method": "selected-candidate-probability",
+          "contract": "turbojev.core.v4",
+          "order_robustness": "none",
+          "order_evaluations": 0,
+          "execution": {
+            "prefix_reuse": "none",
+            "scheduling": "serial",
+            "parallel_task_limit": 1,
+            "projection": "full-vocabulary"
+          }
+        }
+      },
+      "expected": "technical",
+      "choice": "technical",
+      "correct": true,
+      "first": "shipping",
+      "seconds": 26.76493240000127
+    },
+    {
+      "case": "software",
+      "request": {
+        "state": "The application crashes every time I open the settings screen.",
+        "questions": {
+          "answer": {
+            "type": "choice",
+            "instructions": "Which team should handle this request?",
+            "criteria": {
+              "technical": "Application bugs and crashes",
+              "billing": "Payments and invoices",
+              "dog": "An animal",
+              "shipping": "Delivery and replacement"
+            }
+          }
+        }
+      },
+      "response": {
+        "model": "qwen35 2B Q4_K - Medium",
+        "answers": {
+          "answer": {
+            "type": "choice",
+            "choice": "technical",
+            "confidence": 0.9997140861494513,
+            "probabilities": {
+              "technical": 0.9997140861494513,
+              "billing": 0.0002553341120493051,
+              "dog": 3.03200413118394e-05,
+              "shipping": 2.5969718772826547e-07
+            }
+          }
+        },
+        "usage": {
+          "decisions": 1,
+          "input_tokens": 109,
+          "generated_tokens": 0
+        },
+        "_turbojev": {
+          "backend": "llamacpp",
+          "calibration": "softmax",
+          "calibrated": false,
+          "confidence_method": "selected-candidate-probability",
+          "contract": "turbojev.core.v4",
+          "order_robustness": "none",
+          "order_evaluations": 0,
+          "execution": {
+            "prefix_reuse": "none",
+            "scheduling": "serial",
+            "parallel_task_limit": 1,
+            "projection": "full-vocabulary"
+          }
+        }
+      },
+      "expected": "technical",
+      "choice": "technical",
+      "correct": true,
+      "first": "technical",
+      "seconds": 23.851217700001143
+    },
+    {
+      "case": "color",
+      "request": {
+        "state": "The traffic signal is red.",
+        "questions": {
+          "answer": {
+            "type": "choice",
+            "instructions": "What color is the traffic signal?",
+            "criteria": {
+              "blue": "Blue",
+              "green": "Green",
+              "red": "Red",
+              "yellow": "Yellow"
+            }
+          }
+        }
+      },
+      "response": {
+        "model": "qwen35 2B Q4_K - Medium",
+        "answers": {
+          "answer": {
+            "type": "choice",
+            "choice": "red",
+            "confidence": 0.9946175291378794,
+            "probabilities": {
+              "blue": 0.004795178605788652,
+              "green": 0.0004136642167994373,
+              "red": 0.9946175291378794,
+              "yellow": 0.0001736280395326993
+            }
+          }
+        },
+        "usage": {
+          "decisions": 1,
+          "input_tokens": 96,
+          "generated_tokens": 0
+        },
+        "_turbojev": {
+          "backend": "llamacpp",
+          "calibration": "softmax",
+          "calibrated": false,
+          "confidence_method": "selected-candidate-probability",
+          "contract": "turbojev.core.v4",
+          "order_robustness": "none",
+          "order_evaluations": 0,
+          "execution": {
+            "prefix_reuse": "none",
+            "scheduling": "serial",
+            "parallel_task_limit": 1,
+            "projection": "full-vocabulary"
+          }
+        }
+      },
+      "expected": "red",
+      "choice": "red",
+      "correct": true,
+      "first": "blue",
+      "seconds": 17.56603399999949
+    },
+    {
+      "case": "color",
+      "request": {
+        "state": "The traffic signal is red.",
+        "questions": {
+          "answer": {
+            "type": "choice",
+            "instructions": "What color is the traffic signal?",
+            "criteria": {
+              "green": "Green",
+              "red": "Red",
+              "yellow": "Yellow",
+              "blue": "Blue"
+            }
+          }
+        }
+      },
+      "response": {
+        "model": "qwen35 2B Q4_K - Medium",
+        "answers": {
+          "answer": {
+            "type": "choice",
+            "choice": "red",
+            "confidence": 0.9696354541565488,
+            "probabilities": {
+              "green": 0.025217556795688933,
+              "red": 0.9696354541565488,
+              "yellow": 0.0050947057824792235,
+              "blue": 5.228326528271795e-05
+            }
+          }
+        },
+        "usage": {
+          "decisions": 1,
+          "input_tokens": 96,
+          "generated_tokens": 0
+        },
+        "_turbojev": {
+          "backend": "llamacpp",
+          "calibration": "softmax",
+          "calibrated": false,
+          "confidence_method": "selected-candidate-probability",
+          "contract": "turbojev.core.v4",
+          "order_robustness": "none",
+          "order_evaluations": 0,
+          "execution": {
+            "prefix_reuse": "none",
+            "scheduling": "serial",
+            "parallel_task_limit": 1,
+            "projection": "full-vocabulary"
+          }
+        }
+      },
+      "expected": "red",
+      "choice": "red",
+      "correct": true,
+      "first": "green",
+      "seconds": 20.398291400000744
+    },
+    {
+      "case": "color",
+      "request": {
+        "state": "The traffic signal is red.",
+        "questions": {
+          "answer": {
+            "type": "choice",
+            "instructions": "What color is the traffic signal?",
+            "criteria": {
+              "red": "Red",
+              "yellow": "Yellow",
+              "blue": "Blue",
+              "green": "Green"
+            }
+          }
+        }
+      },
+      "response": {
+        "model": "qwen35 2B Q4_K - Medium",
+        "answers": {
+          "answer": {
+            "type": "choice",
+            "choice": "red",
+            "confidence": 0.9902841372032034,
+            "probabilities": {
+              "red": 0.9902841372032034,
+              "yellow": 0.00587600235792451,
+              "blue": 0.002294024584779998,
+              "green": 0.001545835854092135
+            }
+          }
+        },
+        "usage": {
+          "decisions": 1,
+          "input_tokens": 96,
+          "generated_tokens": 0
+        },
+        "_turbojev": {
+          "backend": "llamacpp",
+          "calibration": "softmax",
+          "calibrated": false,
+          "confidence_method": "selected-candidate-probability",
+          "contract": "turbojev.core.v4",
+          "order_robustness": "none",
+          "order_evaluations": 0,
+          "execution": {
+            "prefix_reuse": "none",
+            "scheduling": "serial",
+            "parallel_task_limit": 1,
+            "projection": "full-vocabulary"
+          }
+        }
+      },
+      "expected": "red",
+      "choice": "red",
+      "correct": true,
+      "first": "red",
+      "seconds": 17.076430199998867
+    },
+    {
+      "case": "color",
+      "request": {
+        "state": "The traffic signal is red.",
+        "questions": {
+          "answer": {
+            "type": "choice",
+            "instructions": "What color is the traffic signal?",
+            "criteria": {
+              "yellow": "Yellow",
+              "blue": "Blue",
+              "green": "Green",
+              "red": "Red"
+            }
+          }
+        }
+      },
+      "response": {
+        "model": "qwen35 2B Q4_K - Medium",
+        "answers": {
+          "answer": {
+            "type": "choice",
+            "choice": "red",
+            "confidence": 0.7512498097431374,
+            "probabilities": {
+              "yellow": 0.1403936380001434,
+              "blue": 0.004188306818586765,
+              "green": 0.10416824543813248,
+              "red": 0.7512498097431374
+            }
+          }
+        },
+        "usage": {
+          "decisions": 1,
+          "input_tokens": 96,
+          "generated_tokens": 0
+        },
+        "_turbojev": {
+          "backend": "llamacpp",
+          "calibration": "softmax",
+          "calibrated": false,
+          "confidence_method": "selected-candidate-probability",
+          "contract": "turbojev.core.v4",
+          "order_robustness": "none",
+          "order_evaluations": 0,
+          "execution": {
+            "prefix_reuse": "none",
+            "scheduling": "serial",
+            "parallel_task_limit": 1,
+            "projection": "full-vocabulary"
+          }
+        }
+      },
+      "expected": "red",
+      "choice": "red",
+      "correct": true,
+      "first": "yellow",
+      "seconds": 13.299164500000188
+    },
+    {
+      "case": "direction",
+      "request": {
+        "state": "The food is directly to the right of the snake. The cell on the right is empty and inside the board.",
+        "questions": {
+          "answer": {
+            "type": "choice",
+            "instructions": "Which direction should the snake move to reach the food?",
+            "criteria": {
+              "up": "Move up",
+              "down": "Move down",
+              "left": "Move left",
+              "right": "Move right"
+            }
+          }
+        }
+      },
+      "response": {
+        "model": "qwen35 2B Q4_K - Medium",
+        "answers": {
+          "answer": {
+            "type": "choice",
+            "choice": "right",
+            "confidence": 0.4430739309966098,
+            "probabilities": {
+              "up": 0.23326143805603725,
+              "down": 0.13036154839635852,
+              "left": 0.19330308255099446,
+              "right": 0.4430739309966098
+            }
+          }
+        },
+        "usage": {
+          "decisions": 1,
+          "input_tokens": 121,
+          "generated_tokens": 0
+        },
+        "_turbojev": {
+          "backend": "llamacpp",
+          "calibration": "softmax",
+          "calibrated": false,
+          "confidence_method": "selected-candidate-probability",
+          "contract": "turbojev.core.v4",
+          "order_robustness": "none",
+          "order_evaluations": 0,
+          "execution": {
+            "prefix_reuse": "none",
+            "scheduling": "serial",
+            "parallel_task_limit": 1,
+            "projection": "full-vocabulary"
+          }
+        }
+      },
+      "expected": "right",
+      "choice": "right",
+      "correct": true,
+      "first": "up",
+      "seconds": 24.030355499999132
+    },
+    {
+      "case": "direction",
+      "request": {
+        "state": "The food is directly to the right of the snake. The cell on the right is empty and inside the board.",
+        "questions": {
+          "answer": {
+            "type": "choice",
+            "instructions": "Which direction should the snake move to reach the food?",
+            "criteria": {
+              "down": "Move down",
+              "left": "Move left",
+              "right": "Move right",
+              "up": "Move up"
+            }
+          }
+        }
+      },
+      "response": {
+        "model": "qwen35 2B Q4_K - Medium",
+        "answers": {
+          "answer": {
+            "type": "choice",
+            "choice": "right",
+            "confidence": 0.7264368734927421,
+            "probabilities": {
+              "down": 0.16113624531200704,
+              "left": 0.07221732014093031,
+              "right": 0.7264368734927421,
+              "up": 0.04020956105432062
+            }
+          }
+        },
+        "usage": {
+          "decisions": 1,
+          "input_tokens": 121,
+          "generated_tokens": 0
+        },
+        "_turbojev": {
+          "backend": "llamacpp",
+          "calibration": "softmax",
+          "calibrated": false,
+          "confidence_method": "selected-candidate-probability",
+          "contract": "turbojev.core.v4",
+          "order_robustness": "none",
+          "order_evaluations": 0,
+          "execution": {
+            "prefix_reuse": "none",
+            "scheduling": "serial",
+            "parallel_task_limit": 1,
+            "projection": "full-vocabulary"
+          }
+        }
+      },
+      "expected": "right",
+      "choice": "right",
+      "correct": true,
+      "first": "down",
+      "seconds": 27.703014300001087
+    },
+    {
+      "case": "direction",
+      "request": {
+        "state": "The food is directly to the right of the snake. The cell on the right is empty and inside the board.",
+        "questions": {
+          "answer": {
+            "type": "choice",
+            "instructions": "Which direction should the snake move to reach the food?",
+            "criteria": {
+              "left": "Move left",
+              "right": "Move right",
+              "up": "Move up",
+              "down": "Move down"
+            }
+          }
+        }
+      },
+      "response": {
+        "model": "qwen35 2B Q4_K - Medium",
+        "answers": {
+          "answer": {
+            "type": "choice",
+            "choice": "right",
+            "confidence": 0.6043905957880323,
+            "probabilities": {
+              "left": 0.30503329269952917,
+              "right": 0.6043905957880323,
+              "up": 0.07309664493571778,
+              "down": 0.017479466576720806
+            }
+          }
+        },
+        "usage": {
+          "decisions": 1,
+          "input_tokens": 121,
+          "generated_tokens": 0
+        },
+        "_turbojev": {
+          "backend": "llamacpp",
+          "calibration": "softmax",
+          "calibrated": false,
+          "confidence_method": "selected-candidate-probability",
+          "contract": "turbojev.core.v4",
+          "order_robustness": "none",
+          "order_evaluations": 0,
+          "execution": {
+            "prefix_reuse": "none",
+            "scheduling": "serial",
+            "parallel_task_limit": 1,
+            "projection": "full-vocabulary"
+          }
+        }
+      },
+      "expected": "right",
+      "choice": "right",
+      "correct": true,
+      "first": "left",
+      "seconds": 17.910423999997874
+    },
+    {
+      "case": "direction",
+      "request": {
+        "state": "The food is directly to the right of the snake. The cell on the right is empty and inside the board.",
+        "questions": {
+          "answer": {
+            "type": "choice",
+            "instructions": "Which direction should the snake move to reach the food?",
+            "criteria": {
+              "right": "Move right",
+              "up": "Move up",
+              "down": "Move down",
+              "left": "Move left"
+            }
+          }
+        }
+      },
+      "response": {
+        "model": "qwen35 2B Q4_K - Medium",
+        "answers": {
+          "answer": {
+            "type": "choice",
+            "choice": "right",
+            "confidence": 0.8619436049440421,
+            "probabilities": {
+              "right": 0.8619436049440421,
+              "up": 0.057939804171216004,
+              "down": 0.053824948488703166,
+              "left": 0.026291642396038737
+            }
+          }
+        },
+        "usage": {
+          "decisions": 1,
+          "input_tokens": 121,
+          "generated_tokens": 0
+        },
+        "_turbojev": {
+          "backend": "llamacpp",
+          "calibration": "softmax",
+          "calibrated": false,
+          "confidence_method": "selected-candidate-probability",
+          "contract": "turbojev.core.v4",
+          "order_robustness": "none",
+          "order_evaluations": 0,
+          "execution": {
+            "prefix_reuse": "none",
+            "scheduling": "serial",
+            "parallel_task_limit": 1,
+            "projection": "full-vocabulary"
+          }
+        }
+      },
+      "expected": "right",
+      "choice": "right",
+      "correct": true,
+      "first": "right",
+      "seconds": 31.537804499999766
+    },
+    {
+      "case": "snake-wall",
+      "request": {
+        "state": "Board: 12 columns and 10 rows. Coordinates are (x, y); x increases to the right and y increases downward. Head: (6, 0). Body from neck to tail: [(6, 1)]. Food: (11, 0). Current direction: up.",
+        "questions": {
+          "answer": {
+            "type": "choice",
+            "instructions": "Choose the next direction for the snake to reach the food. Avoid the board walls and the snake's body; do not reverse directly. The tail moves away unless the snake eats. Decide this move only.",
+            "criteria": {
+              "up": "Move one cell up (y - 1).",
+              "down": "Move one cell down (y + 1).",
+              "left": "Move one cell left (x - 1).",
+              "right": "Move one cell right (x + 1)."
+            }
+          }
+        }
+      },
+      "response": {
+        "model": "qwen35 2B Q4_K - Medium",
+        "answers": {
+          "answer": {
+            "type": "choice",
+            "choice": "left",
+            "confidence": 0.3661737682096921,
+            "probabilities": {
+              "up": 0.34114942147452054,
+              "down": 0.23221234128583965,
+              "left": 0.3661737682096921,
+              "right": 0.060464469029947614
+            }
+          }
+        },
+        "usage": {
+          "decisions": 1,
+          "input_tokens": 223,
+          "generated_tokens": 0
+        },
+        "_turbojev": {
+          "backend": "llamacpp",
+          "calibration": "softmax",
+          "calibrated": false,
+          "confidence_method": "selected-candidate-probability",
+          "contract": "turbojev.core.v4",
+          "order_robustness": "none",
+          "order_evaluations": 0,
+          "execution": {
+            "prefix_reuse": "none",
+            "scheduling": "serial",
+            "parallel_task_limit": 1,
+            "projection": "full-vocabulary"
+          }
+        }
+      },
+      "expected": "right",
+      "choice": "left",
+      "correct": false,
+      "first": "up",
+      "seconds": 24.369570800001384
+    },
+    {
+      "case": "snake-wall",
+      "request": {
+        "state": "Board: 12 columns and 10 rows. Coordinates are (x, y); x increases to the right and y increases downward. Head: (6, 0). Body from neck to tail: [(6, 1)]. Food: (11, 0). Current direction: up.",
+        "questions": {
+          "answer": {
+            "type": "choice",
+            "instructions": "Choose the next direction for the snake to reach the food. Avoid the board walls and the snake's body; do not reverse directly. The tail moves away unless the snake eats. Decide this move only.",
+            "criteria": {
+              "down": "Move one cell down (y + 1).",
+              "left": "Move one cell left (x - 1).",
+              "right": "Move one cell right (x + 1).",
+              "up": "Move one cell up (y - 1)."
+            }
+          }
+        }
+      },
+      "response": {
+        "model": "qwen35 2B Q4_K - Medium",
+        "answers": {
+          "answer": {
+            "type": "choice",
+            "choice": "down",
+            "confidence": 0.47822373677792,
+            "probabilities": {
+              "down": 0.47822373677792,
+              "left": 0.19469221736085943,
+              "right": 0.2949889051937983,
+              "up": 0.0320951406674222
+            }
+          }
+        },
+        "usage": {
+          "decisions": 1,
+          "input_tokens": 223,
+          "generated_tokens": 0
+        },
+        "_turbojev": {
+          "backend": "llamacpp",
+          "calibration": "softmax",
+          "calibrated": false,
+          "confidence_method": "selected-candidate-probability",
+          "contract": "turbojev.core.v4",
+          "order_robustness": "none",
+          "order_evaluations": 0,
+          "execution": {
+            "prefix_reuse": "none",
+            "scheduling": "serial",
+            "parallel_task_limit": 1,
+            "projection": "full-vocabulary"
+          }
+        }
+      },
+      "expected": "right",
+      "choice": "down",
+      "correct": false,
+      "first": "down",
+      "seconds": 21.303066299999045
+    },
+    {
+      "case": "snake-wall",
+      "request": {
+        "state": "Board: 12 columns and 10 rows. Coordinates are (x, y); x increases to the right and y increases downward. Head: (6, 0). Body from neck to tail: [(6, 1)]. Food: (11, 0). Current direction: up.",
+        "questions": {
+          "answer": {
+            "type": "choice",
+            "instructions": "Choose the next direction for the snake to reach the food. Avoid the board walls and the snake's body; do not reverse directly. The tail moves away unless the snake eats. Decide this move only.",
+            "criteria": {
+              "left": "Move one cell left (x - 1).",
+              "right": "Move one cell right (x + 1).",
+              "up": "Move one cell up (y - 1).",
+              "down": "Move one cell down (y + 1)."
+            }
+          }
+        }
+      },
+      "response": {
+        "model": "qwen35 2B Q4_K - Medium",
+        "answers": {
+          "answer": {
+            "type": "choice",
+            "choice": "left",
+            "confidence": 0.4579019995877757,
+            "probabilities": {
+              "left": 0.4579019995877757,
+              "right": 0.3496815373667981,
+              "up": 0.15080951067537435,
+              "down": 0.04160695237005197
+            }
+          }
+        },
+        "usage": {
+          "decisions": 1,
+          "input_tokens": 223,
+          "generated_tokens": 0
+        },
+        "_turbojev": {
+          "backend": "llamacpp",
+          "calibration": "softmax",
+          "calibrated": false,
+          "confidence_method": "selected-candidate-probability",
+          "contract": "turbojev.core.v4",
+          "order_robustness": "none",
+          "order_evaluations": 0,
+          "execution": {
+            "prefix_reuse": "none",
+            "scheduling": "serial",
+            "parallel_task_limit": 1,
+            "projection": "full-vocabulary"
+          }
+        }
+      },
+      "expected": "right",
+      "choice": "left",
+      "correct": false,
+      "first": "left",
+      "seconds": 16.915520700000343
+    },
+    {
+      "case": "snake-wall",
+      "request": {
+        "state": "Board: 12 columns and 10 rows. Coordinates are (x, y); x increases to the right and y increases downward. Head: (6, 0). Body from neck to tail: [(6, 1)]. Food: (11, 0). Current direction: up.",
+        "questions": {
+          "answer": {
+            "type": "choice",
+            "instructions": "Choose the next direction for the snake to reach the food. Avoid the board walls and the snake's body; do not reverse directly. The tail moves away unless the snake eats. Decide this move only.",
+            "criteria": {
+              "right": "Move one cell right (x + 1).",
+              "up": "Move one cell up (y - 1).",
+              "down": "Move one cell down (y + 1).",
+              "left": "Move one cell left (x - 1)."
+            }
+          }
+        }
+      },
+      "response": {
+        "model": "qwen35 2B Q4_K - Medium",
+        "answers": {
+          "answer": {
+            "type": "choice",
+            "choice": "right",
+            "confidence": 0.6307478020555095,
+            "probabilities": {
+              "right": 0.6307478020555095,
+              "up": 0.13856562572689193,
+              "down": 0.18033661458696332,
+              "left": 0.05034995763063527
+            }
+          }
+        },
+        "usage": {
+          "decisions": 1,
+          "input_tokens": 223,
+          "generated_tokens": 0
+        },
+        "_turbojev": {
+          "backend": "llamacpp",
+          "calibration": "softmax",
+          "calibrated": false,
+          "confidence_method": "selected-candidate-probability",
+          "contract": "turbojev.core.v4",
+          "order_robustness": "none",
+          "order_evaluations": 0,
+          "execution": {
+            "prefix_reuse": "none",
+            "scheduling": "serial",
+            "parallel_task_limit": 1,
+            "projection": "full-vocabulary"
+          }
+        }
+      },
+      "expected": "right",
+      "choice": "right",
+      "correct": true,
+      "first": "right",
+      "seconds": 16.91575119999834
+    }
+  ]
+}

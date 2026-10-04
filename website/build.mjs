@@ -1,4 +1,4 @@
-import { readFile, writeFile, mkdir } from 'node:fs/promises';
+import { readFile, writeFile, mkdir, copyFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 import { createHash } from 'node:crypto';
@@ -9,8 +9,12 @@ await build({ entryPoints: [root + 'src/runtime.ts'], outfile: root + 'vendor/st
   bundle: true, format: 'esm', platform: 'browser', target: 'es2022', minify: true,
   nodePaths: [fileURLToPath(new URL('../samples/TurboJev-js-native/node_modules', import.meta.url))],
   define: { 'process.env.NODE_ENV': '"production"' } });
+await build({ entryPoints: [fileURLToPath(new URL('../bindings/web-runtimes/llamacpp-wasm/src/index.js', import.meta.url))],
+  outfile: root + 'vendor/llamacpp-runtime.js', bundle: true, format: 'esm',
+  platform: 'browser', target: 'es2022', minify: true });
+await copyFile(fileURLToPath(new URL('../tests/fixtures/multimodal-audio/on.wav', import.meta.url)), root + 'vendor/audio-on.wav');
 const digest = async file => createHash('sha256').update(await readFile(root + file)).digest('hex').slice(0,12);
-const manifest = { runtime: await digest('vendor/studio-runtime.js'), wasm: await digest('vendor/wasm/turbojev_wasm_bg.wasm') };
+const manifest = { runtime: await digest('vendor/studio-runtime.js'), llamacpp: await digest('vendor/llamacpp-runtime.js'), wasm: await digest('vendor/wasm/turbojev_wasm_bg.wasm') };
 await writeFile(root + 'vendor/manifest.json', JSON.stringify(manifest));
 const version = createHash('sha256').update(JSON.stringify(manifest) + await digest('demo.js') + await digest('demo-worker.js') + await digest('app.js') + await digest('styles.css')).digest('hex').slice(0,12);
 const landing = (await readFile(root + 'index.html','utf8')).replace(/(src="(?:demo|app)\.js|href="styles\.css)(?:\?v=[a-z0-9]+)?/g, `$1?v=${version}`);

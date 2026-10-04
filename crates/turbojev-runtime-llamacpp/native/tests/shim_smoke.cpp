@@ -399,5 +399,14 @@ int main() {
     }
 
     tj_llama_close(runtime);
+
+    // Multimodal prefill requests one sequence so its frames share the full
+    // context window. Do not silently clamp that request back to two slots.
+    config.n_seq_max = 1;
+    runtime = tj_llama_open("fixture.gguf", &config, error, sizeof(error));
+    assert(runtime != nullptr);
+    assert(tj_llama_max_parallel_tasks(runtime) == 0);
+    assert(tj_llama_multi_root_supported(runtime) == 0);
+    tj_llama_close(runtime);
     return 0;
 }

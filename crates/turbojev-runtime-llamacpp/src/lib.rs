@@ -122,12 +122,6 @@ impl PromptRenderer for ReferencePromptRenderer {
             })
             .collect::<Vec<_>>()
             .join("\n");
-        let codes = document
-            .options
-            .iter()
-            .map(|option| option.code.as_str())
-            .collect::<Vec<_>>()
-            .join(", ");
         let label = if document.options.iter().all(|option| {
             option.code.len() == 1 && option.code.bytes().all(|byte| byte.is_ascii_alphabetic())
         }) {
@@ -136,11 +130,12 @@ impl PromptRenderer for ReferencePromptRenderer {
             "code"
         };
         let user = format!(
-            "State:\n{evidence}\n\nQuestion:\n{criterion}\n\nAllowed options:\n{options}\n\nReply with exactly one option {label} from: {codes}."
+            "State:\n{evidence}\n\nQuestion:\n{criterion}\n\nAllowed options:\n{options}\n\nAnswer as {{\"answer\": \"<option {label}>\"}}."
         );
         Ok(RenderedMessages {
             system: Some(self.config.system_instruction.clone()),
             user,
+            assistant_prefix: "{\"answer\": \"".into(),
             profile: self.config.profile.clone(),
         })
     }
@@ -154,6 +149,9 @@ pub const REFERENCE_CAPABILITIES: RuntimeCapabilities = RuntimeCapabilities {
     parallel_suffixes: false,
     selective_output_head: false,
     local_inference: true,
+    image_input: false,
+    audio_input: false,
+    video_input: false,
 };
 
 /// Capabilities when the loaded llama.cpp context exposes reusable sequence
@@ -165,6 +163,9 @@ pub const SHARED_PREFIX_CAPABILITIES: RuntimeCapabilities = RuntimeCapabilities 
     parallel_suffixes: false,
     selective_output_head: false,
     local_inference: true,
+    image_input: false,
+    audio_input: false,
+    video_input: false,
 };
 
 /// Capabilities when reusable sequence memory and batched independent
@@ -176,6 +177,9 @@ pub const PARALLEL_SUFFIX_CAPABILITIES: RuntimeCapabilities = RuntimeCapabilitie
     parallel_suffixes: true,
     selective_output_head: false,
     local_inference: true,
+    image_input: false,
+    audio_input: false,
+    video_input: false,
 };
 
 /// Borrowed low-level branch request for llama.cpp batch scoring.
@@ -220,6 +224,48 @@ pub trait LlamaCppApi {
 
     /// Decode an exact token sequence without adding or removing content.
     fn decode_tokens(&self, tokens: &[TokenId]) -> Result<String, LlamaCppError>;
+
+    /// Whether the loaded model and mmproj accept image input.
+    fn image_input_supported(&self) -> bool {
+        false
+    }
+
+    /// Whether the loaded model and mmproj accept audio input.
+    fn audio_input_supported(&self) -> bool {
+        false
+    }
+
+    /// Whether this build and the loaded mmproj accept video input.
+    fn video_input_supported(&self) -> bool {
+        false
+    }
+
+    /// Score single-token candidates against one media-bearing rendered prompt.
+    fn score_media_next_token(
+        &self,
+        _messages: &RenderedMessages,
+        _media: &turbojev_schema::media::MediaEvidence,
+        _candidate_token_ids: &[TokenId],
+    ) -> Result<Vec<f32>, LlamaCppError> {
+        Err(LlamaCppError::Unsupported(
+            "llama.cpp multimodal scoring is unavailable".into(),
+        ))
+    }
+
+    /// Whether text scoring generates model reasoning before scoring candidate codes.
+    fn thinking_enabled(&self) -> bool {
+        false
+    }
+
+    fn score_thinking_next_token(
+        &self,
+        _messages: &RenderedMessages,
+        _candidate_token_ids: &[TokenId],
+    ) -> Result<(Vec<f32>, usize), LlamaCppError> {
+        Err(LlamaCppError::Unsupported(
+            "model reasoning is unavailable".into(),
+        ))
+    }
 
     /// Run an independent full prompt and gather the next-token logits for the
     /// supplied single-token candidate IDs in the same order.
@@ -419,7 +465,12 @@ impl<A: LlamaCppApi> PromptCodec for LlamaCppCodec<A> {
 
     fn encode_prompt(&self, messages: &RenderedMessages) -> Result<Vec<TokenId>, RuntimeError> {
         self.api
-            .encode_chat(messages.system.as_deref(), &messages.user, None)
+            .encode_chat(
+                messages.system.as_deref(),
+                &messages.user,
+                (!messages.assistant_prefix.is_empty())
+                    .then_some(messages.assistant_prefix.as_str()),
+            )
             .map_err(map_api_error)
     }
 
@@ -429,7 +480,11 @@ impl<A: LlamaCppApi> PromptCodec for LlamaCppCodec<A> {
         answer: &str,
     ) -> Result<Vec<TokenId>, RuntimeError> {
         self.api
-            .encode_chat(messages.system.as_deref(), &messages.user, Some(answer))
+            .encode_chat(
+                messages.system.as_deref(),
+                &messages.user,
+                Some(&format!("{}{answer}", messages.assistant_prefix)),
+            )
             .map_err(map_api_error)
     }
 
@@ -457,15 +512,22 @@ impl<A: LlamaCppApi> RuntimeExecutor for LlamaCppExecutor<A> {
     }
 
     fn capabilities(&self) -> RuntimeCapabilities {
-        let mut capabilities = if self.api.parallel_suffix_supported() {
+        let mut capabilities = if self.api.thinking_enabled() {
+            REFERENCE_CAPABILITIES
+        } else if self.api.parallel_suffix_supported() {
             PARALLEL_SUFFIX_CAPABILITIES
         } else if self.api.shared_prefix_supported() {
             SHARED_PREFIX_CAPABILITIES
         } else {
             REFERENCE_CAPABILITIES
         };
-        capabilities.selective_output_head = self.api.selective_output_head_supported();
-        capabilities.sequence_scores = self.api.sequence_scores_supported();
+        capabilities.selective_output_head =
+            !self.api.thinking_enabled() && self.api.selective_output_head_supported();
+        capabilities.sequence_scores =
+            !self.api.thinking_enabled() && self.api.sequence_scores_supported();
+        capabilities.image_input = self.api.image_input_supported();
+        capabilities.audio_input = self.api.audio_input_supported();
+        capabilities.video_input = self.api.video_input_supported();
         capabilities
     }
 
@@ -481,6 +543,16 @@ impl<A: LlamaCppApi> RuntimeExecutor for LlamaCppExecutor<A> {
         batch: &turbojev_runtime::RuntimeBatch,
         plan: ExecutionPlan,
     ) -> Result<RuntimeOutput, RuntimeError> {
+        if let Some(media) = turbojev_schema::media::MediaEvidence::from_state(&batch.state)
+            .map_err(RuntimeError::Preparation)?
+        {
+            if self.api.thinking_enabled() {
+                return Err(RuntimeError::Unsupported(
+                    "thinking currently supports text only".into(),
+                ));
+            }
+            return self.score_media(batch, &media);
+        }
         validate_llamacpp_plan(
             plan,
             self.api.shared_prefix_supported(),
@@ -504,9 +576,48 @@ impl<A: LlamaCppApi> RuntimeExecutor for LlamaCppExecutor<A> {
     }
 }
 
+impl<A: LlamaCppApi> LlamaCppExecutor<A> {
+    fn score_media(
+        &self,
+        batch: &turbojev_runtime::RuntimeBatch,
+        media: &turbojev_schema::media::MediaEvidence,
+    ) -> Result<RuntimeOutput, RuntimeError> {
+        let started = Instant::now();
+        let mut scores = Vec::with_capacity(batch.tasks.len());
+        for task in &batch.tasks {
+            if !is_single_token_task(task) {
+                return Err(RuntimeError::Unsupported(
+                    "llama.cpp media scoring currently requires a single-token codebook".into(),
+                ));
+            }
+            let candidate_ids = single_token_candidate_ids(task)?;
+            let logits = self
+                .api
+                .score_media_next_token(&task.messages, media, &candidate_ids)
+                .map_err(map_api_error)?;
+            validate_logits(&task.id, &candidate_ids, &logits)?;
+            scores.push(RuntimeTaskScores {
+                id: task.id.clone(),
+                logits,
+            });
+        }
+        let elapsed = started.elapsed().as_secs_f64();
+        Ok(RuntimeOutput {
+            model: Some(self.api.model_id().to_owned()),
+            scores,
+            metrics: BackendMetrics {
+                scoring_seconds: Some(elapsed),
+                total_seconds: Some(elapsed),
+                effective_plan: Some(ExecutionPlan::default()),
+                ..BackendMetrics::default()
+            },
+        })
+    }
+}
+
 impl<A: LlamaCppApi> FusedRuntimeExecutor for LlamaCppExecutor<A> {
     fn fused_capabilities(&self) -> FusedBackendCapabilities {
-        if !self.api.multi_root_supported() {
+        if self.api.thinking_enabled() || !self.api.multi_root_supported() {
             return FusedBackendCapabilities::disabled();
         }
         FusedBackendCapabilities {
@@ -662,6 +773,7 @@ impl<A: LlamaCppApi> LlamaCppExecutor<A> {
         }
         let started = Instant::now();
         let mut input_tokens = 0usize;
+        let mut generated_tokens = 0usize;
         let mut sequence_candidate_tokens = 0usize;
         let mut sequence_prefix_evaluations = 0usize;
         let mut sequence_token_steps_saved = 0usize;
@@ -670,7 +782,16 @@ impl<A: LlamaCppApi> LlamaCppExecutor<A> {
             input_tokens = input_tokens.saturating_add(task.prompt_suffix.len());
             let (logits, work) = if is_single_token_task(task) {
                 let candidate_ids = single_token_candidate_ids(task)?;
-                let logits = self.score_prompt(&task.prompt_suffix, &candidate_ids, projection)?;
+                let logits = if self.api.thinking_enabled() {
+                    let (logits, generated) = self
+                        .api
+                        .score_thinking_next_token(&task.messages, &candidate_ids)
+                        .map_err(map_api_error)?;
+                    generated_tokens = generated_tokens.saturating_add(generated);
+                    logits
+                } else {
+                    self.score_prompt(&task.prompt_suffix, &candidate_ids, projection)?
+                };
                 validate_logits(&task.id, &candidate_ids, &logits)?;
                 (logits, None)
             } else {
@@ -715,6 +836,7 @@ impl<A: LlamaCppApi> LlamaCppExecutor<A> {
             model: Some(self.api.model_id().to_owned()),
             scores: rows,
             metrics: BackendMetrics {
+                generated_tokens: Some(generated_tokens),
                 prefill_seconds: None,
                 scoring_seconds: Some(total),
                 total_seconds: Some(total),
@@ -1216,6 +1338,9 @@ mod tests {
         parallel_suffix_token_limit: Option<usize>,
         full_projection_calls: Arc<Mutex<usize>>,
         selective_projection_calls: Arc<Mutex<usize>>,
+        image_input: bool,
+        thinking: bool,
+        media_calls: Arc<Mutex<Vec<(RenderedMessages, turbojev_schema::media::MediaEvidence)>>>,
     }
 
     impl FamilyApi {
@@ -1237,6 +1362,9 @@ mod tests {
                 parallel_suffix_token_limit: None,
                 full_projection_calls: Arc::new(Mutex::new(0)),
                 selective_projection_calls: Arc::new(Mutex::new(0)),
+                image_input: false,
+                thinking: false,
+                media_calls: Arc::new(Mutex::new(Vec::new())),
             }
         }
 
@@ -1258,6 +1386,9 @@ mod tests {
                 parallel_suffix_token_limit: None,
                 full_projection_calls: Arc::new(Mutex::new(0)),
                 selective_projection_calls: Arc::new(Mutex::new(0)),
+                image_input: false,
+                thinking: false,
+                media_calls: Arc::new(Mutex::new(Vec::new())),
             }
         }
 
@@ -1279,7 +1410,15 @@ mod tests {
                 parallel_suffix_token_limit: None,
                 full_projection_calls: Arc::new(Mutex::new(0)),
                 selective_projection_calls: Arc::new(Mutex::new(0)),
+                image_input: false,
+                thinking: false,
+                media_calls: Arc::new(Mutex::new(Vec::new())),
             }
+        }
+
+        fn with_image_input(mut self) -> Self {
+            self.image_input = true;
+            self
         }
 
         fn with_parallel_suffix_token_limit(mut self, limit: usize) -> Self {
@@ -1395,6 +1534,49 @@ mod tests {
                     (candidate.as_slice() == tokens).then(|| symbol.clone())
                 })
                 .ok_or_else(|| LlamaCppError::Tokenization("unknown fixture token sequence".into()))
+        }
+
+        fn image_input_supported(&self) -> bool {
+            self.image_input
+        }
+
+        fn video_input_supported(&self) -> bool {
+            self.image_input
+        }
+
+        fn score_media_next_token(
+            &self,
+            messages: &RenderedMessages,
+            media: &turbojev_schema::media::MediaEvidence,
+            candidate_token_ids: &[TokenId],
+        ) -> Result<Vec<f32>, LlamaCppError> {
+            if !self.image_input
+                || !matches!(
+                    media.modality,
+                    turbojev_schema::media::Modality::Image
+                        | turbojev_schema::media::Modality::Video
+                )
+            {
+                return Err(LlamaCppError::Unsupported(
+                    "fixture image input disabled".into(),
+                ));
+            }
+            self.media_calls
+                .lock()
+                .unwrap()
+                .push((messages.clone(), media.clone()));
+            self.fixture_logits(&[1, 2, 3], candidate_token_ids)
+        }
+
+        fn thinking_enabled(&self) -> bool {
+            self.thinking
+        }
+        fn score_thinking_next_token(
+            &self,
+            _messages: &RenderedMessages,
+            ids: &[TokenId],
+        ) -> Result<(Vec<f32>, usize), LlamaCppError> {
+            Ok((self.fixture_logits(&[1, 2], ids)?, 7))
         }
 
         fn score_next_token(
@@ -1580,6 +1762,7 @@ mod tests {
                 .collect::<Vec<_>>()
                 .join("\n");
             Ok(RenderedMessages {
+                assistant_prefix: String::new(),
                 system: Some("fixture".into()),
                 user: format!("{}\n{}\n{}", document.evidence, criterion, options),
                 profile: self.profile().to_owned(),
@@ -1625,6 +1808,7 @@ mod tests {
         let api = Arc::new(api);
         let codec = LlamaCppCodec::new(Arc::clone(&api));
         let messages = RenderedMessages {
+            assistant_prefix: String::new(),
             system: Some("fixture".into()),
             user: "test".into(),
             profile: "fixture".into(),
@@ -1635,8 +1819,10 @@ mod tests {
 
         let backend = reference_backend(Renderer, (*api).clone());
         let prepared = turbojev_runtime::RuntimeBatch {
+            state: serde_json::Value::Null,
             common_prefix: vec![],
             tasks: vec![turbojev_runtime::RuntimeTask {
+                messages: turbojev_prompt::RenderedMessages::default(),
                 id: "route".into(),
                 prompt_suffix: api.encode_chat(Some("fixture"), "test", None).unwrap(),
                 candidates: verified
@@ -1665,6 +1851,41 @@ mod tests {
     }
 
     #[test]
+    fn prefilled_answer_boundary_keeps_candidate_ids_and_prefix_exact() {
+        let mut api = FamilyApi::qwen_style();
+        let prefix = "{\"answer\": \"";
+        let prefill_tokens = api.encode_text(prefix);
+        api.symbols.insert(prefix.into(), prefill_tokens.clone());
+        for symbol in ["A", "B", "C"] {
+            let mut tokens = prefill_tokens.clone();
+            tokens.extend_from_slice(&api.symbols[symbol]);
+            api.symbols.insert(format!("{prefix}{symbol}"), tokens);
+        }
+        let api = Arc::new(api);
+        let codec = LlamaCppCodec::new(Arc::clone(&api));
+        let messages = RenderedMessages {
+            system: Some("Decision rules".into()),
+            user: "A. wrong\nB. correct\nC. wrong".into(),
+            assistant_prefix: prefix.into(),
+            profile: "prefill-regression".into(),
+        };
+        let base = codec.encode_prompt(&messages).unwrap();
+        assert_eq!(
+            base,
+            api.encode_chat(messages.system.as_deref(), &messages.user, Some(prefix))
+                .unwrap()
+        );
+        let symbols = vec!["A".into(), "B".into(), "C".into()];
+        let verified = verify_candidate_boundary(&codec, &messages, &symbols, 1).unwrap();
+        for (symbol, candidate) in symbols.iter().zip(verified) {
+            assert_eq!(candidate.token_ids, api.symbols[symbol]);
+            let extended = codec.encode_prompt_with_answer(&messages, symbol).unwrap();
+            assert_eq!(&extended[..base.len()], base.as_slice());
+            assert_eq!(&extended[base.len()..], candidate.token_ids.as_slice());
+        }
+    }
+
+    #[test]
     fn configured_renderer_preserves_caller_language() {
         let renderer = ReferencePromptRenderer::new(ReferencePromptConfig::new(
             "es-reference-v1",
@@ -1690,6 +1911,7 @@ mod tests {
         };
         let rendered = renderer.render(&document).unwrap();
         assert_eq!(rendered.profile, "es-reference-v1");
+        assert_eq!(rendered.assistant_prefix, "{\"answer\": \"");
         assert!(rendered.user.contains("Mi paquete no llegó"));
         assert!(rendered
             .user
@@ -1700,6 +1922,92 @@ mod tests {
     #[test]
     fn qwen_family_contract_passes() {
         check_family(FamilyApi::qwen_style());
+    }
+
+    #[test]
+    fn image_evaluate_uses_media_path_and_keeps_payload_out_of_prompt() {
+        use turbojev_backend::{Candidate, DecisionBatch, DecisionIntent, DecisionTask};
+
+        let api = FamilyApi::qwen_style().with_image_input();
+        let calls = Arc::clone(&api.media_calls);
+        let backend = reference_backend(Renderer, api);
+        let request = DecisionBatch {
+            state: serde_json::json!({
+                "contract": "turbojev.media.v1",
+                "text": "What is shown?",
+                "modality": "image",
+                "base64": "AA=="
+            }),
+            tasks: vec![DecisionTask {
+                id: "object".into(),
+                intent: DecisionIntent::Criterion,
+                instruction: Some("Choose the visible object".into()),
+                candidates: vec![
+                    Candidate {
+                        key: "cat".into(),
+                        description: "cat".into(),
+                    },
+                    Candidate {
+                        key: "dog".into(),
+                        description: "dog".into(),
+                    },
+                ],
+            }],
+        };
+
+        let output =
+            turbojev_backend::ScoringBackend::score(&backend, &request, reference_plan()).unwrap();
+        let observed = calls.lock().unwrap();
+        assert_eq!(observed.len(), 1);
+        assert_eq!(observed[0].1.base64, "AA==");
+        assert!(observed[0].0.user.contains("<__media__>"));
+        assert!(!observed[0].0.user.contains("AA=="));
+        assert_eq!(output.scores[0].logits.len(), 2);
+    }
+
+    #[test]
+    fn video_evaluate_renders_each_timestamped_frame_as_an_mtmd_image_part() {
+        use turbojev_backend::{Candidate, DecisionBatch, DecisionIntent, DecisionTask};
+
+        let api = FamilyApi::qwen_style().with_image_input();
+        let calls = Arc::clone(&api.media_calls);
+        let backend = reference_backend(Renderer, api);
+        let request = DecisionBatch {
+            state: serde_json::json!({
+                "contract": "turbojev.media.v1",
+                "text": "At which timestamp does the car turn?",
+                "modality": "video",
+                "frames": [
+                    {"timestamp_ms":0,"base64":"AA=="},
+                    {"timestamp_ms":500,"base64":"AQ=="}
+                ]
+            }),
+            tasks: vec![DecisionTask {
+                id: "event".into(),
+                intent: DecisionIntent::Criterion,
+                instruction: Some("Choose the matching frame".into()),
+                candidates: vec![
+                    Candidate {
+                        key: "first".into(),
+                        description: "first frame".into(),
+                    },
+                    Candidate {
+                        key: "second".into(),
+                        description: "second frame".into(),
+                    },
+                ],
+            }],
+        };
+
+        let output =
+            turbojev_backend::ScoringBackend::score(&backend, &request, reference_plan()).unwrap();
+        let observed = calls.lock().unwrap();
+        assert_eq!(observed.len(), 1);
+        assert_eq!(observed[0].1.frames.len(), 2);
+        assert!(observed[0].0.user.contains("[frame at 0 ms] <__media__>"));
+        assert!(observed[0].0.user.contains("[frame at 500 ms] <__media__>"));
+        assert!(!observed[0].0.user.contains("AA=="));
+        assert_eq!(output.scores[0].logits.len(), 2);
     }
 
     #[test]
@@ -1725,15 +2033,18 @@ mod tests {
         let full_a = vec![1, 2, 3, 10];
         let full_b = vec![1, 2, 3, 20];
         let reference_batch = turbojev_runtime::RuntimeBatch {
+            state: serde_json::Value::Null,
             common_prefix: vec![],
             tasks: vec![
                 turbojev_runtime::RuntimeTask {
+                    messages: turbojev_prompt::RenderedMessages::default(),
                     id: "a".into(),
                     prompt_suffix: full_a.clone(),
                     candidates: candidates.clone(),
                     codebook_kind: turbojev_tokenizer::CodebookKind::SingleToken,
                 },
                 turbojev_runtime::RuntimeTask {
+                    messages: turbojev_prompt::RenderedMessages::default(),
                     id: "b".into(),
                     prompt_suffix: full_b.clone(),
                     candidates: candidates.clone(),
@@ -1742,15 +2053,18 @@ mod tests {
             ],
         };
         let shared_batch = turbojev_runtime::RuntimeBatch {
+            state: serde_json::Value::Null,
             common_prefix: vec![1, 2, 3],
             tasks: vec![
                 turbojev_runtime::RuntimeTask {
+                    messages: turbojev_prompt::RenderedMessages::default(),
                     id: "a".into(),
                     prompt_suffix: vec![10],
                     candidates: candidates.clone(),
                     codebook_kind: turbojev_tokenizer::CodebookKind::SingleToken,
                 },
                 turbojev_runtime::RuntimeTask {
+                    messages: turbojev_prompt::RenderedMessages::default(),
                     id: "b".into(),
                     prompt_suffix: vec![20],
                     candidates,
@@ -1851,6 +2165,7 @@ mod tests {
         let prefix = vec![7, 11, 13, 17];
         let suffixes = [vec![], vec![19], vec![23, 29], vec![31], vec![37, 41, 43]];
         let reference_batch = turbojev_runtime::RuntimeBatch {
+            state: serde_json::Value::Null,
             common_prefix: vec![],
             tasks: suffixes
                 .iter()
@@ -1859,6 +2174,7 @@ mod tests {
                     let mut full = prefix.clone();
                     full.extend_from_slice(suffix);
                     turbojev_runtime::RuntimeTask {
+                        messages: turbojev_prompt::RenderedMessages::default(),
                         id: format!("q{index}"),
                         prompt_suffix: full,
                         candidates: candidates.clone(),
@@ -1868,11 +2184,13 @@ mod tests {
                 .collect(),
         };
         let shared_batch = turbojev_runtime::RuntimeBatch {
+            state: serde_json::Value::Null,
             common_prefix: prefix,
             tasks: suffixes
                 .iter()
                 .enumerate()
                 .map(|(index, suffix)| turbojev_runtime::RuntimeTask {
+                    messages: turbojev_prompt::RenderedMessages::default(),
                     id: format!("q{index}"),
                     prompt_suffix: suffix.clone(),
                     candidates: candidates.clone(),
@@ -1936,9 +2254,11 @@ mod tests {
             },
         ];
         let batch = turbojev_runtime::RuntimeBatch {
+            state: serde_json::Value::Null,
             common_prefix: vec![1, 2, 3],
             tasks: (0..5)
                 .map(|index| turbojev_runtime::RuntimeTask {
+                    messages: turbojev_prompt::RenderedMessages::default(),
                     id: format!("q{index}"),
                     prompt_suffix: vec![10 + index],
                     candidates: candidates.clone(),
@@ -2016,15 +2336,18 @@ mod tests {
             },
         ];
         let batch = turbojev_runtime::RuntimeBatch {
+            state: serde_json::Value::Null,
             common_prefix: vec![1, 2, 3],
             tasks: vec![
                 turbojev_runtime::RuntimeTask {
+                    messages: turbojev_prompt::RenderedMessages::default(),
                     id: "a".into(),
                     prompt_suffix: vec![10],
                     candidates: candidates.clone(),
                     codebook_kind: turbojev_tokenizer::CodebookKind::SingleToken,
                 },
                 turbojev_runtime::RuntimeTask {
+                    messages: turbojev_prompt::RenderedMessages::default(),
                     id: "b".into(),
                     prompt_suffix: vec![20, 30],
                     candidates,
@@ -2207,8 +2530,10 @@ mod tests {
             },
         ];
         let first = turbojev_runtime::RuntimeBatch {
+            state: serde_json::Value::Null,
             common_prefix: vec![1, 2],
             tasks: vec![turbojev_runtime::RuntimeTask {
+                messages: turbojev_prompt::RenderedMessages::default(),
                 id: "a".into(),
                 prompt_suffix: vec![10, 11],
                 candidates: candidates.clone(),
@@ -2216,8 +2541,10 @@ mod tests {
             }],
         };
         let second = turbojev_runtime::RuntimeBatch {
+            state: serde_json::Value::Null,
             common_prefix: vec![3, 4],
             tasks: vec![turbojev_runtime::RuntimeTask {
+                messages: turbojev_prompt::RenderedMessages::default(),
                 id: "b".into(),
                 prompt_suffix: vec![20],
                 candidates,
@@ -2248,8 +2575,10 @@ mod tests {
         assert_eq!(fused[0].metrics.fused_root_count, Some(2));
 
         let multi = turbojev_runtime::RuntimeBatch {
+            state: serde_json::Value::Null,
             common_prefix: vec![1],
             tasks: vec![turbojev_runtime::RuntimeTask {
+                messages: turbojev_prompt::RenderedMessages::default(),
                 id: "multi".into(),
                 prompt_suffix: vec![2],
                 candidates: vec![
@@ -2270,5 +2599,44 @@ mod tests {
         assert!(!executor
             .can_score_fused(&[first, multi], &[plan, plan])
             .unwrap());
+    }
+    #[test]
+    fn thinking_counts_generation_and_disables_unsafe_optimizations() {
+        let mut api = FamilyApi::qwen_style();
+        api.thinking = true;
+        let executor = LlamaCppExecutor::new(Arc::new(api));
+        let caps = executor.capabilities();
+        assert!(
+            !caps.shared_prefix
+                && !caps.parallel_suffixes
+                && !caps.sequence_scores
+                && !caps.selective_output_head
+        );
+        assert!(!executor.fused_capabilities().fused_batch);
+        let batch = turbojev_runtime::RuntimeBatch {
+            state: serde_json::json!("facts"),
+            common_prefix: vec![],
+            tasks: vec![turbojev_runtime::RuntimeTask {
+                id: "move".into(),
+                messages: RenderedMessages::default(),
+                prompt_suffix: vec![1, 2],
+                candidates: vec![
+                    turbojev_runtime::RuntimeCandidate {
+                        symbol: "A".into(),
+                        token_ids: vec![32],
+                    },
+                    turbojev_runtime::RuntimeCandidate {
+                        symbol: "B".into(),
+                        token_ids: vec![33],
+                    },
+                ],
+                codebook_kind: turbojev_tokenizer::CodebookKind::SingleToken,
+            }],
+        };
+        let output = executor
+            .score_independent(&batch, CandidateProjection::FullVocabulary)
+            .unwrap();
+        assert_eq!(output.metrics.generated_tokens, Some(7));
+        assert_eq!(output.scores[0].logits.len(), 2);
     }
 }

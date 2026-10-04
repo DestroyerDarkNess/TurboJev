@@ -108,6 +108,9 @@ impl<S: DenseProjectionSource> RuntimeExecutor for DenseProjectionExecutor<S> {
             parallel_suffixes: false,
             selective_output_head: true,
             local_inference: self.source.local_inference(),
+            image_input: false,
+            audio_input: false,
+            video_input: false,
         }
     }
 
@@ -331,8 +334,10 @@ mod tests {
 
     fn batch() -> RuntimeBatch {
         RuntimeBatch {
+            state: serde_json::Value::Null,
             common_prefix: Vec::new(),
             tasks: vec![RuntimeTask {
+                messages: turbojev_prompt::RenderedMessages::default(),
                 id: "route".to_owned(),
                 prompt_suffix: vec![10, 11, 12],
                 candidates: vec![

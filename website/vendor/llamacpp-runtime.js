@@ -1,123 +1,28 @@
-const WLLAMA_VERSION = '3.6.1';
-const WLLAMA_ENTRY = `https://cdn.jsdelivr.net/npm/@wllama/wllama@${WLLAMA_VERSION}/esm/index.js`;
-const WLLAMA_WASM = `https://cdn.jsdelivr.net/npm/@wllama/wllama@${WLLAMA_VERSION}/esm/wasm/wllama.wasm`;
-
-export async function createRuntime() {
-  let engine;
-  let model = '';
-
-  return {
-    async initialize(options) {
-      if (options.modality !== 'text') {
-        throw new Error('llama.cpp WASM currently supports text GGUF models only.');
-      }
-      if (!options.modelUrl) {
-        throw new Error('Choose a GGUF model with a direct download URL.');
-      }
-
-      const { Wllama, LoggerWithoutDebug } = await import(WLLAMA_ENTRY);
-      engine = new Wllama({ default: WLLAMA_WASM }, {
-        logger: LoggerWithoutDebug,
-        suppressNativeLog: true,
-        parallelDownloads: 4,
-      });
-      model = options.modelLabel || options.modelUrl;
-
-      await engine.loadModelFromUrl(options.modelUrl, {
-        n_ctx: 2048,
-        n_batch: 512,
-        n_gpu_layers: options.device === 'webgpu' ? 999 : 0,
-        cache_prompt: false,
-        progressCallback: ({ loaded = 0, total = 0 }) => {
-          options.progressCallback?.({
-            status: 'progress',
-            file: 'GGUF model',
-            loaded,
-            total,
-            progress: total > 0 ? Math.min(100, loaded / total * 100) : 0,
-          });
-        },
-      });
-
-      const warmup = await engine.createChatCompletion({
-        messages: [{ role: 'user', content: 'Reply with one word: ready.' }],
-        max_tokens: 1,
-        temperature: 0,
-        cache_prompt: false,
-        chat_template_kwargs: { enable_thinking: false },
-      });
-      if (!warmup?.choices?.length) throw new Error('llama.cpp WASM loaded the model but warmup returned no completion.');
-
-      return {
-        name: 'llama.cpp-wasm',
-        model,
-        codecProfile: 'llamacpp-wasm-constrained-choice-v1',
-        scoringMode: 'decisions',
-        modalities: ['text'],
-        capabilities: {
-          nextTokenLogits: false,
-          sequenceScores: false,
-          sharedPrefix: false,
-          parallelSuffixes: false,
-          selectiveOutputHead: false,
-          localInference: true,
-        },
-      };
-    },
-
-    async scoreDecisionBatch(batchJson) {
-      if (!engine) throw new Error('Load a GGUF model first.');
-      const batch = JSON.parse(batchJson);
-      const scores = [];
-      let inputTokens = 0;
-
-      for (const task of batch.tasks) {
-        const candidates = task.candidates || [];
-        if (candidates.length < 2 || candidates.length > 20) {
-          throw new Error(`llama.cpp WASM supports 2–20 choices per decision (received ${candidates.length}).`);
-        }
-        const labels = Array.from({ length: candidates.length }, (_, i) => String.fromCharCode(65 + i));
-        const isBestMatch = String(task.intent).toLowerCase() === 'bestmatch';
-        const criterion = task.instruction || (isBestMatch ? 'Choose the option that best matches the state.' : 'Choose the correct option.');
-        const optionsText = candidates.map((candidate, i) => `${labels[i]}. ${candidate.description || candidate.key}`).join('\n');
-        const messages = [
-          { role: 'system', content: 'Make the requested decision from the supplied state. Follow the output format exactly.' },
-          { role: 'user', content: `State:\n${typeof batch.state === 'string' ? batch.state : JSON.stringify(batch.state)}\n\nQuestion:\n${criterion}\n\nAllowed options:\n${optionsText}\n\nReply with exactly one option letter: ${labels.join(', ')}.` },
-        ];
-        const grammar = `root ::= ${labels.map(label => `"${label}"`).join(' | ')}`;
-        const response = await engine.createChatCompletion({
-          messages,
-          max_tokens: 1,
-          temperature: 1,
-          top_k: 0,
-          top_p: 1,
-          logprobs: true,
-          top_logprobs: 20,
-          grammar,
-          cache_prompt: false,
-          chat_template_kwargs: { enable_thinking: false },
-        });
-
-        inputTokens += response.usage?.prompt_tokens || 0;
-        const alternatives = response.choices?.[0]?.logprobs?.content?.[0]?.top_logprobs || [];
-        const logits = labels.map(label => {
-          const byte = label.charCodeAt(0);
-          const match = alternatives.find(item => item.token === label || (item.bytes?.length === 1 && item.bytes[0] === byte));
-          return Number(match?.logprob);
-        });
-        if (logits.some(value => !Number.isFinite(value))) {
-          throw new Error(`llama.cpp did not return a score for every allowed answer (${labels.join(', ')}). Try another GGUF model or runtime version.`);
-        }
-        scores.push({ id: task.id, logits });
-      }
-
-      return JSON.stringify({ model, scores, metrics: { input_tokens: inputTokens } });
-    },
-
-    async close() {
-      const loaded = engine;
-      engine = undefined;
-      if (loaded) await loaded.exit();
-    },
-  };
+function O(o,t){let n='var Module=typeof Module!="undefined"?Module:{};';if(!o.startsWith(n))throw new Error("Unsupported Wllama worker script: cannot reserve multimodal workers safely.");let i=`
+Module.pthreadPoolSize = Math.max(Module.pthreadPoolSize || 0, ${Math.max(4,2*t+4)});
+if (Module.mainScriptUrlOrBlob === 'throw new Error("Multithreading is not enabled")') {
+  Module.mainScriptUrlOrBlob = new Blob([${JSON.stringify(o)}], { type: 'text/javascript' });
 }
+`;return n+i+o.slice(n.length)}var T="3.8.1",W=`https://cdn.jsdelivr.net/npm/@wllama/wllama@${T}/esm/index.js`,P=`https://cdn.jsdelivr.net/npm/@wllama/wllama@${T}/esm/wasm/wllama.wasm`,I=`https://cdn.jsdelivr.net/npm/@wllama/wllama@${T}/src/wasm/wllama.js`;async function G(o={}){let t,n="",l=["text"],i=!1,d=o.loadWllama||(()=>import(W)),w=o.loadWorkerCode||(async e=>{let s=await fetch(e);if(!s.ok)throw new Error(`Could not load Wllama worker: HTTP ${s.status}`);return s.text()});return{async initialize(e){if(e.thinking===!0)throw new Error("THINKING_UNSUPPORTED: this adapter supports direct decision scores only; use the native GGUF text runtime for thinking.");if(i=e.debug===!0,!e.modelUrl)throw new Error("Choose a GGUF model with a direct download URL.");if(e.modality==="audio"&&globalThis.crossOriginIsolated===!1)throw new Error("GGUF audio requires cross-origin isolation. Serve the page with COOP: same-origin and COEP: require-corp to enable WebAssembly workers.");let s=Number.isInteger(e.nThreads)&&e.nThreads>0?e.nThreads:Math.max(1,Math.floor((globalThis.navigator?.hardwareConcurrency||2)/2)),{Wllama:g,LoggerWithoutDebug:y}=await d();if(t=new g({default:P},{logger:i?console:y,suppressNativeLog:!i,parallelDownloads:4}),e.mmprojUrl&&globalThis.crossOriginIsolated!==!1){let a=t.getWorkerResources.bind(t),p=a(),M=p.jsPath?.code||await w(typeof p.jsPath=="string"?p.jsPath:I),_={code:O(M,s)};t.getWorkerResources=()=>({...a(),jsPath:_})}n=e.modelLabel||e.modelUrl;let u=e.mmprojUrl?{url:e.modelUrl,mmprojUrl:e.mmprojUrl}:e.modelUrl,h={n_ctx:2048,n_batch:512,n_gpu_layers:e.device==="webgpu"?999:0,n_threads:s,cache_prompt:!1,jinja:e.jinja??!e.mmprojUrl,prefill_assistant:!0,warmup:e.warmup??e.modality!=="audio",progressCallback:({loaded:a=0,total:p=0})=>{e.progressCallback?.({status:"progress",file:"GGUF model",loaded:a,total:p,progress:p>0?Math.min(100,a/p*100):0})}};typeof e.chatTemplate=="string"&&e.chatTemplate.length>0&&(h.chat_template=e.chatTemplate),await t.loadModelFromUrl(u,h);let m=t.supportInputModality("image"),b=t.supportInputModality("audio");l=["text"],m&&l.push("image","video"),b&&l.push("audio");let c=e.modality;if(!(c===void 0||c==="text"||c==="image"&&m||c==="audio"&&b||c==="video"&&m))throw await t.exit(),t=void 0,new Error(`UNSUPPORTED_MODALITY: the loaded GGUF/projector does not support ${c} input.`);if(c!=="audio"&&!(await t.createChatCompletion({messages:[{role:"user",content:"Reply with one word: ready."}],max_tokens:1,temperature:0,cache_prompt:!1,chat_template_kwargs:{enable_thinking:!1}}))?.choices?.length)throw new Error("llama.cpp WASM loaded the model but warmup returned no completion.");return{name:"llama.cpp-wasm",model:n,codecProfile:"llamacpp-wasm-json-prefill-v2",scoringMode:"decisions",modalities:l,capabilities:{nextTokenLogits:!1,sequenceScores:!1,sharedPrefix:!1,parallelSuffixes:!1,selectiveOutputHead:!1,localInference:!0}}},async scoreDecisionBatch(e){if(!t)throw new Error("Load a GGUF model first.");let s=JSON.parse(e);E(i,`decision batch: ${s.tasks?.length||0} task(s), modality=${s.state?.modality||"text"}`);let g=[],y=0;for(let u of s.tasks){let h=u.candidates||[];if(h.length<2||h.length>20)throw new Error(`llama.cpp WASM supports 2\u201320 choices per decision (received ${h.length}).`);let m=Array.from({length:h.length},(r,f)=>String.fromCharCode(65+f)),b=String(u.intent).toLowerCase()==="bestmatch",c=u.instruction||(b?"Choose the option that best matches the state.":"Choose the correct option."),k=h.map((r,f)=>{let x=r.description&&r.description!==r.key?`${r.key}: ${r.description}`:r.description||r.key;return`${m[f]}. ${x}`}).join(`
+`),a=s.state?.contract==="turbojev.media.v1"?s.state:null,p="Make the requested decision from the supplied state. Follow the requested output format exactly.",M=a?L(a,c,k,m):`State:
+${typeof s.state=="string"?s.state:JSON.stringify(s.state)}
+
+Question:
+${c}
+
+Allowed options:
+${k}
+
+Answer as {"answer": "<option letter>"}.`,_=[{role:"system",content:p},{role:"user",content:M},{role:"assistant",content:'{"answer": "'}],v=`root ::= ${m.map(r=>`"${r}"`).join(" | ")}`;if(a){if((a.modality==="image"||a.modality==="video")&&!t.supportInputModality("image"))throw new Error(`UNSUPPORTED_MODALITY: loaded llama.cpp WASM model does not support ${a.modality} input.`);if(a.modality==="audio"&&!t.supportInputModality("audio"))throw new Error("UNSUPPORTED_MODALITY: loaded llama.cpp WASM model does not support audio input.");if(a.modality==="audio"&&globalThis.crossOriginIsolated===!1)throw new Error("GGUF audio requires cross-origin isolation and WebAssembly workers.")}let U;try{E(i,`requesting model scores for task ${u.id}`),U=await t.createChatCompletion({messages:_,prefill_assistant:!0,max_tokens:1,temperature:1,top_k:0,top_p:1,logprobs:!0,top_logprobs:20,grammar:v,cache_prompt:!1,chat_template_kwargs:{enable_thinking:!1}}),E(i,`model returned scores for task ${u.id}`)}catch(r){let f=r?.message||String(r);throw a&&/Failed to format input|Failed to tokenize prompt/i.test(f)?new Error(`MODEL_PROMPT_FORMAT_UNSUPPORTED: Wllama could not tokenize this model's ${a.modality} input. Use a GGUF and projector verified with the selected Wllama version.`):r}y+=U.usage?.prompt_tokens||0;let j=U.choices?.[0]?.logprobs?.content?.[0]?.top_logprobs||[],$=m.map(r=>{let f=r.charCodeAt(0),x=j.find(A=>A.token===r||A.bytes?.length===1&&A.bytes[0]===f);return Number(x?.logprob)});if($.some(r=>!Number.isFinite(r)))throw new Error(`llama.cpp did not return a score for every allowed answer (${m.join(", ")}). Try another GGUF model or runtime version.`);g.push({id:u.id,logits:$})}return JSON.stringify({model:n,scores:g,metrics:{input_tokens:y}})},async close(){let e=t;t=void 0,e&&await e.exit()}}}function L(o,t,n,l){let i=`State:
+${o.text||""}
+
+Evidence:
+`,d=[];if(o.modality==="audio"?(d.push({type:"audio",data:S(o.base64)}),d.push({type:"text",text:i})):d.push({type:"text",text:i}),o.modality==="image")d.push({type:"image",data:S(o.base64)});else if(o.modality==="video")for(let w of o.frames||[])d.push({type:"text",text:`[frame at ${w.timestamp_ms} ms]
+`}),d.push({type:"image",data:S(w.base64)});else if(o.modality!=="audio")throw new Error(`UNSUPPORTED_MODALITY: unknown media modality ${o.modality}.`);return d.push({type:"text",text:`
+Question:
+${t}
+
+Allowed options:
+${n}
+
+Answer as {"answer": "<option letter>"}.`}),d}function S(o){if(typeof o!="string"||o.length===0)throw new Error("INVALID_MEDIA: media payload is empty.");let t;try{t=atob(o)}catch{throw new Error("INVALID_MEDIA: media payload is not valid base64.")}let n=new Uint8Array(t.length);for(let l=0;l<t.length;l++)n[l]=t.charCodeAt(l);return n.buffer}function E(o,t){o&&console.debug(`[turbojev llama.cpp wasm] ${t}`)}export{G as createRuntime};

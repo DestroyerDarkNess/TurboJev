@@ -1,6 +1,10 @@
 # Changelog
 
-## Unreleased
+## 0.29.2
+
+- Score native option tokens after the structured answer prefill, using the same prefix during candidate tokenization. This fixes the measured first-option bias in simple text decisions; spatial reasoning still depends on the model and prompt.
+- Add optional native text `thinking` (default false) with a bounded token budget, explicit unsupported-mode errors, and actual generated-token accounting. Browser runtimes reject thinking requests until implemented.
+- Add native GGUF image/audio projector integration and browser GGUF media workers. Report observed runtime capabilities and propagate unsupported-media failures; see multimodal validation for measured coverage and remaining limitations.
 
 - Fix the native GGUF scoring boundary by evaluating the model's actual Jinja chat template with `enable_thinking=false`, rather than the legacy template-family approximation. This preserves Qwen3's closed reasoning prefix before candidate logits are read.
 - Render native choices as explicit labeled options and include both each option key and description. This matches the direct WASM/SemIf prompt structure instead of asking the model to interpret opaque codes inside a JSON array.

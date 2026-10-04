@@ -29,7 +29,7 @@ use turbojev_runtime::RuntimeBackend;
 #[cfg(feature = "llamacpp")]
 use turbojev_runtime_llamacpp::{
     ffi::{FfiLlamaCpp, NativeConfig},
-    llamacpp_backend, LlamaCppCodec, LlamaCppExecutor, ReferencePromptConfig,
+    llamacpp_backend, LlamaCppApi, LlamaCppCodec, LlamaCppExecutor, ReferencePromptConfig,
     ReferencePromptRenderer,
 };
 
@@ -174,10 +174,10 @@ impl Default for HostPromptProfile {
 }
 
 fn default_profile() -> String {
-    "generic-decision-en-v2".to_owned()
+    "generic-decision-en-v3".to_owned()
 }
 fn default_system_instruction() -> String {
-    "Apply the supplied criterion to the supplied evidence. Choose exactly one listed option. Respond only with its listed letter or code, with no explanation or reasoning.".to_owned()
+    "Make the requested decision from the supplied state. Follow the requested output format exactly.".to_owned()
 }
 fn default_best_match_instruction() -> String {
     "Choose the allowed option that best matches the supplied evidence.".to_owned()
@@ -211,6 +211,14 @@ pub struct NativeLoadOptions {
     #[serde(default)]
     pub worker: Option<worker::WorkerOptions>,
     pub model: String,
+    /// Generate bounded model reasoning before scoring. Off by default.
+    #[serde(default)]
+    pub thinking: bool,
+    #[serde(default = "default_max_thinking_tokens")]
+    pub max_thinking_tokens: u32,
+    /// Optional llama.cpp multimodal projector GGUF matching `model`.
+    #[serde(default)]
+    pub mmproj: Option<String>,
     #[serde(default = "default_n_ctx")]
     pub n_ctx: u32,
     #[serde(default = "default_n_batch")]
@@ -235,10 +243,30 @@ pub struct NativeLoadOptions {
     pub fixture_logits: BTreeMap<String, Vec<f32>>,
 }
 
+fn default_max_thinking_tokens() -> u32 {
+    512
+}
+
 impl NativeLoadOptions {
     fn validate(&self) -> Result<(), HostError> {
         if self.model.trim().is_empty() {
             return Err(HostError::InvalidOptions("model must not be empty".into()));
+        }
+        if self.thinking
+            && (self.max_thinking_tokens == 0 || self.max_thinking_tokens >= self.n_ctx)
+        {
+            return Err(HostError::InvalidOptions(
+                "maxThinkingTokens must be positive and smaller than nCtx".into(),
+            ));
+        }
+        if self.thinking
+            && (self.worker.is_some()
+                || self.mmproj.is_some()
+                || self.model.starts_with("fixture://"))
+        {
+            return Err(HostError::InvalidOptions(
+                "thinking requires the native llama.cpp text runtime".into(),
+            ));
         }
         if self.n_ctx == 0 || self.n_batch == 0 || self.n_seq_max == 0 {
             return Err(HostError::InvalidOptions(
@@ -293,6 +321,7 @@ enum NativeEngine {
 pub struct NativeSession {
     engine: NativeEngine,
     model: String,
+    modalities: Vec<String>,
     qualification_id: Option<String>,
 }
 
@@ -303,6 +332,7 @@ impl NativeSession {
         if let Some(worker_options) = &options.worker {
             let backend = worker::WorkerBackend::open(worker_options)
                 .map_err(|e| HostError::Runtime(e.to_string()))?;
+            let modalities = backend.modalities().to_vec();
             return Ok(Self {
                 engine: NativeEngine::Worker(
                     TurboJevEngine::new(backend)
@@ -311,6 +341,7 @@ impl NativeSession {
                         .with_execution_budget(execution_budget(options.execution)),
                 ),
                 model: options.model,
+                modalities,
                 qualification_id: None,
             });
         }
@@ -326,6 +357,7 @@ impl NativeSession {
             return Ok(Self {
                 engine: NativeEngine::Fixture(engine),
                 model: options.model,
+                modalities: vec!["text".to_owned()],
                 qualification_id: None,
             });
         }
@@ -335,15 +367,36 @@ impl NativeSession {
             let native = NativeConfig {
                 n_ctx: options.n_ctx,
                 n_batch: options.n_batch,
-                n_seq_max: options.n_seq_max,
+                n_seq_max: if options.thinking {
+                    // Leave space for thoughts while bounding the attention graph.
+                    // Use nSeqMax=1 explicitly for longer prompts/thoughts.
+                    options.n_seq_max.min(4)
+                } else {
+                    options.n_seq_max
+                },
                 n_gpu_layers: options.effective_gpu_layers(),
                 n_threads: options.n_threads,
                 n_threads_batch: options.n_threads_batch,
             };
             let qualification = qualify_llamacpp_multi_root(&options)?;
-            let mut runtime = FfiLlamaCpp::open(&options.model, native)
+            let loaded = match options.mmproj.as_deref() {
+                Some(mmproj) => FfiLlamaCpp::open_multimodal(&options.model, mmproj, native),
+                None => FfiLlamaCpp::open(&options.model, native),
+            };
+            let mut runtime = loaded
                 .map_err(|error| HostError::Runtime(error.to_string()))?
-                .with_multi_root_enabled(qualification.enabled);
+                .with_thinking(options.thinking, options.max_thinking_tokens);
+            let mut modalities = vec!["text".to_owned()];
+            if runtime.image_input_supported() {
+                modalities.push("image".to_owned());
+            }
+            if runtime.audio_input_supported() {
+                modalities.push("audio".to_owned());
+            }
+            if runtime.video_input_supported() {
+                modalities.push("video".to_owned());
+            }
+            runtime = runtime.with_multi_root_enabled(qualification.enabled);
             if let Some(bytes) = qualification.estimated_fused_item_bytes {
                 runtime = runtime.with_estimated_multi_root_item_bytes(bytes);
             }
@@ -360,6 +413,7 @@ impl NativeSession {
             return Ok(Self {
                 engine: NativeEngine::Llama(engine),
                 model: options.model,
+                modalities,
                 qualification_id: qualification.id,
             });
         }
@@ -480,7 +534,7 @@ impl NativeSession {
                 #[cfg(feature = "llamacpp")]
                 NativeEngine::Llama(_) => "llama.cpp",
             },
-            "modalities": match &self.engine { NativeEngine::Worker(engine) => engine.backend().modalities().to_vec(), _ => vec!["text".to_owned()] },
+            "modalities": self.modalities,
             "contract": "turbojev.host-native.v1",
             "executionCapabilitiesContract": NATIVE_EXECUTION_CAPABILITIES_CONTRACT,
             "executionCapabilities": self.execution_capabilities(),
@@ -616,10 +670,20 @@ mod tests {
     use super::*;
 
     #[test]
+    fn multimodal_projector_option_is_parsed_from_binding_json() {
+        let options: NativeLoadOptions =
+            serde_json::from_str(r#"{"model":"model.gguf","mmproj":"projector.gguf"}"#).unwrap();
+        assert_eq!(options.mmproj.as_deref(), Some("projector.gguf"));
+    }
+
+    #[test]
     fn fixture_session_uses_the_real_core() {
         let session = NativeSession::open(NativeLoadOptions {
             worker: None,
             model: "fixture://host".into(),
+            thinking: false,
+            max_thinking_tokens: 512,
+            mmproj: None,
             n_ctx: 64,
             n_batch: 64,
             n_seq_max: 2,
@@ -638,6 +702,8 @@ mod tests {
         let output = session.evaluate_json(r#"{"state":"lost","questions":{"route":{"type":"choice","instructions":"route","criteria":{"billing":"billing","shipping":"shipping"}}}}"#).unwrap();
         let value: serde_json::Value = serde_json::from_str(&output).unwrap();
         assert_eq!(value["answers"]["route"]["choice"], "shipping");
+        let info: serde_json::Value = serde_json::from_str(&session.info_json().unwrap()).unwrap();
+        assert_eq!(info["modalities"], serde_json::json!(["text"]));
         let caps = session.execution_capabilities();
         assert!(caps.fused_batch);
         assert!(!caps.cooperative_cancellation);
@@ -651,6 +717,9 @@ mod tests {
         let session = NativeSession::open(NativeLoadOptions {
             worker: None,
             model: "fixture://host-fused".into(),
+            thinking: false,
+            max_thinking_tokens: 512,
+            mmproj: None,
             n_ctx: 64,
             n_batch: 64,
             n_seq_max: 2,
@@ -751,6 +820,21 @@ mod tests {
         let options: NativeLoadOptions =
             serde_json::from_str(r#"{"model":"fixture://conflict","device":"cpu","nGpuLayers":4}"#)
                 .unwrap();
+        assert!(options.validate().is_err());
+    }
+    #[test]
+    fn thinking_defaults_off_and_rejects_invalid_budgets_and_fixture_claims() {
+        let mut options: NativeLoadOptions =
+            serde_json::from_str(r#"{"model":"qwen.gguf"}"#).unwrap();
+        assert!(!options.thinking);
+        assert_eq!(options.max_thinking_tokens, 512);
+        options.thinking = true;
+        options.max_thinking_tokens = 0;
+        assert!(options.validate().is_err());
+        options.max_thinking_tokens = options.n_ctx;
+        assert!(options.validate().is_err());
+        options.max_thinking_tokens = 128;
+        options.model = "fixture://test".into();
         assert!(options.validate().is_err());
     }
 }

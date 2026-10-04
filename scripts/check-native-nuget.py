@@ -14,7 +14,7 @@ def main() -> int:
     for rid in ("win-x86", "win-x64", "win-arm64"):
         prefix = f"runtimes/{rid}/native/"
         runtime_dlls = {Path(name).name for name in files if name.startswith(prefix)}
-        required = {"turbojev_capi.dll", "turbojev_llama_shim.dll", "llama-common.dll", "llama.dll"}
+        required = {"turbojev_capi.dll", "turbojev_llama_shim.dll", "mtmd.dll", "llama-common.dll", "llama.dll"}
         missing = required - runtime_dlls
         if missing:
             errors.append(f"{rid}: missing {', '.join(sorted(missing))}")

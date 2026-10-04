@@ -42,6 +42,12 @@ pub struct RuntimeCapabilities {
     pub selective_output_head: bool,
     /// Execution occurs in the host application/device rather than a required service.
     pub local_inference: bool,
+    /// This loaded runtime/model combination can preprocess image evidence.
+    pub image_input: bool,
+    /// This loaded runtime/model combination can preprocess audio evidence.
+    pub audio_input: bool,
+    /// This loaded runtime/model combination can preprocess video evidence.
+    pub video_input: bool,
 }
 
 impl RuntimeCapabilities {
@@ -71,6 +77,9 @@ pub struct RuntimeCandidate {
 pub struct RuntimeTask {
     /// Stable task identifier.
     pub id: String,
+    /// Model-facing messages before token-only encoding. Multimodal adapters use
+    /// these to render the same prompt through their media-aware tokenizer.
+    pub messages: RenderedMessages,
     /// Prompt tokens after [`RuntimeBatch::common_prefix`].
     pub prompt_suffix: Vec<TokenId>,
     /// Candidate codes in the same order as the semantic task candidates.
@@ -82,6 +91,8 @@ pub struct RuntimeTask {
 /// Token-level batch passed to a runtime executor.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RuntimeBatch {
+    /// Original state/evidence, retained for runtimes that preprocess media.
+    pub state: serde_json::Value,
     /// Exact common prefix factored from all task prompts when requested.
     pub common_prefix: Vec<TokenId>,
     /// Independent decision suffixes.
@@ -500,13 +511,24 @@ where
         plan: ExecutionPlan,
         capabilities: RuntimeCapabilities,
     ) -> Result<RuntimeBatch, RuntimeError> {
-        if batch
-            .state
-            .get("contract")
-            .and_then(serde_json::Value::as_str)
-            .is_some_and(|c| c.starts_with("turbojev.media."))
+        if let Some(media) = turbojev_schema::media::MediaEvidence::from_state(&batch.state)
+            .map_err(RuntimeError::Preparation)?
         {
-            return Err(RuntimeError::Preparation("UNSUPPORTED_MODALITY: token-only runtime cannot process media; use a multimodal scorer".into()));
+            let supported = match &media.modality {
+                turbojev_schema::media::Modality::Image => capabilities.image_input,
+                turbojev_schema::media::Modality::Audio => capabilities.audio_input,
+                turbojev_schema::media::Modality::Video => capabilities.video_input,
+            };
+            if !supported {
+                let modality = match &media.modality {
+                    turbojev_schema::media::Modality::Image => "image",
+                    turbojev_schema::media::Modality::Audio => "audio",
+                    turbojev_schema::media::Modality::Video => "video",
+                };
+                return Err(RuntimeError::Preparation(format!(
+                    "UNSUPPORTED_MODALITY: loaded runtime/model does not support {modality} input"
+                )));
+            }
         }
         let mut prepared = Vec::with_capacity(batch.tasks.len());
         for task in &batch.tasks {
@@ -534,6 +556,7 @@ where
         }
 
         Ok(RuntimeBatch {
+            state: batch.state.clone(),
             common_prefix,
             tasks: prepared,
         })
@@ -549,7 +572,12 @@ where
             candidate_symbol_sets(task.candidates.len(), self.candidate_set_attempts)
                 .map_err(|error| RuntimeError::Preparation(error.to_string()))?;
 
-        let mut best_multi: Option<(Vec<TokenId>, Vec<RuntimeCandidate>, CodebookKind)> = None;
+        let mut best_multi: Option<(
+            RenderedMessages,
+            Vec<TokenId>,
+            Vec<RuntimeCandidate>,
+            CodebookKind,
+        )> = None;
         for symbols in candidate_sets {
             let messages = self.render_with_codes(state, task, &symbols)?;
             let base = self.codec.encode_prompt(&messages)?;
@@ -561,6 +589,7 @@ where
             if codes.iter().all(|code| code.token_ids.len() == 1) {
                 return Ok(RuntimeTask {
                     id: task.id.clone(),
+                    messages,
                     prompt_suffix: base,
                     candidates: codes,
                     codebook_kind: CodebookKind::SingleToken,
@@ -583,6 +612,7 @@ where
                         // verified prefix-free variable-width fallback.
                         if best_multi.is_none() {
                             best_multi = Some((
+                                messages,
                                 base,
                                 codes,
                                 CodebookKind::VariableLengthSequence {
@@ -594,6 +624,7 @@ where
                     };
                     return Ok(RuntimeTask {
                         id: task.id.clone(),
+                        messages,
                         prompt_suffix: base,
                         candidates: codes,
                         codebook_kind: kind,
@@ -602,9 +633,10 @@ where
             }
         }
 
-        if let Some((base, codes, kind)) = best_multi {
+        if let Some((messages, base, codes, kind)) = best_multi {
             return Ok(RuntimeTask {
                 id: task.id.clone(),
+                messages,
                 prompt_suffix: base,
                 candidates: codes,
                 codebook_kind: kind,
@@ -623,7 +655,24 @@ where
         task: &turbojev_backend::DecisionTask,
         symbols: &[String],
     ) -> Result<RenderedMessages, RuntimeError> {
-        let document = compile_document(state, task, symbols)
+        let render_state = match turbojev_schema::media::MediaEvidence::from_state(state)
+            .map_err(RuntimeError::Preparation)?
+        {
+            Some(media) => serde_json::json!({
+                "contract": media.contract,
+                "text": media.text,
+                "modality": media.modality,
+                "media": if media.frames.is_empty() {
+                    "<__media__>".to_owned()
+                } else {
+                    media.frames.iter().map(|frame| {
+                        format!("[frame at {} ms] <__media__>", frame.timestamp_ms)
+                    }).collect::<Vec<_>>().join("\n")
+                }
+            }),
+            None => state.clone(),
+        };
+        let document = compile_document(&render_state, task, symbols)
             .map_err(|error| RuntimeError::Preparation(error.to_string()))?;
         let messages = self
             .renderer
@@ -814,6 +863,7 @@ mod tests {
             }
             user.push_str("answer=");
             Ok(RenderedMessages {
+                assistant_prefix: String::new(),
                 system: None,
                 user,
                 profile: "test-json".to_owned(),
@@ -882,6 +932,9 @@ mod tests {
                 parallel_suffixes: true,
                 selective_output_head: true,
                 local_inference: true,
+                image_input: false,
+                audio_input: false,
+                video_input: false,
             }
         }
 
@@ -934,6 +987,9 @@ mod tests {
                 parallel_suffixes: true,
                 selective_output_head: true,
                 local_inference: true,
+                image_input: false,
+                audio_input: false,
+                video_input: false,
             }
         }
 
@@ -1029,16 +1085,39 @@ mod tests {
     #[test]
     fn token_runtime_rejects_media_before_inference() {
         let backend = RuntimeBackend::new(JsonRenderer, CharacterCodec, RecordingExecutor::new());
-        let batch = DecisionBatch {
-            state: serde_json::json!({"contract":"turbojev.media.v1", "modality":"image", "base64":"AA=="}),
-            tasks: vec![task("a", "What is shown?")],
-        };
-        assert!(backend
-            .score(&batch, ExecutionPlan::default())
-            .unwrap_err()
-            .to_string()
-            .contains("UNSUPPORTED_MODALITY"));
-        assert!(backend.executor().last_batch.lock().unwrap().is_none());
+        let media_states = [
+            serde_json::json!({
+                "contract": "turbojev.media.v1",
+                "modality": "image",
+                "base64": "AA=="
+            }),
+            serde_json::json!({
+                "contract": "turbojev.media.v1",
+                "modality": "audio",
+                "base64": "AA=="
+            }),
+            serde_json::json!({
+                "contract": "turbojev.media.v1",
+                "modality": "video",
+                "frames": [
+                    {"timestamp_ms": 0, "base64": "AA=="},
+                    {"timestamp_ms": 500, "base64": "AQ=="}
+                ]
+            }),
+        ];
+
+        for state in media_states {
+            let batch = DecisionBatch {
+                state,
+                tasks: vec![task("a", "Choose an answer")],
+            };
+            assert!(backend
+                .score(&batch, ExecutionPlan::default())
+                .unwrap_err()
+                .to_string()
+                .contains("UNSUPPORTED_MODALITY"));
+            assert!(backend.executor().last_batch.lock().unwrap().is_none());
+        }
     }
 
     #[test]

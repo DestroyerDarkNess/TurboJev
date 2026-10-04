@@ -21,7 +21,7 @@ def main() -> None:
     wheel = Path(sys.argv[1])
     native = Path(sys.argv[2])
     dlls = sorted(native.glob("*.dll"))
-    required = {"turbojev_llama_shim.dll", "llama-common.dll", "llama.dll", "ggml.dll", "ggml-base.dll", "ggml-cpu.dll"}
+    required = {"turbojev_llama_shim.dll", "mtmd.dll", "llama-common.dll", "llama.dll", "ggml.dll", "ggml-base.dll", "ggml-cpu.dll"}
     if native.name.lower() == "win-x64":
         required.add("ggml-vulkan.dll")
     missing = required - {path.name.lower() for path in dlls}

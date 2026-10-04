@@ -97,13 +97,17 @@ pub fn compile_document(
 }
 
 /// Rendered messages produced by a model-specific prompt adapter.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub struct RenderedMessages {
     /// Optional system/instruction message.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub system: Option<String>,
     /// Main user/input message.
     pub user: String,
+    /// Literal start of the assistant answer, inserted before candidate scoring.
+    /// This is prompt text, never a generated or application-selected answer.
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub assistant_prefix: String,
     /// Adapter profile identifier used for reproducibility.
     pub profile: String,
 }
@@ -138,6 +142,24 @@ pub enum PromptError {
 mod tests {
     use super::*;
     use turbojev_backend::Candidate;
+
+    #[test]
+    fn legacy_messages_have_no_prefill_and_new_messages_preserve_it() {
+        let legacy: RenderedMessages =
+            serde_json::from_str(r#"{"user":"Evidence","profile":"custom"}"#).unwrap();
+        assert!(legacy.assistant_prefix.is_empty());
+        assert!(serde_json::to_value(&legacy)
+            .unwrap()
+            .get("assistant_prefix")
+            .is_none());
+        let new = RenderedMessages {
+            assistant_prefix: "{\"answer\": \"".into(),
+            ..legacy
+        };
+        let roundtrip: RenderedMessages =
+            serde_json::from_str(&serde_json::to_string(&new).unwrap()).unwrap();
+        assert_eq!(roundtrip, new);
+    }
 
     #[test]
     fn ir_preserves_non_english_text_without_translation() {

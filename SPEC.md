@@ -199,7 +199,9 @@ correctness oracle for optimized paths.
 - Candidate score count exactly matches candidate count.
 - Candidate logits must be finite before calibration.
 - Exact probability ties resolve to the earliest candidate.
-- `generated_tokens` is zero for direct scoring.
+- `generated_tokens` is zero for direct scoring. An explicitly enabled reasoning
+  adapter reports actual generated reasoning tokens before candidate scoring;
+  the total includes additional cyclic evaluations.
 
 ## Candidate code contract
 

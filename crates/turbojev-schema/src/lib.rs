@@ -201,7 +201,7 @@ pub struct Usage {
     /// Number of input tokens processed by the runtime, when reported.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub input_tokens: Option<usize>,
-    /// Number of autoregressively generated answer tokens.
+    /// Number of autoregressively generated tokens, including optional reasoning.
     ///
     /// The TurboJev direct-logit fast path keeps this at zero.
     pub generated_tokens: usize,

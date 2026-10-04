@@ -2,6 +2,7 @@ export interface TransformersRuntimeOptions {
     model: string;
     device?: string;
     dtype?: string;
+    thinking?: boolean;
     progressCallback?: (p: unknown) => void;
 }
 export declare function createRuntime(): Promise<{

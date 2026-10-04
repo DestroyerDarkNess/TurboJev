@@ -3,10 +3,10 @@
 A static landing page, local inference playground, and 13 documentation pages. Serve `website/` with any static HTTP server. No application server or API key is needed.
 
 ```powershell
-python -m http.server 4173 --directory website
+py website/serve.py
 ```
 
-Open http://localhost:4173. Use localhost or HTTPS for browser workers, WebGPU, and clipboard access.
+Open http://localhost:4173. This server also sends the COOP/COEP headers needed by the llama.cpp WASM audio path. Production hosts must send `Cross-Origin-Opener-Policy: same-origin` and `Cross-Origin-Embedder-Policy: require-corp`; remote models and runtime files must allow CORS.
 
 ## Build
 
@@ -28,20 +28,20 @@ The PowerShell script uses the cached wasm-bindgen installed by `python samples/
 - `app.js`: navigation, search dialog, keyboard controls, and code copying.
 - `src/docs-content.html`: documentation source; `build.mjs` generates `docs/*.html` and the search index. Each topic has its own URL. Legacy `docs.html#python` links redirect to the corresponding page.
 - `demo.js`: model catalog, presets, download progress, media decoding, and UI state.
-- `demo-worker.js`, `src/runtime.ts`: inference worker and Transformers.js adapter. The published llama.cpp WASM adapter is loaded from jsDelivr; Rust/WASM constructs the final typed responses.
+- `demo-worker.js`, `src/runtime.ts`: inference worker and Transformers.js adapter. The website build bundles the current llama.cpp WASM adapter from this repository; Rust/WASM constructs the final typed responses.
 - `vendor/`: deployable runtime, WASM, Prism syntax highlighting, licenses, and content hashes. Rebuild after changing sources. Asset versions prevent stale cached WASM from being paired with new JavaScript.
 
 Deploy the entire `website/` directory as the hosting output directory. The site uses relative links and works under a subdirectory. If using GitHub Pages, upload this directory as the Pages artifact; the Pages branch UI does not offer an arbitrary `website/` folder.
 
 ## Playground behavior
 
-Text: Qwen2.5 0.5B and Qwen3 0.6B use Transformers.js/ONNX. Text presets send a specific question in a typed `choice` request, shared by either runtime. The additional llama.cpp WASM runtime loads Qwen3 0.6B Q8_0 as GGUF to match the SemIf comparison example, and can be pointed at other GGUF URLs supported by llama.cpp. CPU uses WASM; GPU requests WebGPU. llama.cpp is loaded from the pinned `@wllama/wllama` 3.6.1 CDN release.
+Text: Qwen2.5 0.5B and Qwen3 0.6B use Transformers.js/ONNX. Text presets send a specific question in a typed `choice` request, shared by either runtime. The additional llama.cpp WASM runtime loads Qwen3 0.6B Q8_0 as GGUF to match the SemIf comparison example, and can be pointed at other GGUF URLs supported by llama.cpp. CPU uses WASM; GPU requests WebGPU. llama.cpp is loaded from the pinned `@wllama/wllama` 3.8.1 CDN release.
 
-Images: CLIP B/32 and B/16 score image–text similarity. SmolVLM 256M and SmolVLM2 256M score answer codes with model-derived token IDs and the model's chat template.
+Images: CLIP B/32 and B/16 score image–text similarity. LFM2-VL 450M GGUF uses llama.cpp with its matching vision projector.
 
-Audio: CLAP classifies sounds from a mono 48 kHz clip, limited to 10 seconds. It does not transcribe speech or replace the native LFM2.5-Audio example.
+Audio: CLAP classifies sounds from a mono 48 kHz clip, limited to 10 seconds. LFM2 Audio 1.5B Q8_0 uses a matching GGUF projector and a spoken-command example. The download is about 1.58 GB; CPU inference can take minutes. Cyclic order correction is optional and enabled for this example. The adapter reserves preprocessing workers to prevent a pthread wait. Browser scoring is still experimental; standalone Node/WASM qualification is recorded separately.
 
-Video: the host samples four frames from clips up to 60 seconds. CLIP or SmolVLM2 scores each frame independently and the adapter averages raw logits. This is scene classification, not temporal reasoning; the audio track is not analyzed.
+Video: the host samples four frames from clips up to 60 seconds. CLIP averages frame similarity logits; llama.cpp sends ordered, timestamped images to the LFM2-VL projector. Frame ingestion does not qualify temporal understanding; the audio track is not analyzed.
 
 All media files are limited to 24 MB. Uploaded media stays in the browser. Model files download from Hugging Face only after Load; sample image/audio downloads require a separate click. ONNX Runtime is fetched from a pinned jsDelivr URL. Model performance and WebGPU availability depend on the device. The interface reports real elapsed time, errors, and relative probabilities; it does not substitute canned results.
 

@@ -3,7 +3,9 @@ import { createRequire } from "node:module";
 const require=createRequire(import.meta.url); let engine; let initError;
 try {
   const options=workerData.options;
-  const candidates=[options.nativePath,process.env.TURBOJEV_NATIVE_PATH,"./turbojev.node",`@turbojev/node-${process.platform}-${process.arch}`].filter(Boolean);
+  const candidates=options.nativePath
+    ? [options.nativePath]
+    : [process.env.TURBOJEV_NATIVE_PATH,"./turbojev.node",`@turbojev/node-${process.platform}-${process.arch}`].filter(Boolean);
   let mod; let last;
   for(const c of candidates){try{mod=require(c);break;}catch(e){last=e;}}
   if(!mod) throw last ?? new Error("native addon not found");

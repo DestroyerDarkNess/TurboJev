@@ -33,7 +33,15 @@ fn worker_preserves_core_semantics_for_each_modality_and_reuses_process() {
     let expected: Value =
         serde_json::from_str(&session.evaluate_json(&request(json!("text"))).unwrap()).unwrap();
     for modality in ["image", "audio", "video"] {
-        let state = json!({"contract":"turbojev.media.v1", "modality":modality, "base64":"AA=="});
+        let state = if modality == "video" {
+            json!({
+                "contract":"turbojev.media.v1",
+                "modality":modality,
+                "frames":[{"timestamp_ms":0,"base64":"AA=="}]
+            })
+        } else {
+            json!({"contract":"turbojev.media.v1", "modality":modality, "base64":"AA=="})
+        };
         let output: Value =
             serde_json::from_str(&session.evaluate_json(&request(state)).unwrap()).unwrap();
         assert_eq!(output, expected);
@@ -61,7 +69,11 @@ fn worker_errors_propagate_and_timeouts_invalidate_the_process() {
 #[test]
 fn unresponsive_worker_cannot_block_large_media_writes() {
     let session = open("no_read", 1);
-    let state = json!({"contract":"turbojev.media.v1", "modality":"video", "base64":"A".repeat(1024 * 1024)});
+    let state = json!({
+        "contract":"turbojev.media.v1",
+        "modality":"video",
+        "frames":[{"timestamp_ms":0,"base64":"A".repeat(1024 * 1024)}]
+    });
     assert!(session
         .evaluate_json(&request(state))
         .unwrap_err()

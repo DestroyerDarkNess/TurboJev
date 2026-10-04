@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TurboJev browser GGUF audio check</title>
+<style>
+  :root { color-scheme: dark; font: 15px/1.55 system-ui, sans-serif; background: #101514; color: #e8ecea; }
+  body { max-width: 860px; margin: 40px auto; padding: 0 20px; }
+  h1 { margin-bottom: 4px; font-size: 1.4rem; }
+  .load-card { margin: 24px 0; padding: 18px 20px; border: 1px solid #38413e; border-radius: 10px; background: #151b19; }
+  .load-head, .load-meta { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; }
+  .load-head strong { display: block; font-size: 1rem; }
+  .load-detail, .load-meta { color: #a9b6b0; font-size: .86rem; }
+  #progress-percent { color: #c9ef8c; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  progress { display: block; width: 100%; height: 10px; margin: 14px 0 9px; overflow: hidden; border: 0; border-radius: 999px; background: #2c3531; accent-color: #b9e77e; }
+  progress::-webkit-progress-bar { border-radius: 999px; background: #2c3531; }
+  progress::-webkit-progress-value { border-radius: 999px; background: #b9e77e; transition: width .22s ease; }
+  progress::-moz-progress-bar { border-radius: 999px; background: #b9e77e; }
+  .load-card[data-state="error"] #progress { accent-color: #f18b7a; }
+  .load-card[data-state="error"] progress::-webkit-progress-value,
+  .load-card[data-state="error"] progress::-moz-progress-bar { background: #f18b7a; }
+  h2 { margin: 28px 0 8px; font-size: 1rem; }
+  pre { min-height: 12rem; padding: 16px; overflow: auto; border: 1px solid #38413e; border-radius: 8px; background: #151b19; white-space: pre-wrap; }
+  @media (max-width: 520px) { body { margin-top: 24px; } .load-card { padding: 15px; } .load-meta { align-items: flex-start; flex-direction: column; gap: 2px; } }
+</style>
+<h1>Real GGUF audio evaluation</h1>
+<p>Loads LFM2-Audio-1.5B Q8_0 locally, evaluates two WAV clips with normal and reversed answer order, and checks typed results.</p>
+<section class="load-card" aria-label="Model download progress">
+  <div class="load-head">
+    <div><strong id="progress-title">Preparing browser runtime</strong><span id="progress-detail" class="load-detail">The model and audio projector load locally.</span></div>
+    <span id="progress-percent">—</span>
+  </div>
+  <progress id="progress" aria-label="Model download progress"></progress>
+  <div class="load-meta"><span id="progress-bytes">Waiting for download details</span><span id="progress-rate"></span><span id="progress-elapsed">0s elapsed</span></div>
+</section>
+<h2>Checks and results</h2>
+<pre id="status">Starting…</pre>
+<script type="module">
+import { createRuntime } from '../../bindings/web-runtimes/llamacpp-wasm/src/index.js?v=audio-workers-v2';
+import * as wasm from '/website/vendor/wasm/turbojev_wasm.js?v=audio-workers-v2';
+
+const output = document.querySelector('#status');
+const loadCard = document.querySelector('.load-card');
+const progressBar = document.querySelector('#progress');
+const progressTitle = document.querySelector('#progress-title');
+const progressDetail = document.querySelector('#progress-detail');
+const progressPercent = document.querySelector('#progress-percent');
+const progressBytes = document.querySelector('#progress-bytes');
+const progressRate = document.querySelector('#progress-rate');
+const progressElapsed = document.querySelector('#progress-elapsed');
+const started = performance.now();
+let evaluationStarted = null;
+let lastLoaded = 0;
+let lastSampleAt = started;
+let bytesPerSecond = 0;
+const formatBytes = (bytes) => {
+  if (!Number.isFinite(bytes) || bytes < 0) return '—';
+  const units = ['B', 'KiB', 'MiB', 'GiB', 'TiB'];
+  let value = bytes;
+  let unit = 0;
+  while (value >= 1024 && unit < units.length - 1) { value /= 1024; unit++; }
+  return `${value.toFixed(unit === 0 ? 0 : 1)} ${units[unit]}`;
+};
+const formatTime = (seconds) => {
+  if (!Number.isFinite(seconds)) return '—';
+  const whole = Math.max(0, Math.ceil(seconds));
+  return whole < 60 ? `${whole}s` : `${Math.floor(whole / 60)}m ${whole % 60}s`;
+};
+const updateElapsed = () => {
+  const elapsed = evaluationStarted ?? started;
+  const label = evaluationStarted === null ? 'elapsed' : 'evaluating';
+  progressElapsed.textContent = `${formatTime((performance.now() - elapsed) / 1000)} ${label}`;
+};
+const mark = (line) => {
+  output.textContent += `\n${((performance.now() - started) / 1000).toFixed(1)}s ${line}`;
+  output.scrollTop = output.scrollHeight;
+};
+const updateDownloadProgress = ({ file = 'GGUF model files', loaded = 0, total = 0, progress = 0 }) => {
+  loadCard.dataset.state = 'downloading';
+  const now = performance.now();
+  const elapsed = (now - lastSampleAt) / 1000;
+  if (elapsed >= 0.25 && loaded >= lastLoaded) {
+    const sampleRate = (loaded - lastLoaded) / elapsed;
+    bytesPerSecond = bytesPerSecond ? bytesPerSecond * 0.7 + sampleRate * 0.3 : sampleRate;
+    lastLoaded = loaded;
+    lastSampleAt = now;
+  }
+  const hasTotal = Number.isFinite(total) && total > 0;
+  const percent = hasTotal ? Math.max(0, Math.min(100, loaded / total * 100)) : progress;
+  progressTitle.textContent = percent >= 100 ? 'Preparing model in browser' : `Downloading ${file}`;
+  progressDetail.textContent = 'GGUF model and audio projector · saved in the local browser cache';
+  if (hasTotal) {
+    progressBar.value = percent;
+    progressPercent.textContent = `${percent.toFixed(1)}%`;
+    progressBytes.textContent = `${formatBytes(loaded)} of ${formatBytes(total)}`;
+    const remaining = bytesPerSecond > 0 ? (total - loaded) / bytesPerSecond : NaN;
+    progressRate.textContent = bytesPerSecond > 0 ? `${formatBytes(bytesPerSecond)}/s · about ${formatTime(remaining)} left` : 'Measuring speed…';
+  } else {
+    progressBar.removeAttribute('value');
+    progressPercent.textContent = '…';
+    progressBytes.textContent = 'Waiting for server size information';
+    progressRate.textContent = '';
+  }
+  updateElapsed();
+};
+const finishDownloadProgress = (modalities) => {
+  loadCard.dataset.state = 'ready';
+  progressBar.value = 100;
+  progressPercent.textContent = 'Ready';
+  progressTitle.textContent = 'Model ready';
+  progressDetail.textContent = `Loaded locally · ${modalities.join(', ')}`;
+  progressBytes.textContent = 'GGUF model and audio projector loaded';
+  progressRate.textContent = '';
+  updateElapsed();
+};
+const beginEvaluation = (clip, reversed) => {
+  evaluationStarted = performance.now();
+  loadCard.dataset.state = 'evaluating';
+  progressBar.removeAttribute('value');
+  progressPercent.textContent = 'Running';
+  progressTitle.textContent = `Evaluating ${clip}${reversed ? ' (reversed)' : ''}`;
+  progressDetail.textContent = 'llama.cpp WASM · CPU · waiting for the model result';
+  progressBytes.textContent = `Audio input: ${clip}.wav`;
+  progressRate.textContent = 'Inference does not report partial progress';
+  updateElapsed();
+  return evaluationStarted;
+};
+const finishEvaluation = (clip, elapsedMs) => {
+  evaluationStarted = null;
+  loadCard.dataset.state = 'ready';
+  progressBar.value = 100;
+  progressPercent.textContent = 'Complete';
+  progressTitle.textContent = `Evaluation finished: ${clip}`;
+  progressDetail.textContent = 'Typed decision returned by llama.cpp WASM';
+  progressBytes.textContent = `Audio input: ${clip}.wav`;
+  progressRate.textContent = `Inference: ${(elapsedMs / 1000).toFixed(2)}s`;
+  updateElapsed();
+};
+const elapsedTimer = setInterval(updateElapsed, 1000);
+const choices = { on: 'Turn on the light', off: 'Turn off the light' };
+
+function toBase64(bytes) {
+  let binary = '';
+  for (let offset = 0; offset < bytes.length; offset += 0x8000) {
+    binary += String.fromCharCode(...bytes.subarray(offset, offset + 0x8000));
+  }
+  return btoa(binary);
+}
+
+async function audioRequest(clip, reversed) {
+  const response = await fetch(`/tests/fixtures/multimodal-audio/${clip}.wav`);
+  if (!response.ok) throw new Error(`Could not load ${clip}.wav: HTTP ${response.status}`);
+  const criteria = Object.entries(choices);
+  if (reversed) criteria.reverse();
+  return {
+    state: {
+      contract: 'turbojev.media.v1', modality: 'audio', text: '',
+      base64: toBase64(new Uint8Array(await response.arrayBuffer())),
+    },
+    questions: {
+      decision: {
+        type: 'choice',
+        instructions: 'Which command does the speaker say?',
+        criteria: Object.fromEntries(criteria),
+      },
+    },
+  };
+}
+
+let runtime;
+let engine;
+try {
+  const modelRoot = `${location.origin}/.cache/real-validation/multimodal/lfm2-audio/`;
+  runtime = await createRuntime();
+  progressTitle.textContent = 'Starting llama.cpp WebAssembly';
+  progressDetail.textContent = 'Connecting to the local model files…';
+  const descriptor = await runtime.initialize({
+    modelUrl: `${modelRoot}LFM2-Audio-1.5B-Q8_0.gguf`,
+    mmprojUrl: `${modelRoot}mmproj-LFM2-Audio-1.5B-Q8_0.gguf`,
+    modelLabel: 'LFM2-Audio-1.5B-Q8_0', modality: 'audio', device: 'wasm',
+    jinja: true, nThreads: 4, warmup: false, debug: true,
+    progressCallback: updateDownloadProgress,
+  });
+  finishDownloadProgress(descriptor.modalities);
+  mark(`runtime loaded; modalities=${descriptor.modalities.join(',')}`);
+  await wasm.default({
+    module_or_path: `${location.origin}/website/vendor/wasm/turbojev_wasm_bg.wasm?v=audio-workers-v2`,
+  });
+  engine = new wasm.WasmEngine(runtime, JSON.stringify(descriptor), undefined, true);
+
+  const cases = [
+    ['on', false, 'on'], ['on', true, 'on'],
+    ['off', false, 'off'], ['off', true, 'off'],
+  ];
+  const baseline = new Map();
+  let failures = 0;
+  for (const [clip, reversed, expected] of cases) {
+    const request = await audioRequest(clip, reversed);
+    const evaluationStartedAt = beginEvaluation(clip, reversed);
+    mark(`evaluate ${clip}${reversed ? ' (reversed)' : ''}`);
+    const result = JSON.parse(await engine.evaluate_json(JSON.stringify(request)));
+    const evaluationMs = performance.now() - evaluationStartedAt;
+    finishEvaluation(clip, evaluationMs);
+    const answer = result.answers.decision;
+    const previous = baseline.get(clip);
+    const invariant = previous && Object.keys(previous).every(
+      (key) => Math.abs(previous[key] - answer.probabilities[key]) <= 1e-6,
+    );
+    const passed = answer.type === 'choice' && answer.choice === expected &&
+      result.usage.generated_tokens === 0 &&
+      result._turbojev.order_robustness === 'cyclic' &&
+      result._turbojev.order_evaluations === 2 && (!previous || invariant);
+    if (!previous) baseline.set(clip, answer.probabilities);
+    if (!passed) failures++;
+    mark(`RESULT ${clip}${reversed ? '-reversed' : ''}: ${answer.choice}; expected=${expected}; confidence=${answer.confidence.toFixed(3)}; latency=${(evaluationMs / 1000).toFixed(2)}s; orderInvariant=${previous ? invariant : 'baseline'}; typed=${answer.type}; generated=${result.usage.generated_tokens}; cyclic=${result._turbojev.order_evaluations}; ${passed ? 'PASS' : 'FAIL'}`);
+  }
+  mark(failures === 0 ? 'PASS: all real browser audio checks' : `FAIL: ${failures} audio checks`);
+} catch (error) {
+  loadCard.dataset.state = 'error';
+  progressTitle.textContent = evaluationStarted === null ? 'Model load failed' : 'Audio evaluation failed';
+  progressDetail.textContent = error?.message || String(error);
+  progressBar.removeAttribute('value');
+  progressPercent.textContent = 'Failed';
+  progressBytes.textContent = 'See the check output for details';
+  progressRate.textContent = '';
+  mark(`ERROR: ${error?.stack || String(error)}`);
+} finally {
+  clearInterval(elapsedTimer);
+  try { engine?.free?.(); } catch {}
+  try { await runtime?.close?.(); } catch {}
+}
+</script>
+</html>

@@ -1,0 +1,82 @@
+{
+  "model": "C:\\Users\\Administrator\\.cache\\turbojev\\Qwen3-0.6B-Q4_K_M.gguf",
+  "sha256": "9acfc1e001311f34b4252001b626f2e466d592a42065f66571bff3790d4e1b14",
+  "config": {
+    "model": "C:\\Users\\Administrator\\.cache\\turbojev\\Qwen3-0.6B-Q4_K_M.gguf",
+    "device": "cpu",
+    "nGpuLayers": 0,
+    "nThreads": 4,
+    "nThreadsBatch": 4,
+    "nCtx": 4096,
+    "nSeqMax": 1,
+    "thinking": true,
+    "maxThinkingTokens": 128,
+    "execution": {
+      "orderRobustness": "none"
+    }
+  },
+  "library": "D:\\Projects\\TurboJev\\target\\release\\turbojev_capi.dll",
+  "correct": 1,
+  "total": 1,
+  "records": [
+    {
+      "case": "color",
+      "request": {
+        "state": "The traffic signal is red.",
+        "questions": {
+          "answer": {
+            "type": "choice",
+            "instructions": "What color is the traffic signal?",
+            "criteria": {
+              "blue": "Blue",
+              "green": "Green",
+              "red": "Red",
+              "yellow": "Yellow"
+            }
+          }
+        }
+      },
+      "response": {
+        "model": "qwen3 0.6B Q4_K - Medium",
+        "answers": {
+          "answer": {
+            "type": "choice",
+            "choice": "red",
+            "confidence": 0.9999998814472996,
+            "probabilities": {
+              "blue": 4.5114627298941106e-09,
+              "green": 1.1424450052587627e-08,
+              "red": 0.9999998814472996,
+              "yellow": 1.02616787784118e-07
+            }
+          }
+        },
+        "usage": {
+          "decisions": 1,
+          "input_tokens": 91,
+          "generated_tokens": 123
+        },
+        "_turbojev": {
+          "backend": "llamacpp",
+          "calibration": "softmax",
+          "calibrated": false,
+          "confidence_method": "selected-candidate-probability",
+          "contract": "turbojev.core.v4",
+          "order_robustness": "none",
+          "order_evaluations": 0,
+          "execution": {
+            "prefix_reuse": "none",
+            "scheduling": "serial",
+            "parallel_task_limit": 1,
+            "projection": "full-vocabulary"
+          }
+        }
+      },
+      "expected": "red",
+      "choice": "red",
+      "correct": true,
+      "first": "blue",
+      "seconds": 303.1894690000008
+    }
+  ]
+}

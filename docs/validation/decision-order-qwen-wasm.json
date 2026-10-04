@@ -1,0 +1,247 @@
+{
+  "host": "Node CPU WASM, not browser",
+  "wllama": "3.8.1",
+  "model": "C:\\Users\\Administrator\\.cache\\turbojev\\Qwen3-0.6B-Q4_K_M.gguf",
+  "results": [
+    {
+      "order": [
+        "dog",
+        "billing",
+        "shipping",
+        "technical"
+      ],
+      "request": {
+        "state": "My package arrived broken. Please send a replacement.",
+        "questions": {
+          "route": {
+            "type": "choice",
+            "instructions": "Which team should handle this request?",
+            "criteria": {
+              "dog": "An animal",
+              "billing": "Payments and invoices",
+              "shipping": "Delivery, damage and replacement",
+              "technical": "Software bugs"
+            }
+          }
+        }
+      },
+      "response": {
+        "model": "Qwen3-0.6B-Q4_K_M.gguf",
+        "answers": {
+          "route": {
+            "type": "choice",
+            "choice": "shipping",
+            "confidence": 0.9999806789964029,
+            "probabilities": {
+              "dog": 1.2570874040492407e-8,
+              "billing": 1.0025362270359543e-7,
+              "shipping": 0.9999806789964029,
+              "technical": 0.00001920817910034881
+            }
+          }
+        },
+        "usage": {
+          "decisions": 1,
+          "input_tokens": 103,
+          "generated_tokens": 0
+        },
+        "_turbojev": {
+          "backend": "browser-decision-runtime",
+          "calibration": "softmax",
+          "calibrated": false,
+          "confidence_method": "selected-candidate-probability",
+          "contract": "turbojev.core.v4",
+          "order_robustness": "none",
+          "order_evaluations": 0,
+          "execution": {
+            "prefix_reuse": "none",
+            "scheduling": "serial",
+            "parallel_task_limit": 1,
+            "projection": "full-vocabulary"
+          }
+        }
+      },
+      "seconds": 8.710871299999999
+    },
+    {
+      "order": [
+        "billing",
+        "shipping",
+        "technical",
+        "dog"
+      ],
+      "request": {
+        "state": "My package arrived broken. Please send a replacement.",
+        "questions": {
+          "route": {
+            "type": "choice",
+            "instructions": "Which team should handle this request?",
+            "criteria": {
+              "billing": "Payments and invoices",
+              "shipping": "Delivery, damage and replacement",
+              "technical": "Software bugs",
+              "dog": "An animal"
+            }
+          }
+        }
+      },
+      "response": {
+        "model": "Qwen3-0.6B-Q4_K_M.gguf",
+        "answers": {
+          "route": {
+            "type": "choice",
+            "choice": "shipping",
+            "confidence": 0.9999986750187496,
+            "probabilities": {
+              "billing": 3.826433120688022e-9,
+              "shipping": 0.9999986750187496,
+              "technical": 3.4381342926992675e-7,
+              "dog": 9.77341387878852e-7
+            }
+          }
+        },
+        "usage": {
+          "decisions": 1,
+          "input_tokens": 103,
+          "generated_tokens": 0
+        },
+        "_turbojev": {
+          "backend": "browser-decision-runtime",
+          "calibration": "softmax",
+          "calibrated": false,
+          "confidence_method": "selected-candidate-probability",
+          "contract": "turbojev.core.v4",
+          "order_robustness": "none",
+          "order_evaluations": 0,
+          "execution": {
+            "prefix_reuse": "none",
+            "scheduling": "serial",
+            "parallel_task_limit": 1,
+            "projection": "full-vocabulary"
+          }
+        }
+      },
+      "seconds": 10.398189900000002
+    },
+    {
+      "order": [
+        "shipping",
+        "technical",
+        "dog",
+        "billing"
+      ],
+      "request": {
+        "state": "My package arrived broken. Please send a replacement.",
+        "questions": {
+          "route": {
+            "type": "choice",
+            "instructions": "Which team should handle this request?",
+            "criteria": {
+              "shipping": "Delivery, damage and replacement",
+              "technical": "Software bugs",
+              "dog": "An animal",
+              "billing": "Payments and invoices"
+            }
+          }
+        }
+      },
+      "response": {
+        "model": "Qwen3-0.6B-Q4_K_M.gguf",
+        "answers": {
+          "route": {
+            "type": "choice",
+            "choice": "shipping",
+            "confidence": 0.9999842154126071,
+            "probabilities": {
+              "shipping": 0.9999842154126071,
+              "technical": 3.875766025050702e-7,
+              "dog": 7.249448336775417e-8,
+              "billing": 0.00001532451630696651
+            }
+          }
+        },
+        "usage": {
+          "decisions": 1,
+          "input_tokens": 103,
+          "generated_tokens": 0
+        },
+        "_turbojev": {
+          "backend": "browser-decision-runtime",
+          "calibration": "softmax",
+          "calibrated": false,
+          "confidence_method": "selected-candidate-probability",
+          "contract": "turbojev.core.v4",
+          "order_robustness": "none",
+          "order_evaluations": 0,
+          "execution": {
+            "prefix_reuse": "none",
+            "scheduling": "serial",
+            "parallel_task_limit": 1,
+            "projection": "full-vocabulary"
+          }
+        }
+      },
+      "seconds": 11.0615675
+    },
+    {
+      "order": [
+        "technical",
+        "dog",
+        "billing",
+        "shipping"
+      ],
+      "request": {
+        "state": "My package arrived broken. Please send a replacement.",
+        "questions": {
+          "route": {
+            "type": "choice",
+            "instructions": "Which team should handle this request?",
+            "criteria": {
+              "technical": "Software bugs",
+              "dog": "An animal",
+              "billing": "Payments and invoices",
+              "shipping": "Delivery, damage and replacement"
+            }
+          }
+        }
+      },
+      "response": {
+        "model": "Qwen3-0.6B-Q4_K_M.gguf",
+        "answers": {
+          "route": {
+            "type": "choice",
+            "choice": "shipping",
+            "confidence": 0.9996628194623232,
+            "probabilities": {
+              "technical": 6.307651852667058e-9,
+              "dog": 2.127860364843508e-8,
+              "billing": 0.00033715295142123147,
+              "shipping": 0.9996628194623232
+            }
+          }
+        },
+        "usage": {
+          "decisions": 1,
+          "input_tokens": 103,
+          "generated_tokens": 0
+        },
+        "_turbojev": {
+          "backend": "browser-decision-runtime",
+          "calibration": "softmax",
+          "calibrated": false,
+          "confidence_method": "selected-candidate-probability",
+          "contract": "turbojev.core.v4",
+          "order_robustness": "none",
+          "order_evaluations": 0,
+          "execution": {
+            "prefix_reuse": "none",
+            "scheduling": "serial",
+            "parallel_task_limit": 1,
+            "projection": "full-vocabulary"
+          }
+        }
+      },
+      "seconds": 11.213466099999998
+    }
+  ]
+}

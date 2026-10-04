@@ -22,7 +22,7 @@ struct common_chat_templates_inputs {
     std::map<std::string, std::string> chat_template_kwargs;
     std::chrono::system_clock::time_point now;
 };
-struct common_chat_params { std::string prompt; };
+struct common_chat_params { std::string prompt; bool supports_thinking = false; std::vector<std::string> thinking_end_tags; };
 inline common_chat_templates_ptr common_chat_templates_init(const llama_model *, const std::string &) {
     return std::make_unique<common_chat_templates>();
 }
@@ -36,6 +36,8 @@ inline common_chat_params common_chat_templates_apply(
     for (const auto & message : inputs.messages) {
         rendered += "<" + message.role + ">" + message.content + "</" + message.role + ">";
     }
-    return {rendered + "<assistant>"};
+    common_chat_params params;
+    params.prompt = rendered + "<assistant>";
+    return params;
 }
 #endif

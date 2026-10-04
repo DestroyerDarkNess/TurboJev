@@ -14,6 +14,7 @@ set(LLAMA_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(LLAMA_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 set(LLAMA_BUILD_TOOLS OFF CACHE BOOL "" FORCE)
 set(LLAMA_BUILD_SERVER OFF CACHE BOOL "" FORCE)
+set(LLAMA_SUBPROCESS OFF CACHE BOOL "TurboJev does not launch external media tools" FORCE)
 set(LLAMA_CURL OFF CACHE BOOL "" FORCE)
 set(LLAMA_OPENSSL OFF CACHE BOOL "" FORCE)
 set(GGML_NATIVE OFF CACHE BOOL "" FORCE)
@@ -39,13 +40,17 @@ if(CMAKE_GENERATOR_PLATFORM STREQUAL "Win32")
 endif()
 
 add_subdirectory("${LLAMA_CPP_SOURCE_DIR}" "${CMAKE_BINARY_DIR}/llama.cpp" EXCLUDE_FROM_ALL)
+set(MTMD_VIDEO OFF CACHE BOOL "TurboJev accepts host-decoded timestamped video frames" FORCE)
+add_subdirectory("${LLAMA_CPP_SOURCE_DIR}/tools/mtmd" "${CMAKE_BINARY_DIR}/llama.cpp/tools/mtmd" EXCLUDE_FROM_ALL)
 
 add_library(turbojev_llama_shim SHARED turbojev_llama_shim.cpp)
 target_compile_features(turbojev_llama_shim PRIVATE cxx_std_17)
+target_compile_definitions(turbojev_llama_shim PRIVATE TURBOJEV_HAS_MTMD=1)
 target_include_directories(turbojev_llama_shim
   PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}"
   PRIVATE "${LLAMA_CPP_SOURCE_DIR}/include")
-target_link_libraries(turbojev_llama_shim PRIVATE llama llama-common)
+target_include_directories(turbojev_llama_shim PRIVATE "${LLAMA_CPP_SOURCE_DIR}/tools/mtmd")
+target_link_libraries(turbojev_llama_shim PRIVATE llama llama-common mtmd)
 set_target_properties(turbojev_llama_shim PROPERTIES
   CXX_EXTENSIONS OFF
   POSITION_INDEPENDENT_CODE ON
@@ -57,5 +62,8 @@ set_target_properties(turbojev_llama_shim PROPERTIES
 if(MSVC)
   target_compile_options(turbojev_llama_shim PRIVATE /W4 /permissive-)
 else()
-  target_compile_options(turbojev_llama_shim PRIVATE -Wall -Wextra -Wpedantic -Werror)
+  # llama.cpp's common/Jinja headers contain static helpers unused by this
+  # translation unit. Keep warnings fatal for the shim while allowing that
+  # single upstream-header warning on GCC/Clang.
+  target_compile_options(turbojev_llama_shim PRIVATE -Wall -Wextra -Wpedantic -Werror -Wno-error=unused-function)
 endif()

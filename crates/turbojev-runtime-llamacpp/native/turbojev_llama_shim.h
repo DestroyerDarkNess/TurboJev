@@ -8,9 +8,18 @@
 extern "C" {
 #endif
 
-#define TURBOJEV_LLAMA_SHIM_ABI_VERSION 5u
+#define TURBOJEV_LLAMA_SHIM_ABI_VERSION 9u
 
 typedef struct tj_llama_runtime tj_llama_runtime;
+
+/* Text-only, bounded model reasoning followed by exact candidate logits.
+ * Fails on unsupported templates or an unfinished reasoning budget.
+ * Candidate tokens are verified again at the actual final-answer boundary. */
+int32_t tj_llama_score_thinking_next(
+    tj_llama_runtime * runtime, const char * system, const char * user,
+    const char * assistant_prefix, const uint32_t * candidate_tokens,
+    size_t candidate_count, uint32_t max_thinking_tokens, float * out_logits,
+    size_t * generated_tokens, char * error, size_t error_capacity);
 
 typedef struct tj_llama_config {
     uint32_t n_ctx;
@@ -26,6 +35,32 @@ uint32_t tj_llama_abi_version(void);
 tj_llama_runtime * tj_llama_open(
     const char * model_path,
     const tj_llama_config * config,
+    char * error,
+    size_t error_capacity);
+tj_llama_runtime * tj_llama_open_multimodal(
+    const char * model_path,
+    const char * mmproj_path,
+    const tj_llama_config * config,
+    char * error,
+    size_t error_capacity);
+int32_t tj_llama_supports_image(const tj_llama_runtime * runtime);
+int32_t tj_llama_supports_audio(const tj_llama_runtime * runtime);
+int32_t tj_llama_supports_video(const tj_llama_runtime * runtime);
+int32_t tj_llama_score_media_next(
+    tj_llama_runtime * runtime,
+    const char * system,
+    const char * user,
+    const char * assistant_prefix,
+    int32_t modality,
+    const char * media_base64,
+    size_t media_base64_len,
+    const char * const * frame_base64,
+    const size_t * frame_base64_lengths,
+    const uint64_t * frame_timestamps_ms,
+    size_t frame_count,
+    const uint32_t * candidate_tokens,
+    size_t candidate_count,
+    float * out_logits,
     char * error,
     size_t error_capacity);
 

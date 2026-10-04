@@ -1,0 +1,203 @@
+{
+  "date": "2026-10-04",
+  "host": "Node v24.18.0; Windows x64",
+  "runtime": "Wllama 3.8.1 / llama.cpp mtmd WASM",
+  "turbojev_version": "0.29.1 working tree",
+  "device": "CPU",
+  "inference_threads": 4,
+  "prestarted_workers": 12,
+  "jinja": true,
+  "order_robustness": "cyclic",
+  "browser_qualified": false,
+  "passed": true,
+  "artifacts": {
+    "model": {
+      "path": ".cache/real-validation/multimodal/lfm2-audio/LFM2-Audio-1.5B-Q8_0.gguf",
+      "bytes": 1246253184,
+      "sha256": "adbe49974b252414b4748669e741cc8bd64517e10fdb9ffffd6a3b00a4c1e214"
+    },
+    "projector": {
+      "path": ".cache/real-validation/multimodal/lfm2-audio/mmproj-LFM2-Audio-1.5B-Q8_0.gguf",
+      "bytes": 332716256,
+      "sha256": "e6f0d0c7f303a38e6be3deaa5562b362d8d73f8aaf38a01b526774b2710af65f"
+    },
+    "wllama_wasm": {
+      "path": ".cache/wllama-3.8.1/package/src/wasm/wllama.wasm",
+      "bytes": 8763949,
+      "sha256": "551f13439366eff11e057b1b91fe46a7fdac29d56d67372d4c5f19a549dfe70c"
+    },
+    "turbojev_wasm": {
+      "path": "website/vendor/wasm/turbojev_wasm_bg.wasm",
+      "bytes": 633025,
+      "sha256": "06c9f8117955128437202abec032ecdef681f0e110b1bc590b28aa6ac20aed6d"
+    },
+    "on": {
+      "path": "tests/fixtures/multimodal-audio/on.wav",
+      "bytes": 92840,
+      "sha256": "619397630b14ddf6011a52db2b3bf5e7a6849e954bc917761e5f7bd3805a354b"
+    },
+    "off": {
+      "path": "tests/fixtures/multimodal-audio/off.wav",
+      "bytes": 97912,
+      "sha256": "b62ae22d20e63b3fa926aa8684cac535c7570e3e032e6b0f95cb5a469a3d3c55"
+    }
+  },
+  "results": [
+    {
+      "clip": "on",
+      "reverse": false,
+      "elapsed": 123.8123141,
+      "response": {
+        "model": "LFM2-Audio-1.5B-Q8_0",
+        "answers": {
+          "decision": {
+            "type": "choice",
+            "choice": "on",
+            "confidence": 0.825035481900796,
+            "probabilities": {
+              "on": 0.825035481900796,
+              "off": 0.17496451809920407
+            }
+          }
+        },
+        "usage": {
+          "decisions": 1,
+          "input_tokens": 244,
+          "generated_tokens": 0
+        },
+        "_turbojev": {
+          "backend": "browser-decision-runtime",
+          "calibration": "softmax",
+          "calibrated": false,
+          "confidence_method": "selected-candidate-probability",
+          "contract": "turbojev.core.v4",
+          "order_robustness": "cyclic",
+          "order_evaluations": 2,
+          "execution": {
+            "prefix_reuse": "none",
+            "scheduling": "serial",
+            "parallel_task_limit": 1,
+            "projection": "full-vocabulary"
+          }
+        }
+      }
+    },
+    {
+      "clip": "on",
+      "reverse": true,
+      "elapsed": 109.8214847,
+      "response": {
+        "model": "LFM2-Audio-1.5B-Q8_0",
+        "answers": {
+          "decision": {
+            "type": "choice",
+            "choice": "on",
+            "confidence": 0.825035481900796,
+            "probabilities": {
+              "off": 0.17496451809920407,
+              "on": 0.825035481900796
+            }
+          }
+        },
+        "usage": {
+          "decisions": 1,
+          "input_tokens": 244,
+          "generated_tokens": 0
+        },
+        "_turbojev": {
+          "backend": "browser-decision-runtime",
+          "calibration": "softmax",
+          "calibrated": false,
+          "confidence_method": "selected-candidate-probability",
+          "contract": "turbojev.core.v4",
+          "order_robustness": "cyclic",
+          "order_evaluations": 2,
+          "execution": {
+            "prefix_reuse": "none",
+            "scheduling": "serial",
+            "parallel_task_limit": 1,
+            "projection": "full-vocabulary"
+          }
+        }
+      }
+    },
+    {
+      "clip": "off",
+      "reverse": false,
+      "elapsed": 103.894481,
+      "response": {
+        "model": "LFM2-Audio-1.5B-Q8_0",
+        "answers": {
+          "decision": {
+            "type": "choice",
+            "choice": "off",
+            "confidence": 0.7823414280000194,
+            "probabilities": {
+              "on": 0.21765857199998068,
+              "off": 0.7823414280000194
+            }
+          }
+        },
+        "usage": {
+          "decisions": 1,
+          "input_tokens": 246,
+          "generated_tokens": 0
+        },
+        "_turbojev": {
+          "backend": "browser-decision-runtime",
+          "calibration": "softmax",
+          "calibrated": false,
+          "confidence_method": "selected-candidate-probability",
+          "contract": "turbojev.core.v4",
+          "order_robustness": "cyclic",
+          "order_evaluations": 2,
+          "execution": {
+            "prefix_reuse": "none",
+            "scheduling": "serial",
+            "parallel_task_limit": 1,
+            "projection": "full-vocabulary"
+          }
+        }
+      }
+    },
+    {
+      "clip": "off",
+      "reverse": true,
+      "elapsed": 87.76467509999999,
+      "response": {
+        "model": "LFM2-Audio-1.5B-Q8_0",
+        "answers": {
+          "decision": {
+            "type": "choice",
+            "choice": "off",
+            "confidence": 0.7823414280000194,
+            "probabilities": {
+              "off": 0.7823414280000194,
+              "on": 0.21765857199998068
+            }
+          }
+        },
+        "usage": {
+          "decisions": 1,
+          "input_tokens": 246,
+          "generated_tokens": 0
+        },
+        "_turbojev": {
+          "backend": "browser-decision-runtime",
+          "calibration": "softmax",
+          "calibrated": false,
+          "confidence_method": "selected-candidate-probability",
+          "contract": "turbojev.core.v4",
+          "order_robustness": "cyclic",
+          "order_evaluations": 2,
+          "execution": {
+            "prefix_reuse": "none",
+            "scheduling": "serial",
+            "parallel_task_limit": 1,
+            "projection": "full-vocabulary"
+          }
+        }
+      }
+    }
+  ]
+}

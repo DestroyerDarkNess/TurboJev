@@ -169,8 +169,10 @@ fn build_batch(
         }
         if valid {
             return Ok(RuntimeBatch {
+                state: serde_json::Value::Null,
                 common_prefix: Vec::new(),
                 tasks: vec![RuntimeTask {
+                    messages: turbojev_prompt::RenderedMessages::default(),
                     id: format!("r{round}-q{request_index}"),
                     prompt_suffix: prompt,
                     candidates,

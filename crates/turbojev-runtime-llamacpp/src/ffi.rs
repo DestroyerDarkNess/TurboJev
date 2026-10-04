@@ -14,8 +14,9 @@ use std::{
 use turbojev_runtime::TokenId;
 
 use crate::{LlamaCppApi, LlamaCppError, LlamaCppRootTask, LlamaCppSuffixTask};
+use turbojev_prompt::RenderedMessages;
 
-const SHIM_ABI_VERSION: u32 = 5;
+const SHIM_ABI_VERSION: u32 = 9;
 const ERROR_CAPACITY: usize = 2048;
 
 #[repr(C)]
@@ -54,6 +55,34 @@ extern "C" {
         error: *mut c_char,
         error_capacity: usize,
     ) -> *mut c_void;
+    fn tj_llama_open_multimodal(
+        model_path: *const c_char,
+        mmproj_path: *const c_char,
+        config: *const NativeConfig,
+        error: *mut c_char,
+        error_capacity: usize,
+    ) -> *mut c_void;
+    fn tj_llama_supports_image(runtime: *const c_void) -> c_int;
+    fn tj_llama_supports_audio(runtime: *const c_void) -> c_int;
+    fn tj_llama_supports_video(runtime: *const c_void) -> c_int;
+    fn tj_llama_score_media_next(
+        runtime: *mut c_void,
+        system: *const c_char,
+        user: *const c_char,
+        assistant_prefix: *const c_char,
+        modality: c_int,
+        media_base64: *const c_char,
+        media_base64_len: usize,
+        frame_base64: *const *const c_char,
+        frame_base64_lengths: *const usize,
+        frame_timestamps_ms: *const u64,
+        frame_count: usize,
+        candidate_tokens: *const u32,
+        candidate_count: usize,
+        out_logits: *mut c_float,
+        error: *mut c_char,
+        error_capacity: usize,
+    ) -> c_int;
     fn tj_llama_close(runtime: *mut c_void);
     fn tj_llama_model_desc(
         runtime: *mut c_void,
@@ -88,6 +117,19 @@ extern "C" {
         candidate_tokens: *const u32,
         candidate_count: usize,
         out_logits: *mut c_float,
+        error: *mut c_char,
+        error_capacity: usize,
+    ) -> c_int;
+    fn tj_llama_score_thinking_next(
+        runtime: *mut c_void,
+        system: *const c_char,
+        user: *const c_char,
+        assistant_prefix: *const c_char,
+        candidate_tokens: *const u32,
+        candidate_count: usize,
+        max_thinking_tokens: u32,
+        out_logits: *mut c_float,
+        generated_tokens: *mut usize,
         error: *mut c_char,
         error_capacity: usize,
     ) -> c_int;
@@ -178,6 +220,8 @@ pub struct FfiLlamaCpp {
     max_multi_root_tasks: Option<usize>,
     multi_root_enabled: bool,
     estimated_multi_root_item_bytes: Option<u64>,
+    thinking: bool,
+    max_thinking_tokens: u32,
     _not_send_sync: PhantomData<Rc<()>>,
 }
 
@@ -185,8 +229,29 @@ pub struct FfiLlamaCpp {
 impl FfiLlamaCpp {
     /// Open one GGUF model using the native shim.
     pub fn open(model_path: &str, config: NativeConfig) -> Result<Self, LlamaCppError> {
+        Self::open_inner(model_path, None, config)
+    }
+
+    /// Open a GGUF model with its llama.cpp multimodal projector file.
+    pub fn open_multimodal(
+        model_path: &str,
+        mmproj_path: &str,
+        config: NativeConfig,
+    ) -> Result<Self, LlamaCppError> {
+        Self::open_inner(model_path, Some(mmproj_path), config)
+    }
+
+    fn open_inner(
+        model_path: &str,
+        mmproj_path: Option<&str>,
+        config: NativeConfig,
+    ) -> Result<Self, LlamaCppError> {
         let path = CString::new(model_path)
             .map_err(|_| LlamaCppError::InvalidInput("model path contains NUL".into()))?;
+        let mmproj = mmproj_path
+            .map(CString::new)
+            .transpose()
+            .map_err(|_| LlamaCppError::InvalidInput("mmproj path contains NUL".into()))?;
         let mut error = vec![0 as c_char; ERROR_CAPACITY];
 
         let abi = unsafe { tj_llama_abi_version() };
@@ -196,7 +261,18 @@ impl FfiLlamaCpp {
             )));
         }
 
-        let raw = unsafe { tj_llama_open(path.as_ptr(), &config, error.as_mut_ptr(), error.len()) };
+        let raw = unsafe {
+            match mmproj.as_ref() {
+                Some(projector) => tj_llama_open_multimodal(
+                    path.as_ptr(),
+                    projector.as_ptr(),
+                    &config,
+                    error.as_mut_ptr(),
+                    error.len(),
+                ),
+                None => tj_llama_open(path.as_ptr(), &config, error.as_mut_ptr(), error.len()),
+            }
+        };
         let handle =
             NonNull::new(raw).ok_or_else(|| native_error(&error, "failed to open model"))?;
         let native_parallel_tasks = unsafe { tj_llama_max_parallel_tasks(handle.as_ptr()) };
@@ -210,10 +286,100 @@ impl FfiLlamaCpp {
             max_multi_root_tasks: (native_multi_root_tasks > 0).then_some(native_multi_root_tasks),
             multi_root_enabled: false,
             estimated_multi_root_item_bytes: None,
+            thinking: false,
+            max_thinking_tokens: 512,
             _not_send_sync: PhantomData,
         };
         runtime.model_id = runtime.read_model_desc()?;
         Ok(runtime)
+    }
+
+    fn score_media_impl(
+        &self,
+        messages: &RenderedMessages,
+        media_evidence: &turbojev_schema::media::MediaEvidence,
+        candidate_token_ids: &[TokenId],
+    ) -> Result<Vec<f32>, LlamaCppError> {
+        let system = messages
+            .system
+            .as_deref()
+            .map(CString::new)
+            .transpose()
+            .map_err(|_| LlamaCppError::InvalidInput("system message contains NUL".into()))?;
+        let user = CString::new(messages.user.as_str())
+            .map_err(|_| LlamaCppError::InvalidInput("user message contains NUL".into()))?;
+        let assistant_prefix = CString::new(messages.assistant_prefix.as_str())
+            .map_err(|_| LlamaCppError::InvalidInput("assistant prefix contains NUL".into()))?;
+        let media = CString::new(media_evidence.base64.as_str())
+            .map_err(|_| LlamaCppError::InvalidInput("media base64 contains NUL".into()))?;
+        let kind = match &media_evidence.modality {
+            turbojev_schema::media::Modality::Image => 0,
+            turbojev_schema::media::Modality::Audio => 1,
+            turbojev_schema::media::Modality::Video => 2,
+        };
+        let frame_strings = media_evidence
+            .frames
+            .iter()
+            .map(|frame| {
+                CString::new(frame.base64.as_str()).map_err(|_| {
+                    LlamaCppError::InvalidInput("video frame base64 contains NUL".into())
+                })
+            })
+            .collect::<Result<Vec<_>, _>>()?;
+        let frame_pointers = frame_strings
+            .iter()
+            .map(|frame| frame.as_ptr())
+            .collect::<Vec<_>>();
+        let frame_lengths = media_evidence
+            .frames
+            .iter()
+            .map(|frame| frame.base64.len())
+            .collect::<Vec<_>>();
+        let frame_timestamps = media_evidence
+            .frames
+            .iter()
+            .map(|frame| frame.timestamp_ms)
+            .collect::<Vec<_>>();
+        let mut logits = vec![0.0; candidate_token_ids.len()];
+        let mut error = vec![0 as c_char; ERROR_CAPACITY];
+        let status = unsafe {
+            tj_llama_score_media_next(
+                self.handle.as_ptr(),
+                system
+                    .as_ref()
+                    .map_or(std::ptr::null(), |value| value.as_ptr()),
+                user.as_ptr(),
+                assistant_prefix.as_ptr(),
+                kind,
+                media.as_ptr(),
+                media_evidence.base64.len(),
+                if frame_pointers.is_empty() {
+                    std::ptr::null()
+                } else {
+                    frame_pointers.as_ptr()
+                },
+                if frame_lengths.is_empty() {
+                    std::ptr::null()
+                } else {
+                    frame_lengths.as_ptr()
+                },
+                if frame_timestamps.is_empty() {
+                    std::ptr::null()
+                } else {
+                    frame_timestamps.as_ptr()
+                },
+                frame_pointers.len(),
+                candidate_token_ids.as_ptr(),
+                candidate_token_ids.len(),
+                logits.as_mut_ptr(),
+                error.as_mut_ptr(),
+                error.len(),
+            )
+        };
+        if status != 0 {
+            return Err(native_error(&error, "multimodal candidate scoring failed"));
+        }
+        Ok(logits)
     }
 
     /// Supply a conservative incremental memory estimate for one parallel task
@@ -238,6 +404,13 @@ impl FfiLlamaCpp {
     /// itself does not guess memory use from model architecture.
     pub fn with_estimated_multi_root_item_bytes(mut self, bytes: u64) -> Self {
         self.estimated_multi_root_item_bytes = (bytes > 0).then_some(bytes);
+        self
+    }
+
+    /// Enable bounded, template-supported text reasoning before scoring.
+    pub fn with_thinking(mut self, enabled: bool, max_tokens: u32) -> Self {
+        self.thinking = enabled;
+        self.max_thinking_tokens = max_tokens;
         self
     }
 
@@ -380,6 +553,65 @@ impl LlamaCppApi for FfiLlamaCpp {
         })
     }
 
+    fn image_input_supported(&self) -> bool {
+        unsafe { tj_llama_supports_image(self.handle.as_ptr()) != 0 }
+    }
+
+    fn audio_input_supported(&self) -> bool {
+        unsafe { tj_llama_supports_audio(self.handle.as_ptr()) != 0 }
+    }
+
+    fn video_input_supported(&self) -> bool {
+        unsafe { tj_llama_supports_video(self.handle.as_ptr()) != 0 }
+    }
+
+    fn score_media_next_token(
+        &self,
+        messages: &RenderedMessages,
+        media_evidence: &turbojev_schema::media::MediaEvidence,
+        candidate_token_ids: &[TokenId],
+    ) -> Result<Vec<f32>, LlamaCppError> {
+        self.score_media_impl(messages, media_evidence, candidate_token_ids)
+    }
+
+    fn thinking_enabled(&self) -> bool {
+        self.thinking
+    }
+
+    fn score_thinking_next_token(
+        &self,
+        messages: &RenderedMessages,
+        candidate_token_ids: &[TokenId],
+    ) -> Result<(Vec<f32>, usize), LlamaCppError> {
+        let system = optional_c_string(messages.system.as_deref())?;
+        let user = CString::new(messages.user.as_str())
+            .map_err(|_| LlamaCppError::InvalidInput("user contains NUL".into()))?;
+        let prefix = CString::new(messages.assistant_prefix.as_str())
+            .map_err(|_| LlamaCppError::InvalidInput("assistant prefix contains NUL".into()))?;
+        let mut logits = vec![0.0; candidate_token_ids.len()];
+        let mut generated = 0usize;
+        let mut error = vec![0 as c_char; ERROR_CAPACITY];
+        let status = unsafe {
+            tj_llama_score_thinking_next(
+                self.handle.as_ptr(),
+                system.as_ref().map_or(std::ptr::null(), |s| s.as_ptr()),
+                user.as_ptr(),
+                prefix.as_ptr(),
+                candidate_token_ids.as_ptr(),
+                candidate_token_ids.len(),
+                self.max_thinking_tokens,
+                logits.as_mut_ptr(),
+                &mut generated,
+                error.as_mut_ptr(),
+                error.len(),
+            )
+        };
+        if status != 0 {
+            return Err(native_error(&error, "thinking candidate scoring failed"));
+        }
+        Ok((logits, generated))
+    }
+
     fn score_next_token(
         &self,
         prompt_tokens: &[TokenId],
@@ -416,7 +648,7 @@ impl LlamaCppApi for FfiLlamaCpp {
     }
 
     fn sequence_scores_supported(&self) -> bool {
-        unsafe { tj_llama_sequence_scores_supported(self.handle.as_ptr()) != 0 }
+        !self.thinking && unsafe { tj_llama_sequence_scores_supported(self.handle.as_ptr()) != 0 }
     }
 
     fn score_sequences(
@@ -447,18 +679,19 @@ impl LlamaCppApi for FfiLlamaCpp {
     }
 
     fn multi_root_supported(&self) -> bool {
-        self.multi_root_enabled
+        !self.thinking
+            && self.multi_root_enabled
             && unsafe { tj_llama_multi_root_supported(self.handle.as_ptr()) != 0 }
     }
 
     fn max_multi_root_tasks(&self) -> Option<usize> {
-        self.multi_root_enabled
+        (!self.thinking && self.multi_root_enabled)
             .then_some(self.max_multi_root_tasks)
             .flatten()
     }
 
     fn max_multi_root_tokens(&self) -> Option<usize> {
-        if !self.multi_root_enabled {
+        if self.thinking || !self.multi_root_enabled {
             return None;
         }
         let value = unsafe { tj_llama_max_multi_root_tokens(self.handle.as_ptr()) };
@@ -466,7 +699,7 @@ impl LlamaCppApi for FfiLlamaCpp {
     }
 
     fn estimated_multi_root_item_bytes(&self) -> Option<u64> {
-        self.multi_root_enabled
+        (!self.thinking && self.multi_root_enabled)
             .then_some(self.estimated_multi_root_item_bytes)
             .flatten()
     }
@@ -475,7 +708,7 @@ impl LlamaCppApi for FfiLlamaCpp {
         &self,
         tasks: &[LlamaCppRootTask<'_>],
     ) -> Result<Vec<Vec<f32>>, LlamaCppError> {
-        if !self.multi_root_enabled {
+        if self.thinking || !self.multi_root_enabled {
             return Err(LlamaCppError::Unsupported(
                 "llama.cpp multi-root fused scoring is disabled until explicitly enabled after target-specific conformance".to_owned(),
             ));
@@ -551,11 +784,11 @@ impl LlamaCppApi for FfiLlamaCpp {
     }
 
     fn shared_prefix_supported(&self) -> bool {
-        unsafe { tj_llama_shared_prefix_supported(self.handle.as_ptr()) != 0 }
+        !self.thinking && unsafe { tj_llama_shared_prefix_supported(self.handle.as_ptr()) != 0 }
     }
 
     fn parallel_suffix_supported(&self) -> bool {
-        unsafe { tj_llama_parallel_suffix_supported(self.handle.as_ptr()) != 0 }
+        !self.thinking && unsafe { tj_llama_parallel_suffix_supported(self.handle.as_ptr()) != 0 }
     }
 
     fn max_parallel_tasks(&self) -> Option<usize> {

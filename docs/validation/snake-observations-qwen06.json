@@ -1,0 +1,293 @@
+{
+  "model": "C:\\Users\\Administrator\\.cache\\turbojev\\Qwen3-0.6B-Q4_K_M.gguf",
+  "model_sha256": "9acfc1e001311f34b4252001b626f2e466d592a42065f66571bff3790d4e1b14",
+  "config": {
+    "model": "C:\\Users\\Administrator\\.cache\\turbojev\\Qwen3-0.6B-Q4_K_M.gguf",
+    "device": "cpu",
+    "nCtx": 4096,
+    "nBatch": 512,
+    "nSeqMax": 1,
+    "nThreads": 4,
+    "nThreadsBatch": 4,
+    "thinking": false,
+    "maxThinkingTokens": 512,
+    "execution": {
+      "orderRobustness": "none"
+    }
+  },
+  "demo_sha256": "45fe8db68aaa938f83fb1a10e91e80c329d802517a30296ce6af494f280b248b",
+  "correct": 0,
+  "total": 4,
+  "records": [
+    {
+      "format": "observations",
+      "rotation": 0,
+      "request": {
+        "state": "Food location relative to the head: right; same row. Current direction: up. Adjacent cells: up: wall; down: tail; left: empty; right: empty.",
+        "questions": {
+          "move": {
+            "type": "choice",
+            "instructions": "Choose the snake's next move to reach the food. Move one cell only. Avoid leaving the board or entering the body. Do not reverse directly. The tail vacates its cell unless the snake eats. Choose a direction, not a plan.",
+            "criteria": {
+              "up": "Move one cell up (y - 1).",
+              "down": "Move one cell down (y + 1).",
+              "left": "Move one cell left (x - 1).",
+              "right": "Move one cell right (x + 1)."
+            }
+          }
+        }
+      },
+      "response": {
+        "model": "qwen3 0.6B Q4_K - Medium",
+        "answers": {
+          "move": {
+            "type": "choice",
+            "choice": "up",
+            "confidence": 0.8873468398879706,
+            "probabilities": {
+              "up": 0.8873468398879706,
+              "down": 0.015123599566381077,
+              "left": 0.015335765018215404,
+              "right": 0.08219379552743296
+            }
+          }
+        },
+        "usage": {
+          "decisions": 1,
+          "input_tokens": 196,
+          "generated_tokens": 0
+        },
+        "_turbojev": {
+          "backend": "llamacpp",
+          "calibration": "softmax",
+          "calibrated": false,
+          "confidence_method": "selected-candidate-probability",
+          "contract": "turbojev.core.v4",
+          "order_robustness": "none",
+          "order_evaluations": 0,
+          "execution": {
+            "prefix_reuse": "none",
+            "scheduling": "serial",
+            "parallel_task_limit": 1,
+            "projection": "full-vocabulary"
+          }
+        }
+      },
+      "choice": "up",
+      "expected": "right",
+      "correct": false,
+      "collision": "model hit a wall",
+      "seconds": 27.5960668000007
+    },
+    {
+      "format": "observations",
+      "rotation": 1,
+      "request": {
+        "state": "Food location relative to the head: right; same row. Current direction: up. Adjacent cells: up: wall; down: tail; left: empty; right: empty.",
+        "questions": {
+          "move": {
+            "type": "choice",
+            "instructions": "Choose the snake's next move to reach the food. Move one cell only. Avoid leaving the board or entering the body. Do not reverse directly. The tail vacates its cell unless the snake eats. Choose a direction, not a plan.",
+            "criteria": {
+              "down": "Move one cell down (y + 1).",
+              "left": "Move one cell left (x - 1).",
+              "right": "Move one cell right (x + 1).",
+              "up": "Move one cell up (y - 1)."
+            }
+          }
+        }
+      },
+      "response": {
+        "model": "qwen3 0.6B Q4_K - Medium",
+        "answers": {
+          "move": {
+            "type": "choice",
+            "choice": "up",
+            "confidence": 0.844061963455895,
+            "probabilities": {
+              "down": 0.036491461247380445,
+              "left": 0.042130913367028545,
+              "right": 0.07731566192969604,
+              "up": 0.844061963455895
+            }
+          }
+        },
+        "usage": {
+          "decisions": 1,
+          "input_tokens": 196,
+          "generated_tokens": 0
+        },
+        "_turbojev": {
+          "backend": "llamacpp",
+          "calibration": "softmax",
+          "calibrated": false,
+          "confidence_method": "selected-candidate-probability",
+          "contract": "turbojev.core.v4",
+          "order_robustness": "none",
+          "order_evaluations": 0,
+          "execution": {
+            "prefix_reuse": "none",
+            "scheduling": "serial",
+            "parallel_task_limit": 1,
+            "projection": "full-vocabulary"
+          }
+        }
+      },
+      "choice": "up",
+      "expected": "right",
+      "correct": false,
+      "collision": "model hit a wall",
+      "seconds": 33.230934300001536
+    },
+    {
+      "format": "observations",
+      "rotation": 2,
+      "request": {
+        "state": "Food location relative to the head: right; same row. Current direction: up. Adjacent cells: up: wall; down: tail; left: empty; right: empty.",
+        "questions": {
+          "move": {
+            "type": "choice",
+            "instructions": "Choose the snake's next move to reach the food. Move one cell only. Avoid leaving the board or entering the body. Do not reverse directly. The tail vacates its cell unless the snake eats. Choose a direction, not a plan.",
+            "criteria": {
+              "left": "Move one cell left (x - 1).",
+              "right": "Move one cell right (x + 1).",
+              "up": "Move one cell up (y - 1).",
+              "down": "Move one cell down (y + 1)."
+            }
+          }
+        }
+      },
+      "response": {
+        "model": "qwen3 0.6B Q4_K - Medium",
+        "answers": {
+          "move": {
+            "type": "choice",
+            "choice": "up",
+            "confidence": 0.9606477057323964,
+            "probabilities": {
+              "left": 0.0014636041218511566,
+              "right": 0.002440574661608664,
+              "up": 0.9606477057323964,
+              "down": 0.0354481154841436
+            }
+          }
+        },
+        "usage": {
+          "decisions": 1,
+          "input_tokens": 196,
+          "generated_tokens": 0
+        },
+        "_turbojev": {
+          "backend": "llamacpp",
+          "calibration": "softmax",
+          "calibrated": false,
+          "confidence_method": "selected-candidate-probability",
+          "contract": "turbojev.core.v4",
+          "order_robustness": "none",
+          "order_evaluations": 0,
+          "execution": {
+            "prefix_reuse": "none",
+            "scheduling": "serial",
+            "parallel_task_limit": 1,
+            "projection": "full-vocabulary"
+          }
+        }
+      },
+      "choice": "up",
+      "expected": "right",
+      "correct": false,
+      "collision": "model hit a wall",
+      "seconds": 31.471833100000367
+    },
+    {
+      "format": "observations",
+      "rotation": 3,
+      "request": {
+        "state": "Food location relative to the head: right; same row. Current direction: up. Adjacent cells: up: wall; down: tail; left: empty; right: empty.",
+        "questions": {
+          "move": {
+            "type": "choice",
+            "instructions": "Choose the snake's next move to reach the food. Move one cell only. Avoid leaving the board or entering the body. Do not reverse directly. The tail vacates its cell unless the snake eats. Choose a direction, not a plan.",
+            "criteria": {
+              "right": "Move one cell right (x + 1).",
+              "up": "Move one cell up (y - 1).",
+              "down": "Move one cell down (y + 1).",
+              "left": "Move one cell left (x - 1)."
+            }
+          }
+        }
+      },
+      "response": {
+        "model": "qwen3 0.6B Q4_K - Medium",
+        "answers": {
+          "move": {
+            "type": "choice",
+            "choice": "up",
+            "confidence": 0.9970964080810159,
+            "probabilities": {
+              "right": 2.4386984816436896e-05,
+              "up": 0.9970964080810159,
+              "down": 0.00032914583014765904,
+              "left": 0.002550059104019885
+            }
+          }
+        },
+        "usage": {
+          "decisions": 1,
+          "input_tokens": 196,
+          "generated_tokens": 0
+        },
+        "_turbojev": {
+          "backend": "llamacpp",
+          "calibration": "softmax",
+          "calibrated": false,
+          "confidence_method": "selected-candidate-probability",
+          "contract": "turbojev.core.v4",
+          "order_robustness": "none",
+          "order_evaluations": 0,
+          "execution": {
+            "prefix_reuse": "none",
+            "scheduling": "serial",
+            "parallel_task_limit": 1,
+            "projection": "full-vocabulary"
+          }
+        }
+      },
+      "choice": "up",
+      "expected": "right",
+      "correct": false,
+      "collision": "model hit a wall",
+      "seconds": 28.12298709999959
+    }
+  ],
+  "games": [
+    {
+      "format": "observations",
+      "summary": {
+        "event": "benchmark",
+        "model": "Qwen3-0.6B-Q4_K_M.gguf",
+        "turbojev": "0.29.1",
+        "host": "Windows AMD64 \u00b7 Python 3.12.7",
+        "model_load_s": 3.4160613999993075,
+        "seed": 0,
+        "score": 0,
+        "first_food_turn": null,
+        "executed_steps": 5,
+        "model_decisions": 6,
+        "host_selected_moves": 0,
+        "game_time_s": 172.16138219999993,
+        "inference_total_s": 170.23112960000435,
+        "order_robustness": "none",
+        "end_reason": "model hit a wall",
+        "trace": "D:\\Projects\\TurboJev\\docs\\validation\\snake-observations-qwen06-observations-game.jsonl",
+        "latency_mean_ms": 28371.85493333406,
+        "latency_median_ms": 27377.655900001628,
+        "latency_p95_ms": 32406.651900000725,
+        "decisions_per_s": 0.035246197414646345
+      },
+      "trace": "docs\\validation\\snake-observations-qwen06-observations-game.jsonl"
+    }
+  ],
+  "host_assistance": false,
+  "inference": "source-built C ABI; demo still uses registry packages when run normally"
+}

@@ -38,7 +38,9 @@ def main():
                 visit(dep['name'])
         ordered.append(package)
 
-    visit('turbojev')
+    # Include the GGUF runtime and shared native host, not only the facade.
+    for root_package in ('turbojev', 'turbojev-runtime-llamacpp', 'turbojev-host-native'):
+        visit(root_package)
     for package in ordered:
         name, version = package['name'], package['version']
         request = urllib.request.Request(

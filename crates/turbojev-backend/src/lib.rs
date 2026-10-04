@@ -133,6 +133,9 @@ pub struct TaskScores {
 /// Optional backend counters. All values are data, never platform assumptions.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
 pub struct BackendMetrics {
+    /// Actual model tokens generated before candidate scoring (optional reasoning).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub generated_tokens: Option<usize>,
     /// Shared-state prefill time, when measured by the host runtime.
     pub prefill_seconds: Option<f64>,
     /// Candidate scoring time, when measured by the host runtime.

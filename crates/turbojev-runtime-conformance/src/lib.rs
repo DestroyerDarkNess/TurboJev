@@ -655,8 +655,10 @@ mod tests {
 
     fn batch() -> RuntimeBatch {
         RuntimeBatch {
+            state: serde_json::Value::Null,
             common_prefix: vec![1, 2],
             tasks: vec![RuntimeTask {
+                messages: turbojev_prompt::RenderedMessages::default(),
                 id: "route".to_owned(),
                 prompt_suffix: vec![3],
                 candidates: vec![
@@ -688,6 +690,7 @@ mod tests {
     #[test]
     fn verifies_exact_answer_boundary() {
         let messages = RenderedMessages {
+            assistant_prefix: String::new(),
             system: None,
             user: "answer=".to_owned(),
             profile: "fixture".to_owned(),
@@ -712,6 +715,9 @@ mod tests {
             parallel_suffixes: true,
             selective_output_head: true,
             local_inference: true,
+            image_input: false,
+            audio_input: false,
+            video_input: false,
         };
         let plan = ExecutionPlan {
             prefix_reuse: PrefixReuse::Shared,
@@ -822,6 +828,9 @@ mod tests {
                 parallel_suffixes: false,
                 selective_output_head: false,
                 local_inference: true,
+                image_input: false,
+                audio_input: false,
+                video_input: false,
             }
         }
 

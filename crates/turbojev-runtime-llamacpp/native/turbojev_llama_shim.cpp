@@ -3,6 +3,9 @@
 
 #include "llama.h"
 #include "ggml-backend.h"
+#if defined(TURBOJEV_HAS_MTMD)
+#include "mtmd-helper.h"
+#endif
 
 #include <algorithm>
 #include <cstring>
@@ -18,6 +21,9 @@
 struct tj_llama_runtime {
     llama_model * model = nullptr;
     llama_context * context = nullptr;
+#if defined(TURBOJEV_HAS_MTMD)
+    mtmd_context * mtmd = nullptr;
+#endif
     const llama_vocab * vocab = nullptr;
     common_chat_templates_ptr chat_templates;
     // Keep template date/time functions stable across prompt/codebook probes.
@@ -59,6 +65,44 @@ bool checked_i32(size_t value, int32_t & out) {
     out = static_cast<int32_t>(value);
     return true;
 }
+
+#if defined(TURBOJEV_HAS_MTMD)
+bool decode_base64(const char * input, size_t length, std::vector<unsigned char> & output) {
+    if (input == nullptr || length == 0 || length > 32u * 1024u * 1024u || length % 4 != 0) {
+        return false;
+    }
+    auto value = [](unsigned char c) -> int {
+        if (c >= 'A' && c <= 'Z') return c - 'A';
+        if (c >= 'a' && c <= 'z') return c - 'a' + 26;
+        if (c >= '0' && c <= '9') return c - '0' + 52;
+        if (c == '+') return 62;
+        if (c == '/') return 63;
+        return -1;
+    };
+    output.clear();
+    output.reserve((length / 4) * 3);
+    for (size_t i = 0; i < length; i += 4) {
+        const bool pad2 = input[i + 2] == '=';
+        const bool pad3 = input[i + 3] == '=';
+        const int a = value(static_cast<unsigned char>(input[i]));
+        const int b = value(static_cast<unsigned char>(input[i + 1]));
+        const int c = pad2 ? 0 : value(static_cast<unsigned char>(input[i + 2]));
+        const int d = pad3 ? 0 : value(static_cast<unsigned char>(input[i + 3]));
+        const bool last = i + 4 == length;
+        if (a < 0 || b < 0 || c < 0 || d < 0 || (!last && (pad2 || pad3))
+            || (pad2 && !pad3)) {
+            return false;
+        }
+        const uint32_t bits = (static_cast<uint32_t>(a) << 18)
+            | (static_cast<uint32_t>(b) << 12)
+            | (static_cast<uint32_t>(c) << 6) | static_cast<uint32_t>(d);
+        output.push_back(static_cast<unsigned char>((bits >> 16) & 0xff));
+        if (!pad2) output.push_back(static_cast<unsigned char>((bits >> 8) & 0xff));
+        if (!pad3) output.push_back(static_cast<unsigned char>(bits & 0xff));
+    }
+    return !output.empty();
+}
+#endif
 
 bool checked_pos(size_t value, llama_pos & out) {
     if (value > static_cast<size_t>(std::numeric_limits<llama_pos>::max())) {
@@ -464,8 +508,11 @@ tj_llama_runtime * tj_llama_open(
         : context_params.n_seq_max;
     // Sequence 0 is the immutable prefix; at least one branch is required for
     // cached-serial compatibility. v0.8 uses any additional sequences for
-    // bounded parallel suffix batches.
-    context_params.n_seq_max = std::max<uint32_t>(requested_sequences, 2u);
+    // bounded parallel suffix batches. Multimodal prefill is deliberately
+    // single-sequence so it can use the full context instead of splitting it.
+    context_params.n_seq_max = requested_sequences == 1
+        ? 1u
+        : std::max<uint32_t>(requested_sequences, 2u);
     context_params.no_perf = true;
     runtime->context = llama_init_from_model(runtime->model, context_params);
     if (runtime->context == nullptr) {
@@ -487,10 +534,267 @@ tj_llama_runtime * tj_llama_open(
     return runtime.release();
 }
 
+tj_llama_runtime * tj_llama_open_multimodal(
+    const char * model_path,
+    const char * mmproj_path,
+    const tj_llama_config * config,
+    char * error,
+    size_t error_capacity) {
+#if defined(TURBOJEV_HAS_MTMD)
+    if (config == nullptr) {
+        set_error(error, error_capacity, "config is required");
+        return nullptr;
+    }
+    if (mmproj_path == nullptr || mmproj_path[0] == '\0') {
+        set_error(error, error_capacity, "a compatible mmproj GGUF path is required for multimodal inference");
+        return nullptr;
+    }
+    // Media scoring processes one decision sequence at a time. Avoid dividing
+    // the model context among text-runtime sequence slots: multi-frame prompts
+    // need the full context for a single mtmd prefill.
+    tj_llama_config multimodal_config = *config;
+    multimodal_config.n_seq_max = 1;
+    std::unique_ptr<tj_llama_runtime, decltype(&tj_llama_close)> runtime(
+        tj_llama_open(model_path, &multimodal_config, error, error_capacity), &tj_llama_close);
+    if (!runtime) return nullptr;
+
+    mtmd_context_params params = mtmd_context_params_default();
+    params.use_gpu = config->n_gpu_layers != 0;
+    params.n_threads = config->n_threads > 0 ? config->n_threads : 0;
+    params.print_timings = false;
+    params.warmup = true;
+    runtime->mtmd = mtmd_init_from_file(mmproj_path, runtime->model, params);
+    if (runtime->mtmd == nullptr) {
+        set_error(error, error_capacity,
+            "mtmd_init_from_file failed; verify that the mmproj GGUF matches the text model and llama.cpp build");
+        return nullptr;
+    }
+    return runtime.release();
+#else
+    (void) model_path;
+    (void) mmproj_path;
+    (void) config;
+    set_error(error, error_capacity, "this build does not include the mtmd multimodal library");
+    return nullptr;
+#endif
+}
+
+int32_t tj_llama_supports_image(const tj_llama_runtime * runtime) {
+#if defined(TURBOJEV_HAS_MTMD)
+    return runtime != nullptr && runtime->mtmd != nullptr && mtmd_support_vision(runtime->mtmd);
+#else
+    (void) runtime;
+    return 0;
+#endif
+}
+
+int32_t tj_llama_supports_audio(const tj_llama_runtime * runtime) {
+#if defined(TURBOJEV_HAS_MTMD)
+    return runtime != nullptr && runtime->mtmd != nullptr && mtmd_support_audio(runtime->mtmd);
+#else
+    (void) runtime;
+    return 0;
+#endif
+}
+
+int32_t tj_llama_supports_video(const tj_llama_runtime * runtime) {
+#if defined(TURBOJEV_HAS_MTMD)
+    // mtmd represents video as a timestamped sequence of mergeable image
+    // bitmaps. The model must at least have a vision projector; temporal
+    // reasoning quality remains checkpoint-dependent.
+    return runtime != nullptr && runtime->mtmd != nullptr && mtmd_support_vision(runtime->mtmd);
+#else
+    (void) runtime;
+    return 0;
+#endif
+}
+
+int32_t tj_llama_score_media_next(
+    tj_llama_runtime * runtime,
+    const char * system,
+    const char * user,
+    const char * assistant_prefix,
+    int32_t modality,
+    const char * media_base64,
+    size_t media_base64_len,
+    const char * const * frame_base64,
+    const size_t * frame_base64_lengths,
+    const uint64_t * frame_timestamps_ms,
+    size_t frame_count,
+    const uint32_t * candidate_tokens,
+    size_t candidate_count,
+    float * out_logits,
+    char * error,
+    size_t error_capacity) {
+#if defined(TURBOJEV_HAS_MTMD)
+    if (runtime == nullptr || runtime->context == nullptr || runtime->mtmd == nullptr
+        || runtime->vocab == nullptr || user == nullptr || candidate_tokens == nullptr
+        || candidate_count < 2 || out_logits == nullptr || modality < 0 || modality > 2
+        || media_base64 == nullptr) {
+        set_error(error, error_capacity, "invalid multimodal scoring arguments or runtime was not opened with mmproj");
+        return -1;
+    }
+    if ((modality == 2 && (frame_count == 0 || frame_count > 32
+            || frame_base64 == nullptr || frame_base64_lengths == nullptr || frame_timestamps_ms == nullptr
+            || media_base64_len != 0))
+        || (modality != 2 && (frame_count != 0 || media_base64_len == 0))) {
+        set_error(error, error_capacity, "video requires 1..32 timestamped image frames; image/audio require one encoded payload");
+        return -1;
+    }
+    if ((modality == 0 && !tj_llama_supports_image(runtime))
+        || (modality == 1 && !tj_llama_supports_audio(runtime))
+        || (modality == 2 && !tj_llama_supports_video(runtime))) {
+        set_error(error, error_capacity, "loaded mmproj does not support the requested input modality");
+        return -1;
+    }
+
+    std::string rendered;
+    std::string failure;
+    if (!render_chat(runtime, system, user, rendered, failure)) {
+        set_error(error, error_capacity, failure);
+        return -1;
+    }
+
+    const auto options = mtmd_helper_init_opt_default();
+    // Match the text codec's exact candidate boundary, including answer prefill.
+    if (assistant_prefix != nullptr) rendered.append(assistant_prefix);
+    std::vector<std::unique_ptr<mtmd_bitmap, decltype(&mtmd_bitmap_free)>> bitmap_storage;
+    std::vector<const mtmd_bitmap *> bitmaps;
+    if (modality == 2) {
+        bitmap_storage.reserve(frame_count);
+        bitmaps.reserve(frame_count);
+        uint64_t previous_timestamp = 0;
+        for (size_t i = 0; i < frame_count; ++i) {
+            if (frame_base64[i] == nullptr || frame_base64_lengths[i] == 0
+                || frame_base64_lengths[i] > 32u * 1024u * 1024u
+                || (i > 0 && frame_timestamps_ms[i] <= previous_timestamp)) {
+                set_error(error, error_capacity, "video frame payloads must be bounded and timestamps strictly increasing");
+                return -1;
+            }
+            previous_timestamp = frame_timestamps_ms[i];
+            std::vector<unsigned char> frame_bytes;
+            if (!decode_base64(frame_base64[i], frame_base64_lengths[i], frame_bytes)) {
+                set_error(error, error_capacity, "video frame is not valid bounded base64");
+                return -1;
+            }
+            auto wrapper = mtmd_helper_bitmap_init_from_buf(
+                runtime->mtmd, frame_bytes.data(), frame_bytes.size(), false, options);
+            if (wrapper.video_ctx != nullptr) {
+                mtmd_helper_video_free(wrapper.video_ctx);
+            }
+            if (wrapper.bitmap == nullptr || mtmd_bitmap_is_audio(wrapper.bitmap)) {
+                mtmd_bitmap_free(wrapper.bitmap);
+                set_error(error, error_capacity, "video frames must decode to still images supported by mtmd");
+                return -1;
+            }
+            mtmd_bitmap_set_mergeable(wrapper.bitmap, true);
+            bitmap_storage.emplace_back(wrapper.bitmap, &mtmd_bitmap_free);
+            bitmaps.push_back(wrapper.bitmap);
+        }
+    } else {
+        std::vector<unsigned char> media;
+        if (!decode_base64(media_base64, media_base64_len, media)) {
+            set_error(error, error_capacity, "media payload is not valid bounded base64");
+            return -1;
+        }
+        auto wrapper = mtmd_helper_bitmap_init_from_buf(
+            runtime->mtmd, media.data(), media.size(), false, options);
+        if (wrapper.video_ctx != nullptr) {
+            mtmd_helper_video_free(wrapper.video_ctx);
+        }
+        if (wrapper.bitmap == nullptr) {
+            set_error(error, error_capacity, "mtmd could not decode the media payload; check its file format and model support");
+            return -1;
+        }
+        if ((modality == 0 && mtmd_bitmap_is_audio(wrapper.bitmap))
+            || (modality == 1 && !mtmd_bitmap_is_audio(wrapper.bitmap))) {
+            mtmd_bitmap_free(wrapper.bitmap);
+            set_error(error, error_capacity, "media bytes do not match the declared modality");
+            return -1;
+        }
+        bitmaps.push_back(wrapper.bitmap);
+        bitmap_storage.emplace_back(wrapper.bitmap, &mtmd_bitmap_free);
+    }
+
+    mtmd_input_chunks * raw_chunks = mtmd_input_chunks_init();
+    if (raw_chunks == nullptr) {
+        set_error(error, error_capacity, "mtmd_input_chunks_init failed");
+        return -1;
+    }
+    std::unique_ptr<mtmd_input_chunks, decltype(&mtmd_input_chunks_free)> chunks(
+        raw_chunks, &mtmd_input_chunks_free);
+    const std::string marker = mtmd_get_marker(runtime->mtmd);
+    const size_t expected_markers = modality == 2 ? frame_count : 1;
+    size_t marker_count = 0;
+    for (size_t position = 0; !marker.empty()
+         && (position = rendered.find(marker, position)) != std::string::npos;
+         position += marker.size()) {
+        ++marker_count;
+    }
+    if (marker.empty() || marker_count != expected_markers) {
+        set_error(error, error_capacity, "rendered chat template omitted the llama.cpp media marker");
+        return -1;
+    }
+    mtmd_input_text prompt_text{rendered.data(), rendered.size(), true, true};
+    const int32_t tokenize_status = mtmd_tokenize(
+        runtime->mtmd, chunks.get(), &prompt_text, bitmaps.data(), bitmaps.size());
+    if (tokenize_status != 0) {
+        set_error(error, error_capacity, tokenize_status == 1
+            ? "rendered prompt must contain exactly one media marker"
+            : "mtmd media preprocessing failed");
+        return -1;
+    }
+
+    llama_memory_t memory = llama_get_memory(runtime->context);
+    if (memory != nullptr) llama_memory_clear(memory, true);
+    runtime->shared_prefix_ready = false;
+    runtime->shared_prefix_len = 0;
+    runtime->shared_prefix_logits.clear();
+    llama_pos n_past = 0;
+    const int32_t eval_status = mtmd_helper_eval_chunks(
+        runtime->mtmd, runtime->context, chunks.get(), 0, 0,
+        static_cast<int32_t>(runtime->n_batch), true, &n_past);
+    if (eval_status != 0) {
+        set_error(error, error_capacity, "mtmd_helper_eval_chunks failed during multimodal prefill");
+        return -1;
+    }
+    const float * logits = llama_get_logits_ith(runtime->context, -1);
+    if (logits == nullptr || !gather_candidate_logits(
+            runtime, logits, candidate_tokens, candidate_count, out_logits, failure)) {
+        set_error(error, error_capacity, logits == nullptr
+            ? "llama_get_logits_ith returned null after multimodal prefill" : failure);
+        return -1;
+    }
+    return 0;
+#else
+    (void) runtime;
+    (void) system;
+    (void) user;
+    (void) assistant_prefix;
+    (void) modality;
+    (void) media_base64;
+    (void) media_base64_len;
+    (void) frame_base64;
+    (void) frame_base64_lengths;
+    (void) frame_timestamps_ms;
+    (void) frame_count;
+    (void) candidate_tokens;
+    (void) candidate_count;
+    (void) out_logits;
+    set_error(error, error_capacity, "this build does not include the mtmd multimodal library");
+    return -1;
+#endif
+}
+
 void tj_llama_close(tj_llama_runtime * runtime) {
     if (runtime == nullptr) {
         return;
     }
+#if defined(TURBOJEV_HAS_MTMD)
+    if (runtime->mtmd != nullptr) {
+        mtmd_free(runtime->mtmd);
+    }
+#endif
     if (runtime->context != nullptr) {
         llama_free(runtime->context);
     }
@@ -642,11 +946,19 @@ int32_t tj_llama_score_next(
     runtime->shared_prefix_len = 0;
     runtime->shared_prefix_logits.clear();
 
-    llama_batch batch = llama_batch_get_one(prompt.data(), static_cast<int32_t>(prompt.size()));
-    const int32_t decode_status = llama_decode(runtime->context, batch);
-    if (decode_status != 0) {
-        set_error(error, error_capacity, "llama_decode failed");
+    if (prompt.size() >= llama_n_ctx_seq(runtime->context)) {
+        set_error(error, error_capacity, "prompt exceeds the per-sequence context; increase nCtx or reduce nSeqMax");
         return -1;
+    }
+    size_t processed = 0;
+    while (processed < prompt.size()) {
+        const auto count = std::min(prompt.size() - processed, size_t(llama_n_batch(runtime->context)));
+        llama_batch batch = llama_batch_get_one(prompt.data() + processed, static_cast<int32_t>(count));
+        if (llama_decode(runtime->context, batch) != 0) {
+            set_error(error, error_capacity, "llama_decode failed");
+            return -1;
+        }
+        processed += count;
     }
 
     const float * logits = llama_get_logits_ith(runtime->context, -1);
@@ -662,6 +974,114 @@ int32_t tj_llama_score_next(
     return 0;
 }
 
+
+
+int32_t tj_llama_score_thinking_next(
+    tj_llama_runtime * runtime, const char * system, const char * user,
+    const char * assistant_prefix, const uint32_t * candidate_tokens,
+    size_t candidate_count, uint32_t max_thinking_tokens, float * out_logits,
+    size_t * generated_tokens, char * error, size_t error_capacity) {
+    if (runtime == nullptr || runtime->context == nullptr || user == nullptr
+        || assistant_prefix == nullptr || candidate_tokens == nullptr || candidate_count < 2
+        || max_thinking_tokens == 0 || out_logits == nullptr || generated_tokens == nullptr) {
+        set_error(error, error_capacity, "invalid thinking arguments"); return -1;
+    }
+    *generated_tokens = 0;
+    try {
+        const auto params = tj_render_chat_params(
+            runtime->chat_templates.get(), system, user, runtime->chat_time, true);
+        if (!params.supports_thinking || params.thinking_end_tags.empty()) {
+            set_error(error, error_capacity, "THINKING_UNSUPPORTED: model template exposes no reasoning boundary");
+            return -1;
+        }
+        std::string failure;
+        std::vector<llama_token> prompt;
+        if (!tokenize(runtime, params.prompt, prompt, failure)) {
+            set_error(error, error_capacity, failure); return -1;
+        }
+        // Reserve the requested budget and the final prefill in this one sequence.
+        if (prompt.size() + max_thinking_tokens + 32 >= llama_n_ctx_seq(runtime->context)) {
+            set_error(error, error_capacity, "THINKING_CONTEXT_LIMIT: increase nCtx or reduce nSeqMax for the prompt and reasoning budget");
+            return -1;
+        }
+        if (llama_get_memory(runtime->context)) llama_memory_clear(llama_get_memory(runtime->context), true);
+        runtime->shared_prefix_ready = false;
+        runtime->shared_prefix_len = 0;
+        runtime->shared_prefix_logits.clear();
+        size_t processed = 0;
+        while (processed < prompt.size()) {
+            const auto count = std::min(prompt.size() - processed, size_t(llama_n_batch(runtime->context)));
+            auto batch = llama_batch_get_one(prompt.data() + processed, static_cast<int32_t>(count));
+            if (llama_decode(runtime->context, batch) != 0) {
+                set_error(error, error_capacity, "thinking prefill failed"); return -1;
+            }
+            processed += count;
+        }
+        std::string reasoning;
+        bool ended = false;
+        const auto vocab_size = llama_vocab_n_tokens(runtime->vocab);
+        for (uint32_t i = 0; i < max_thinking_tokens; ++i) {
+            const float * logits = llama_get_logits_ith(runtime->context, -1);
+            if (logits == nullptr || vocab_size <= 0) {
+                set_error(error, error_capacity, "thinking logits unavailable"); return -1;
+            }
+            llama_token next = static_cast<llama_token>(std::max_element(logits, logits + vocab_size) - logits);
+            const auto needed = llama_detokenize(runtime->vocab, &next, 1, nullptr, 0, false, true);
+            if (needed == std::numeric_limits<int32_t>::min()) {
+                set_error(error, error_capacity, "thinking token decoding overflow"); return -1;
+            }
+            std::string piece(size_t(needed < 0 ? -needed : needed), '\0');
+            const auto length = llama_detokenize(runtime->vocab, &next, 1, piece.data(),
+                static_cast<int32_t>(piece.size()), false, true);
+            if (length < 0) { set_error(error, error_capacity, "thinking token decoding failed"); return -1; }
+            piece.resize(size_t(length));
+            reasoning += piece;
+            ++*generated_tokens;
+            for (const auto & end : params.thinking_end_tags) {
+                if (!end.empty() && reasoning.size() >= end.size()
+                    && reasoning.compare(reasoning.size() - end.size(), end.size(), end) == 0) ended = true;
+            }
+            if (ended) break;
+            auto batch = llama_batch_get_one(&next, 1);
+            if (llama_decode(runtime->context, batch) != 0) {
+                set_error(error, error_capacity, "thinking token inference failed"); return -1;
+            }
+        }
+        if (!ended) {
+            set_error(error, error_capacity, "THINKING_BUDGET_EXHAUSTED: reasoning did not finish; no answer was fabricated");
+            return -1;
+        }
+        const std::string final_text = params.prompt + reasoning + "\n\n" + assistant_prefix;
+        std::vector<llama_token> final_tokens;
+        if (!tokenize(runtime, final_text, final_tokens, failure)) {
+            set_error(error, error_capacity, failure); return -1;
+        }
+        // Verify each original candidate token against this exact, reasoned prefix.
+        for (size_t i = 0; i < candidate_count; ++i) {
+            if (candidate_tokens[i] >= uint32_t(vocab_size)) {
+                set_error(error, error_capacity, "thinking candidate token out of range"); return -1;
+            }
+            const llama_token token = static_cast<llama_token>(candidate_tokens[i]);
+            char text[1024];
+            const auto count = llama_detokenize(runtime->vocab, &token, 1, text, sizeof(text), false, true);
+            if (count <= 0) { set_error(error, error_capacity, "thinking candidate decode failed"); return -1; }
+            std::vector<llama_token> extended;
+            if (!tokenize(runtime, final_text + std::string(text, size_t(count)), extended, failure)
+                || extended.size() != final_tokens.size() + 1
+                || !std::equal(final_tokens.begin(), final_tokens.end(), extended.begin())
+                || extended.back() != token) {
+                set_error(error, error_capacity, "thinking candidate does not match the final-answer token boundary");
+                return -1;
+            }
+        }
+        // Independent reference scoring. Re-evaluate the completed thought exactly.
+        std::vector<uint32_t> ids(final_tokens.begin(), final_tokens.end());
+        return tj_llama_score_next(runtime, ids.data(), ids.size(), candidate_tokens,
+            candidate_count, out_logits, error, error_capacity);
+    } catch (const std::exception & exception) {
+        set_error(error, error_capacity, std::string("thinking failed: ") + exception.what()); return -1;
+    }
+}
 
 int32_t tj_llama_sequence_scores_supported(tj_llama_runtime * runtime) {
     if (runtime == nullptr || runtime->context == nullptr || runtime->vocab == nullptr) {

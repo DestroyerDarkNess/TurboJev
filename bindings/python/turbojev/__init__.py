@@ -1,7 +1,14 @@
 from __future__ import annotations
 import json
+import os
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any, Literal, Mapping
+
+# Python 3.8+ does not search a package directory for a native extension's DLL
+# dependencies unless it is registered explicitly. Wheels place these DLLs next
+# to _native.pyd; keep this handle alive for the lifetime of the imported package.
+_DLL_DIRECTORY = os.add_dll_directory(str(Path(__file__).resolve().parent)) if os.name == "nt" else None
 
 try:
     from ._native import NativeEngine
@@ -17,6 +24,7 @@ class TurboJevError(RuntimeError):
 @dataclass(frozen=True)
 class LoadOptions:
     model: str
+    mmproj: str | None = None
     n_ctx: int = 4096
     n_batch: int = 512
     n_seq_max: int = 8
@@ -24,16 +32,22 @@ class LoadOptions:
     device: Literal["cpu", "gpu"] | None = None
     worker: Mapping[str, Any] | None = None
     execution: Mapping[str, Any] | None = None
+    thinking: bool = False
+    max_thinking_tokens: int = 512
 
     def to_wire(self) -> dict[str, Any]:
         options = {
             "model": self.model,
+            "thinking": self.thinking,
+            "maxThinkingTokens": self.max_thinking_tokens,
             "nCtx": self.n_ctx,
             "nBatch": self.n_batch,
             "nSeqMax": self.n_seq_max,
             "nGpuLayers": self.n_gpu_layers,
             "worker": self.worker,
         }
+        if self.mmproj is not None:
+            options["mmproj"] = self.mmproj
         if self.device is not None:
             options["device"] = self.device
         if self.execution is not None:

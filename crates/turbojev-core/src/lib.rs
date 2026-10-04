@@ -199,6 +199,7 @@ where
 
         let mut indexed = HashMap::with_capacity(batch.tasks.len());
         let mut model = None;
+        let mut generated_tokens = 0usize;
         let mut input_tokens = 0usize;
         let mut input_known = false;
         let mut plan = None;
@@ -219,6 +220,7 @@ where
                 input_tokens += value;
                 input_known = true;
             }
+            generated_tokens += output.metrics.generated_tokens.unwrap_or(0);
             indexed.extend(scores);
             plan = Some(effective_plan);
             evaluations += 1;
@@ -245,6 +247,7 @@ where
                     input_tokens += value;
                     input_known = true;
                 }
+                generated_tokens += output.metrics.generated_tokens.unwrap_or(0);
                 plan.get_or_insert(effective_plan);
                 let logits = scores
                     .get(&task.id)
@@ -271,6 +274,7 @@ where
                 model,
                 scores: Vec::new(),
                 metrics: turbojev_backend::BackendMetrics {
+                    generated_tokens: Some(generated_tokens),
                     input_tokens: input_known.then_some(input_tokens),
                     ..Default::default()
                 },
@@ -545,6 +549,7 @@ where
 
         let mut indexed = HashMap::with_capacity(batch.tasks.len());
         let mut model = None;
+        let mut generated_tokens = 0usize;
         let mut input_tokens = 0usize;
         let mut input_known = false;
         let mut plan = None;
@@ -565,6 +570,7 @@ where
                 input_tokens += value;
                 input_known = true;
             }
+            generated_tokens += output.metrics.generated_tokens.unwrap_or(0);
             indexed.extend(scores);
             plan = Some(effective_plan);
             evaluations += 1;
@@ -591,6 +597,7 @@ where
                     input_tokens += value;
                     input_known = true;
                 }
+                generated_tokens += output.metrics.generated_tokens.unwrap_or(0);
                 plan.get_or_insert(effective_plan);
                 let logits = scores
                     .get(&task.id)
@@ -617,6 +624,7 @@ where
                 model,
                 scores: Vec::new(),
                 metrics: turbojev_backend::BackendMetrics {
+                    generated_tokens: Some(generated_tokens),
                     input_tokens: input_known.then_some(input_tokens),
                     ..Default::default()
                 },
@@ -691,7 +699,7 @@ fn build_evaluation_response<C: Calibrator>(
         usage: Usage {
             decisions: batch.tasks.len(),
             input_tokens: metrics.input_tokens,
-            generated_tokens: 0,
+            generated_tokens: metrics.generated_tokens.unwrap_or(0),
         },
         metadata: EngineMetadata {
             backend: backend_name.to_owned(),
@@ -1221,5 +1229,38 @@ mod tests {
             .collect();
         let fused = engine.evaluate_fused(&requests).unwrap();
         assert_eq!(fused, independent);
+    }
+    #[test]
+    fn generated_usage_is_reported_and_accumulated_across_rotations() {
+        struct ReasoningCounter(turbojev_backend_mock::FixtureBackend);
+        impl turbojev_backend::ScoringBackend for ReasoningCounter {
+            fn name(&self) -> &'static str {
+                "reasoning-counter-fixture"
+            }
+            fn capabilities(&self) -> turbojev_backend::BackendCapabilities {
+                turbojev_backend::ScoringBackend::capabilities(&self.0)
+            }
+            fn score(
+                &self,
+                batch: &turbojev_backend::DecisionBatch,
+                plan: turbojev_backend::ExecutionPlan,
+            ) -> Result<turbojev_backend::BackendOutput, turbojev_backend::BackendError>
+            {
+                let mut output = self.0.score(batch, plan)?;
+                output.metrics.generated_tokens = Some(3);
+                Ok(output)
+            }
+        }
+        let request: EvaluationRequest = serde_json::from_str(r#"{"state":"facts","questions":{"move":{"type":"choice","instructions":"Choose","criteria":{"up":"Up","right":"Right"}}}}"#).unwrap();
+        for (robustness, expected) in [(OrderRobustness::None, 3), (OrderRobustness::Cyclic, 6)] {
+            let backend = turbojev_backend_mock::FixtureBackend::builder()
+                .with_logits("move", vec![0.0, 1.0])
+                .build();
+            let response = TurboJevEngine::new(ReasoningCounter(backend))
+                .with_order_robustness(robustness)
+                .evaluate(request.clone())
+                .unwrap();
+            assert_eq!(response.usage.generated_tokens, expected);
+        }
     }
 }

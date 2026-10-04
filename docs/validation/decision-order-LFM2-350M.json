@@ -1,0 +1,1439 @@
+{
+  "model": "C:\\Users\\Administrator\\.cache\\turbojev\\LFM2-350M-Q4_K_M.gguf",
+  "sha256": "a4d000c7064bd3b2e42c6845836286a899a4e79cf1791da1a6797b58d575957d",
+  "config": {
+    "model": "C:\\Users\\Administrator\\.cache\\turbojev\\LFM2-350M-Q4_K_M.gguf",
+    "device": "cpu",
+    "nGpuLayers": 0,
+    "nThreads": 4,
+    "nThreadsBatch": 4,
+    "nCtx": 4096,
+    "nSeqMax": 1,
+    "thinking": false,
+    "maxThinkingTokens": 512,
+    "execution": {
+      "orderRobustness": "none"
+    }
+  },
+  "library": "D:\\Projects\\TurboJev\\target\\release\\turbojev_capi.dll",
+  "correct": 21,
+  "total": 24,
+  "records": [
+    {
+      "case": "replacement",
+      "request": {
+        "state": "My package arrived broken. Please send a replacement.",
+        "questions": {
+          "answer": {
+            "type": "choice",
+            "instructions": "Which team should handle this request?",
+            "criteria": {
+              "dog": "An animal",
+              "billing": "Payments and invoices",
+              "shipping": "Delivery, damage and replacement",
+              "technical": "Software bugs"
+            }
+          }
+        }
+      },
+      "response": {
+        "model": "lfm2 350M Q4_K - Medium",
+        "answers": {
+          "answer": {
+            "type": "choice",
+            "choice": "shipping",
+            "confidence": 0.9967834922845895,
+            "probabilities": {
+              "dog": 0.0004940229568707327,
+              "billing": 0.002187945553322388,
+              "shipping": 0.9967834922845895,
+              "technical": 0.0005345392052173366
+            }
+          }
+        },
+        "usage": {
+          "decisions": 1,
+          "input_tokens": 106,
+          "generated_tokens": 0
+        },
+        "_turbojev": {
+          "backend": "llamacpp",
+          "calibration": "softmax",
+          "calibrated": false,
+          "confidence_method": "selected-candidate-probability",
+          "contract": "turbojev.core.v4",
+          "order_robustness": "none",
+          "order_evaluations": 0,
+          "execution": {
+            "prefix_reuse": "none",
+            "scheduling": "serial",
+            "parallel_task_limit": 1,
+            "projection": "full-vocabulary"
+          }
+        }
+      },
+      "expected": "shipping",
+      "choice": "shipping",
+      "correct": true,
+      "first": "dog",
+      "seconds": 2.679509400000825
+    },
+    {
+      "case": "replacement",
+      "request": {
+        "state": "My package arrived broken. Please send a replacement.",
+        "questions": {
+          "answer": {
+            "type": "choice",
+            "instructions": "Which team should handle this request?",
+            "criteria": {
+              "billing": "Payments and invoices",
+              "shipping": "Delivery, damage and replacement",
+              "technical": "Software bugs",
+              "dog": "An animal"
+            }
+          }
+        }
+      },
+      "response": {
+        "model": "lfm2 350M Q4_K - Medium",
+        "answers": {
+          "answer": {
+            "type": "choice",
+            "choice": "shipping",
+            "confidence": 0.9276864898350042,
+            "probabilities": {
+              "billing": 0.0009313123778184303,
+              "shipping": 0.9276864898350042,
+              "technical": 0.0002217476383973317,
+              "dog": 0.07116045014877988
+            }
+          }
+        },
+        "usage": {
+          "decisions": 1,
+          "input_tokens": 106,
+          "generated_tokens": 0
+        },
+        "_turbojev": {
+          "backend": "llamacpp",
+          "calibration": "softmax",
+          "calibrated": false,
+          "confidence_method": "selected-candidate-probability",
+          "contract": "turbojev.core.v4",
+          "order_robustness": "none",
+          "order_evaluations": 0,
+          "execution": {
+            "prefix_reuse": "none",
+            "scheduling": "serial",
+            "parallel_task_limit": 1,
+            "projection": "full-vocabulary"
+          }
+        }
+      },
+      "expected": "shipping",
+      "choice": "shipping",
+      "correct": true,
+      "first": "billing",
+      "seconds": 3.5071045000004233
+    },
+    {
+      "case": "replacement",
+      "request": {
+        "state": "My package arrived broken. Please send a replacement.",
+        "questions": {
+          "answer": {
+            "type": "choice",
+            "instructions": "Which team should handle this request?",
+            "criteria": {
+              "shipping": "Delivery, damage and replacement",
+              "technical": "Software bugs",
+              "dog": "An animal",
+              "billing": "Payments and invoices"
+            }
+          }
+        }
+      },
+      "response": {
+        "model": "lfm2 350M Q4_K - Medium",
+        "answers": {
+          "answer": {
+            "type": "choice",
+            "choice": "shipping",
+            "confidence": 0.9987710155996449,
+            "probabilities": {
+              "shipping": 0.9987710155996449,
+              "technical": 0.00010168297229111723,
+              "dog": 0.0001204527081482298,
+              "billing": 0.0010068487199158176
+            }
+          }
+        },
+        "usage": {
+          "decisions": 1,
+          "input_tokens": 106,
+          "generated_tokens": 0
+        },
+        "_turbojev": {
+          "backend": "llamacpp",
+          "calibration": "softmax",
+          "calibrated": false,
+          "confidence_method": "selected-candidate-probability",
+          "contract": "turbojev.core.v4",
+          "order_robustness": "none",
+          "order_evaluations": 0,
+          "execution": {
+            "prefix_reuse": "none",
+            "scheduling": "serial",
+            "parallel_task_limit": 1,
+            "projection": "full-vocabulary"
+          }
+        }
+      },
+      "expected": "shipping",
+      "choice": "shipping",
+      "correct": true,
+      "first": "shipping",
+      "seconds": 2.2604772000013327
+    },
+    {
+      "case": "replacement",
+      "request": {
+        "state": "My package arrived broken. Please send a replacement.",
+        "questions": {
+          "answer": {
+            "type": "choice",
+            "instructions": "Which team should handle this request?",
+            "criteria": {
+              "technical": "Software bugs",
+              "dog": "An animal",
+              "billing": "Payments and invoices",
+              "shipping": "Delivery, damage and replacement"
+            }
+          }
+        }
+      },
+      "response": {
+        "model": "lfm2 350M Q4_K - Medium",
+        "answers": {
+          "answer": {
+            "type": "choice",
+            "choice": "shipping",
+            "confidence": 0.9982645207404581,
+            "probabilities": {
+              "technical": 0.0007899531534387473,
+              "dog": 0.0006929407621476566,
+              "billing": 0.00025258534395550145,
+              "shipping": 0.9982645207404581
+            }
+          }
+        },
+        "usage": {
+          "decisions": 1,
+          "input_tokens": 106,
+          "generated_tokens": 0
+        },
+        "_turbojev": {
+          "backend": "llamacpp",
+          "calibration": "softmax",
+          "calibrated": false,
+          "confidence_method": "selected-candidate-probability",
+          "contract": "turbojev.core.v4",
+          "order_robustness": "none",
+          "order_evaluations": 0,
+          "execution": {
+            "prefix_reuse": "none",
+            "scheduling": "serial",
+            "parallel_task_limit": 1,
+            "projection": "full-vocabulary"
+          }
+        }
+      },
+      "expected": "shipping",
+      "choice": "shipping",
+      "correct": true,
+      "first": "technical",
+      "seconds": 1.6735984000006283
+    },
+    {
+      "case": "payment",
+      "request": {
+        "state": "I was charged twice for my subscription. Please refund the duplicate payment.",
+        "questions": {
+          "answer": {
+            "type": "choice",
+            "instructions": "Which team should handle this request?",
+            "criteria": {
+              "dog": "An animal",
+              "shipping": "Delivery and replacement",
+              "technical": "Software bugs",
+              "billing": "Payments and refunds"
+            }
+          }
+        }
+      },
+      "response": {
+        "model": "lfm2 350M Q4_K - Medium",
+        "answers": {
+          "answer": {
+            "type": "choice",
+            "choice": "billing",
+            "confidence": 0.9925189881629446,
+            "probabilities": {
+              "dog": 0.0004381295608396418,
+              "shipping": 0.00539478589232631,
+              "technical": 0.0016480963838893421,
+              "billing": 0.9925189881629446
+            }
+          }
+        },
+        "usage": {
+          "decisions": 1,
+          "input_tokens": 108,
+          "generated_tokens": 0
+        },
+        "_turbojev": {
+          "backend": "llamacpp",
+          "calibration": "softmax",
+          "calibrated": false,
+          "confidence_method": "selected-candidate-probability",
+          "contract": "turbojev.core.v4",
+          "order_robustness": "none",
+          "order_evaluations": 0,
+          "execution": {
+            "prefix_reuse": "none",
+            "scheduling": "serial",
+            "parallel_task_limit": 1,
+            "projection": "full-vocabulary"
+          }
+        }
+      },
+      "expected": "billing",
+      "choice": "billing",
+      "correct": true,
+      "first": "dog",
+      "seconds": 1.0483041000006779
+    },
+    {
+      "case": "payment",
+      "request": {
+        "state": "I was charged twice for my subscription. Please refund the duplicate payment.",
+        "questions": {
+          "answer": {
+            "type": "choice",
+            "instructions": "Which team should handle this request?",
+            "criteria": {
+              "shipping": "Delivery and replacement",
+              "technical": "Software bugs",
+              "billing": "Payments and refunds",
+              "dog": "An animal"
+            }
+          }
+        }
+      },
+      "response": {
+        "model": "lfm2 350M Q4_K - Medium",
+        "answers": {
+          "answer": {
+            "type": "choice",
+            "choice": "billing",
+            "confidence": 0.9924857673047451,
+            "probabilities": {
+              "shipping": 0.0007728192611550367,
+              "technical": 0.006652002069278181,
+              "billing": 0.9924857673047451,
+              "dog": 8.941136482167632e-05
+            }
+          }
+        },
+        "usage": {
+          "decisions": 1,
+          "input_tokens": 108,
+          "generated_tokens": 0
+        },
+        "_turbojev": {
+          "backend": "llamacpp",
+          "calibration": "softmax",
+          "calibrated": false,
+          "confidence_method": "selected-candidate-probability",
+          "contract": "turbojev.core.v4",
+          "order_robustness": "none",
+          "order_evaluations": 0,
+          "execution": {
+            "prefix_reuse": "none",
+            "scheduling": "serial",
+            "parallel_task_limit": 1,
+            "projection": "full-vocabulary"
+          }
+        }
+      },
+      "expected": "billing",
+      "choice": "billing",
+      "correct": true,
+      "first": "shipping",
+      "seconds": 1.4936429000008502
+    },
+    {
+      "case": "payment",
+      "request": {
+        "state": "I was charged twice for my subscription. Please refund the duplicate payment.",
+        "questions": {
+          "answer": {
+            "type": "choice",
+            "instructions": "Which team should handle this request?",
+            "criteria": {
+              "technical": "Software bugs",
+              "billing": "Payments and refunds",
+              "dog": "An animal",
+              "shipping": "Delivery and replacement"
+            }
+          }
+        }
+      },
+      "response": {
+        "model": "lfm2 350M Q4_K - Medium",
+        "answers": {
+          "answer": {
+            "type": "choice",
+            "choice": "billing",
+            "confidence": 0.9844717833775108,
+            "probabilities": {
+              "technical": 9.612794507666845e-05,
+              "billing": 0.9844717833775108,
+              "dog": 0.0001283655177442717,
+              "shipping": 0.015303723159668157
+            }
+          }
+        },
+        "usage": {
+          "decisions": 1,
+          "input_tokens": 108,
+          "generated_tokens": 0
+        },
+        "_turbojev": {
+          "backend": "llamacpp",
+          "calibration": "softmax",
+          "calibrated": false,
+          "confidence_method": "selected-candidate-probability",
+          "contract": "turbojev.core.v4",
+          "order_robustness": "none",
+          "order_evaluations": 0,
+          "execution": {
+            "prefix_reuse": "none",
+            "scheduling": "serial",
+            "parallel_task_limit": 1,
+            "projection": "full-vocabulary"
+          }
+        }
+      },
+      "expected": "billing",
+      "choice": "billing",
+      "correct": true,
+      "first": "technical",
+      "seconds": 2.5842953999999736
+    },
+    {
+      "case": "payment",
+      "request": {
+        "state": "I was charged twice for my subscription. Please refund the duplicate payment.",
+        "questions": {
+          "answer": {
+            "type": "choice",
+            "instructions": "Which team should handle this request?",
+            "criteria": {
+              "billing": "Payments and refunds",
+              "dog": "An animal",
+              "shipping": "Delivery and replacement",
+              "technical": "Software bugs"
+            }
+          }
+        }
+      },
+      "response": {
+        "model": "lfm2 350M Q4_K - Medium",
+        "answers": {
+          "answer": {
+            "type": "choice",
+            "choice": "billing",
+            "confidence": 0.9818549923483952,
+            "probabilities": {
+              "billing": 0.9818549923483952,
+              "dog": 0.000610842072791907,
+              "shipping": 0.0040208298414630686,
+              "technical": 0.01351333573734987
+            }
+          }
+        },
+        "usage": {
+          "decisions": 1,
+          "input_tokens": 108,
+          "generated_tokens": 0
+        },
+        "_turbojev": {
+          "backend": "llamacpp",
+          "calibration": "softmax",
+          "calibrated": false,
+          "confidence_method": "selected-candidate-probability",
+          "contract": "turbojev.core.v4",
+          "order_robustness": "none",
+          "order_evaluations": 0,
+          "execution": {
+            "prefix_reuse": "none",
+            "scheduling": "serial",
+            "parallel_task_limit": 1,
+            "projection": "full-vocabulary"
+          }
+        }
+      },
+      "expected": "billing",
+      "choice": "billing",
+      "correct": true,
+      "first": "billing",
+      "seconds": 2.155197700001736
+    },
+    {
+      "case": "software",
+      "request": {
+        "state": "The application crashes every time I open the settings screen.",
+        "questions": {
+          "answer": {
+            "type": "choice",
+            "instructions": "Which team should handle this request?",
+            "criteria": {
+              "billing": "Payments and invoices",
+              "dog": "An animal",
+              "shipping": "Delivery and replacement",
+              "technical": "Application bugs and crashes"
+            }
+          }
+        }
+      },
+      "response": {
+        "model": "lfm2 350M Q4_K - Medium",
+        "answers": {
+          "answer": {
+            "type": "choice",
+            "choice": "technical",
+            "confidence": 0.9122519659623806,
+            "probabilities": {
+              "billing": 0.0013504889424317292,
+              "dog": 0.0010057060075528142,
+              "shipping": 0.08539183908763481,
+              "technical": 0.9122519659623806
+            }
+          }
+        },
+        "usage": {
+          "decisions": 1,
+          "input_tokens": 107,
+          "generated_tokens": 0
+        },
+        "_turbojev": {
+          "backend": "llamacpp",
+          "calibration": "softmax",
+          "calibrated": false,
+          "confidence_method": "selected-candidate-probability",
+          "contract": "turbojev.core.v4",
+          "order_robustness": "none",
+          "order_evaluations": 0,
+          "execution": {
+            "prefix_reuse": "none",
+            "scheduling": "serial",
+            "parallel_task_limit": 1,
+            "projection": "full-vocabulary"
+          }
+        }
+      },
+      "expected": "technical",
+      "choice": "technical",
+      "correct": true,
+      "first": "billing",
+      "seconds": 1.6747837000002619
+    },
+    {
+      "case": "software",
+      "request": {
+        "state": "The application crashes every time I open the settings screen.",
+        "questions": {
+          "answer": {
+            "type": "choice",
+            "instructions": "Which team should handle this request?",
+            "criteria": {
+              "dog": "An animal",
+              "shipping": "Delivery and replacement",
+              "technical": "Application bugs and crashes",
+              "billing": "Payments and invoices"
+            }
+          }
+        }
+      },
+      "response": {
+        "model": "lfm2 350M Q4_K - Medium",
+        "answers": {
+          "answer": {
+            "type": "choice",
+            "choice": "technical",
+            "confidence": 0.9816812316493697,
+            "probabilities": {
+              "dog": 0.00040537489193202115,
+              "shipping": 0.017817854497943077,
+              "technical": 0.9816812316493697,
+              "billing": 9.553896075529096e-05
+            }
+          }
+        },
+        "usage": {
+          "decisions": 1,
+          "input_tokens": 107,
+          "generated_tokens": 0
+        },
+        "_turbojev": {
+          "backend": "llamacpp",
+          "calibration": "softmax",
+          "calibrated": false,
+          "confidence_method": "selected-candidate-probability",
+          "contract": "turbojev.core.v4",
+          "order_robustness": "none",
+          "order_evaluations": 0,
+          "execution": {
+            "prefix_reuse": "none",
+            "scheduling": "serial",
+            "parallel_task_limit": 1,
+            "projection": "full-vocabulary"
+          }
+        }
+      },
+      "expected": "technical",
+      "choice": "technical",
+      "correct": true,
+      "first": "dog",
+      "seconds": 1.5601050000004761
+    },
+    {
+      "case": "software",
+      "request": {
+        "state": "The application crashes every time I open the settings screen.",
+        "questions": {
+          "answer": {
+            "type": "choice",
+            "instructions": "Which team should handle this request?",
+            "criteria": {
+              "shipping": "Delivery and replacement",
+              "technical": "Application bugs and crashes",
+              "billing": "Payments and invoices",
+              "dog": "An animal"
+            }
+          }
+        }
+      },
+      "response": {
+        "model": "lfm2 350M Q4_K - Medium",
+        "answers": {
+          "answer": {
+            "type": "choice",
+            "choice": "technical",
+            "confidence": 0.9952141533705514,
+            "probabilities": {
+              "shipping": 0.00025377545498645387,
+              "technical": 0.9952141533705514,
+              "billing": 0.001668229102756213,
+              "dog": 0.002863842071705915
+            }
+          }
+        },
+        "usage": {
+          "decisions": 1,
+          "input_tokens": 107,
+          "generated_tokens": 0
+        },
+        "_turbojev": {
+          "backend": "llamacpp",
+          "calibration": "softmax",
+          "calibrated": false,
+          "confidence_method": "selected-candidate-probability",
+          "contract": "turbojev.core.v4",
+          "order_robustness": "none",
+          "order_evaluations": 0,
+          "execution": {
+            "prefix_reuse": "none",
+            "scheduling": "serial",
+            "parallel_task_limit": 1,
+            "projection": "full-vocabulary"
+          }
+        }
+      },
+      "expected": "technical",
+      "choice": "technical",
+      "correct": true,
+      "first": "shipping",
+      "seconds": 2.5962056999997003
+    },
+    {
+      "case": "software",
+      "request": {
+        "state": "The application crashes every time I open the settings screen.",
+        "questions": {
+          "answer": {
+            "type": "choice",
+            "instructions": "Which team should handle this request?",
+            "criteria": {
+              "technical": "Application bugs and crashes",
+              "billing": "Payments and invoices",
+              "dog": "An animal",
+              "shipping": "Delivery and replacement"
+            }
+          }
+        }
+      },
+      "response": {
+        "model": "lfm2 350M Q4_K - Medium",
+        "answers": {
+          "answer": {
+            "type": "choice",
+            "choice": "technical",
+            "confidence": 0.9889078565425804,
+            "probabilities": {
+              "technical": 0.9889078565425804,
+              "billing": 0.0007845291650852258,
+              "dog": 0.00957315729495109,
+              "shipping": 0.0007344569973833823
+            }
+          }
+        },
+        "usage": {
+          "decisions": 1,
+          "input_tokens": 107,
+          "generated_tokens": 0
+        },
+        "_turbojev": {
+          "backend": "llamacpp",
+          "calibration": "softmax",
+          "calibrated": false,
+          "confidence_method": "selected-candidate-probability",
+          "contract": "turbojev.core.v4",
+          "order_robustness": "none",
+          "order_evaluations": 0,
+          "execution": {
+            "prefix_reuse": "none",
+            "scheduling": "serial",
+            "parallel_task_limit": 1,
+            "projection": "full-vocabulary"
+          }
+        }
+      },
+      "expected": "technical",
+      "choice": "technical",
+      "correct": true,
+      "first": "technical",
+      "seconds": 2.0564412999992783
+    },
+    {
+      "case": "color",
+      "request": {
+        "state": "The traffic signal is red.",
+        "questions": {
+          "answer": {
+            "type": "choice",
+            "instructions": "What color is the traffic signal?",
+            "criteria": {
+              "blue": "Blue",
+              "green": "Green",
+              "red": "Red",
+              "yellow": "Yellow"
+            }
+          }
+        }
+      },
+      "response": {
+        "model": "lfm2 350M Q4_K - Medium",
+        "answers": {
+          "answer": {
+            "type": "choice",
+            "choice": "red",
+            "confidence": 0.9988325746675658,
+            "probabilities": {
+              "blue": 0.0011448029159522506,
+              "green": 1.8690701444266927e-05,
+              "red": 0.9988325746675658,
+              "yellow": 3.931715037613347e-06
+            }
+          }
+        },
+        "usage": {
+          "decisions": 1,
+          "input_tokens": 91,
+          "generated_tokens": 0
+        },
+        "_turbojev": {
+          "backend": "llamacpp",
+          "calibration": "softmax",
+          "calibrated": false,
+          "confidence_method": "selected-candidate-probability",
+          "contract": "turbojev.core.v4",
+          "order_robustness": "none",
+          "order_evaluations": 0,
+          "execution": {
+            "prefix_reuse": "none",
+            "scheduling": "serial",
+            "parallel_task_limit": 1,
+            "projection": "full-vocabulary"
+          }
+        }
+      },
+      "expected": "red",
+      "choice": "red",
+      "correct": true,
+      "first": "blue",
+      "seconds": 1.132224299999507
+    },
+    {
+      "case": "color",
+      "request": {
+        "state": "The traffic signal is red.",
+        "questions": {
+          "answer": {
+            "type": "choice",
+            "instructions": "What color is the traffic signal?",
+            "criteria": {
+              "green": "Green",
+              "red": "Red",
+              "yellow": "Yellow",
+              "blue": "Blue"
+            }
+          }
+        }
+      },
+      "response": {
+        "model": "lfm2 350M Q4_K - Medium",
+        "answers": {
+          "answer": {
+            "type": "choice",
+            "choice": "red",
+            "confidence": 0.9986293818267643,
+            "probabilities": {
+              "green": 0.00048402988929271344,
+              "red": 0.9986293818267643,
+              "yellow": 7.51430586338738e-05,
+              "blue": 0.0008114452253089976
+            }
+          }
+        },
+        "usage": {
+          "decisions": 1,
+          "input_tokens": 91,
+          "generated_tokens": 0
+        },
+        "_turbojev": {
+          "backend": "llamacpp",
+          "calibration": "softmax",
+          "calibrated": false,
+          "confidence_method": "selected-candidate-probability",
+          "contract": "turbojev.core.v4",
+          "order_robustness": "none",
+          "order_evaluations": 0,
+          "execution": {
+            "prefix_reuse": "none",
+            "scheduling": "serial",
+            "parallel_task_limit": 1,
+            "projection": "full-vocabulary"
+          }
+        }
+      },
+      "expected": "red",
+      "choice": "red",
+      "correct": true,
+      "first": "green",
+      "seconds": 0.7742384000011953
+    },
+    {
+      "case": "color",
+      "request": {
+        "state": "The traffic signal is red.",
+        "questions": {
+          "answer": {
+            "type": "choice",
+            "instructions": "What color is the traffic signal?",
+            "criteria": {
+              "red": "Red",
+              "yellow": "Yellow",
+              "blue": "Blue",
+              "green": "Green"
+            }
+          }
+        }
+      },
+      "response": {
+        "model": "lfm2 350M Q4_K - Medium",
+        "answers": {
+          "answer": {
+            "type": "choice",
+            "choice": "red",
+            "confidence": 0.9966652460230601,
+            "probabilities": {
+              "red": 0.9966652460230601,
+              "yellow": 0.0003518091392146147,
+              "blue": 0.0021411576457377422,
+              "green": 0.0008417871919875737
+            }
+          }
+        },
+        "usage": {
+          "decisions": 1,
+          "input_tokens": 91,
+          "generated_tokens": 0
+        },
+        "_turbojev": {
+          "backend": "llamacpp",
+          "calibration": "softmax",
+          "calibrated": false,
+          "confidence_method": "selected-candidate-probability",
+          "contract": "turbojev.core.v4",
+          "order_robustness": "none",
+          "order_evaluations": 0,
+          "execution": {
+            "prefix_reuse": "none",
+            "scheduling": "serial",
+            "parallel_task_limit": 1,
+            "projection": "full-vocabulary"
+          }
+        }
+      },
+      "expected": "red",
+      "choice": "red",
+      "correct": true,
+      "first": "red",
+      "seconds": 0.8228722999992897
+    },
+    {
+      "case": "color",
+      "request": {
+        "state": "The traffic signal is red.",
+        "questions": {
+          "answer": {
+            "type": "choice",
+            "instructions": "What color is the traffic signal?",
+            "criteria": {
+              "yellow": "Yellow",
+              "blue": "Blue",
+              "green": "Green",
+              "red": "Red"
+            }
+          }
+        }
+      },
+      "response": {
+        "model": "lfm2 350M Q4_K - Medium",
+        "answers": {
+          "answer": {
+            "type": "choice",
+            "choice": "red",
+            "confidence": 0.99638657845759,
+            "probabilities": {
+              "yellow": 0.0006006000157196335,
+              "blue": 3.700187473654197e-05,
+              "green": 0.002975819651953825,
+              "red": 0.99638657845759
+            }
+          }
+        },
+        "usage": {
+          "decisions": 1,
+          "input_tokens": 91,
+          "generated_tokens": 0
+        },
+        "_turbojev": {
+          "backend": "llamacpp",
+          "calibration": "softmax",
+          "calibrated": false,
+          "confidence_method": "selected-candidate-probability",
+          "contract": "turbojev.core.v4",
+          "order_robustness": "none",
+          "order_evaluations": 0,
+          "execution": {
+            "prefix_reuse": "none",
+            "scheduling": "serial",
+            "parallel_task_limit": 1,
+            "projection": "full-vocabulary"
+          }
+        }
+      },
+      "expected": "red",
+      "choice": "red",
+      "correct": true,
+      "first": "yellow",
+      "seconds": 1.2335431999999855
+    },
+    {
+      "case": "direction",
+      "request": {
+        "state": "The food is directly to the right of the snake. The cell on the right is empty and inside the board.",
+        "questions": {
+          "answer": {
+            "type": "choice",
+            "instructions": "Which direction should the snake move to reach the food?",
+            "criteria": {
+              "up": "Move up",
+              "down": "Move down",
+              "left": "Move left",
+              "right": "Move right"
+            }
+          }
+        }
+      },
+      "response": {
+        "model": "lfm2 350M Q4_K - Medium",
+        "answers": {
+          "answer": {
+            "type": "choice",
+            "choice": "right",
+            "confidence": 0.9742871282723543,
+            "probabilities": {
+              "up": 0.001248668943368393,
+              "down": 0.009903540023428319,
+              "left": 0.014560662760848985,
+              "right": 0.9742871282723543
+            }
+          }
+        },
+        "usage": {
+          "decisions": 1,
+          "input_tokens": 116,
+          "generated_tokens": 0
+        },
+        "_turbojev": {
+          "backend": "llamacpp",
+          "calibration": "softmax",
+          "calibrated": false,
+          "confidence_method": "selected-candidate-probability",
+          "contract": "turbojev.core.v4",
+          "order_robustness": "none",
+          "order_evaluations": 0,
+          "execution": {
+            "prefix_reuse": "none",
+            "scheduling": "serial",
+            "parallel_task_limit": 1,
+            "projection": "full-vocabulary"
+          }
+        }
+      },
+      "expected": "right",
+      "choice": "right",
+      "correct": true,
+      "first": "up",
+      "seconds": 2.324995700000727
+    },
+    {
+      "case": "direction",
+      "request": {
+        "state": "The food is directly to the right of the snake. The cell on the right is empty and inside the board.",
+        "questions": {
+          "answer": {
+            "type": "choice",
+            "instructions": "Which direction should the snake move to reach the food?",
+            "criteria": {
+              "down": "Move down",
+              "left": "Move left",
+              "right": "Move right",
+              "up": "Move up"
+            }
+          }
+        }
+      },
+      "response": {
+        "model": "lfm2 350M Q4_K - Medium",
+        "answers": {
+          "answer": {
+            "type": "choice",
+            "choice": "right",
+            "confidence": 0.9559112522769441,
+            "probabilities": {
+              "down": 0.0024087371521641665,
+              "left": 0.007288122796950622,
+              "right": 0.9559112522769441,
+              "up": 0.03439188777394126
+            }
+          }
+        },
+        "usage": {
+          "decisions": 1,
+          "input_tokens": 116,
+          "generated_tokens": 0
+        },
+        "_turbojev": {
+          "backend": "llamacpp",
+          "calibration": "softmax",
+          "calibrated": false,
+          "confidence_method": "selected-candidate-probability",
+          "contract": "turbojev.core.v4",
+          "order_robustness": "none",
+          "order_evaluations": 0,
+          "execution": {
+            "prefix_reuse": "none",
+            "scheduling": "serial",
+            "parallel_task_limit": 1,
+            "projection": "full-vocabulary"
+          }
+        }
+      },
+      "expected": "right",
+      "choice": "right",
+      "correct": true,
+      "first": "down",
+      "seconds": 0.9670315000003029
+    },
+    {
+      "case": "direction",
+      "request": {
+        "state": "The food is directly to the right of the snake. The cell on the right is empty and inside the board.",
+        "questions": {
+          "answer": {
+            "type": "choice",
+            "instructions": "Which direction should the snake move to reach the food?",
+            "criteria": {
+              "left": "Move left",
+              "right": "Move right",
+              "up": "Move up",
+              "down": "Move down"
+            }
+          }
+        }
+      },
+      "response": {
+        "model": "lfm2 350M Q4_K - Medium",
+        "answers": {
+          "answer": {
+            "type": "choice",
+            "choice": "right",
+            "confidence": 0.7319357124618979,
+            "probabilities": {
+              "left": 0.028472996847845097,
+              "right": 0.7319357124618979,
+              "up": 0.01593861083124843,
+              "down": 0.22365267985900855
+            }
+          }
+        },
+        "usage": {
+          "decisions": 1,
+          "input_tokens": 116,
+          "generated_tokens": 0
+        },
+        "_turbojev": {
+          "backend": "llamacpp",
+          "calibration": "softmax",
+          "calibrated": false,
+          "confidence_method": "selected-candidate-probability",
+          "contract": "turbojev.core.v4",
+          "order_robustness": "none",
+          "order_evaluations": 0,
+          "execution": {
+            "prefix_reuse": "none",
+            "scheduling": "serial",
+            "parallel_task_limit": 1,
+            "projection": "full-vocabulary"
+          }
+        }
+      },
+      "expected": "right",
+      "choice": "right",
+      "correct": true,
+      "first": "left",
+      "seconds": 0.8335231999990356
+    },
+    {
+      "case": "direction",
+      "request": {
+        "state": "The food is directly to the right of the snake. The cell on the right is empty and inside the board.",
+        "questions": {
+          "answer": {
+            "type": "choice",
+            "instructions": "Which direction should the snake move to reach the food?",
+            "criteria": {
+              "right": "Move right",
+              "up": "Move up",
+              "down": "Move down",
+              "left": "Move left"
+            }
+          }
+        }
+      },
+      "response": {
+        "model": "lfm2 350M Q4_K - Medium",
+        "answers": {
+          "answer": {
+            "type": "choice",
+            "choice": "right",
+            "confidence": 0.5264802513016311,
+            "probabilities": {
+              "right": 0.5264802513016311,
+              "up": 0.07279426403101147,
+              "down": 0.05542101123783178,
+              "left": 0.3453044734295256
+            }
+          }
+        },
+        "usage": {
+          "decisions": 1,
+          "input_tokens": 116,
+          "generated_tokens": 0
+        },
+        "_turbojev": {
+          "backend": "llamacpp",
+          "calibration": "softmax",
+          "calibrated": false,
+          "confidence_method": "selected-candidate-probability",
+          "contract": "turbojev.core.v4",
+          "order_robustness": "none",
+          "order_evaluations": 0,
+          "execution": {
+            "prefix_reuse": "none",
+            "scheduling": "serial",
+            "parallel_task_limit": 1,
+            "projection": "full-vocabulary"
+          }
+        }
+      },
+      "expected": "right",
+      "choice": "right",
+      "correct": true,
+      "first": "right",
+      "seconds": 1.1703299000000698
+    },
+    {
+      "case": "snake-wall",
+      "request": {
+        "state": "Board: 12 columns and 10 rows. Coordinates are (x, y); x increases to the right and y increases downward. Head: (6, 0). Body from neck to tail: [(6, 1)]. Food: (11, 0). Current direction: up.",
+        "questions": {
+          "answer": {
+            "type": "choice",
+            "instructions": "Choose the next direction for the snake to reach the food. Avoid the board walls and the snake's body; do not reverse directly. The tail moves away unless the snake eats. Decide this move only.",
+            "criteria": {
+              "up": "Move one cell up (y - 1).",
+              "down": "Move one cell down (y + 1).",
+              "left": "Move one cell left (x - 1).",
+              "right": "Move one cell right (x + 1)."
+            }
+          }
+        }
+      },
+      "response": {
+        "model": "lfm2 350M Q4_K - Medium",
+        "answers": {
+          "answer": {
+            "type": "choice",
+            "choice": "left",
+            "confidence": 0.3588505264799398,
+            "probabilities": {
+              "up": 0.061958146623096275,
+              "down": 0.27438663095955973,
+              "left": 0.3588505264799398,
+              "right": 0.3048046959374042
+            }
+          }
+        },
+        "usage": {
+          "decisions": 1,
+          "input_tokens": 216,
+          "generated_tokens": 0
+        },
+        "_turbojev": {
+          "backend": "llamacpp",
+          "calibration": "softmax",
+          "calibrated": false,
+          "confidence_method": "selected-candidate-probability",
+          "contract": "turbojev.core.v4",
+          "order_robustness": "none",
+          "order_evaluations": 0,
+          "execution": {
+            "prefix_reuse": "none",
+            "scheduling": "serial",
+            "parallel_task_limit": 1,
+            "projection": "full-vocabulary"
+          }
+        }
+      },
+      "expected": "right",
+      "choice": "left",
+      "correct": false,
+      "first": "up",
+      "seconds": 2.4967845999999554
+    },
+    {
+      "case": "snake-wall",
+      "request": {
+        "state": "Board: 12 columns and 10 rows. Coordinates are (x, y); x increases to the right and y increases downward. Head: (6, 0). Body from neck to tail: [(6, 1)]. Food: (11, 0). Current direction: up.",
+        "questions": {
+          "answer": {
+            "type": "choice",
+            "instructions": "Choose the next direction for the snake to reach the food. Avoid the board walls and the snake's body; do not reverse directly. The tail moves away unless the snake eats. Decide this move only.",
+            "criteria": {
+              "down": "Move one cell down (y + 1).",
+              "left": "Move one cell left (x - 1).",
+              "right": "Move one cell right (x + 1).",
+              "up": "Move one cell up (y - 1)."
+            }
+          }
+        }
+      },
+      "response": {
+        "model": "lfm2 350M Q4_K - Medium",
+        "answers": {
+          "answer": {
+            "type": "choice",
+            "choice": "right",
+            "confidence": 0.44967618711024027,
+            "probabilities": {
+              "down": 0.08417396978367969,
+              "left": 0.14863264584006053,
+              "right": 0.44967618711024027,
+              "up": 0.31751719726601957
+            }
+          }
+        },
+        "usage": {
+          "decisions": 1,
+          "input_tokens": 216,
+          "generated_tokens": 0
+        },
+        "_turbojev": {
+          "backend": "llamacpp",
+          "calibration": "softmax",
+          "calibrated": false,
+          "confidence_method": "selected-candidate-probability",
+          "contract": "turbojev.core.v4",
+          "order_robustness": "none",
+          "order_evaluations": 0,
+          "execution": {
+            "prefix_reuse": "none",
+            "scheduling": "serial",
+            "parallel_task_limit": 1,
+            "projection": "full-vocabulary"
+          }
+        }
+      },
+      "expected": "right",
+      "choice": "right",
+      "correct": true,
+      "first": "down",
+      "seconds": 3.7053772999970533
+    },
+    {
+      "case": "snake-wall",
+      "request": {
+        "state": "Board: 12 columns and 10 rows. Coordinates are (x, y); x increases to the right and y increases downward. Head: (6, 0). Body from neck to tail: [(6, 1)]. Food: (11, 0). Current direction: up.",
+        "questions": {
+          "answer": {
+            "type": "choice",
+            "instructions": "Choose the next direction for the snake to reach the food. Avoid the board walls and the snake's body; do not reverse directly. The tail moves away unless the snake eats. Decide this move only.",
+            "criteria": {
+              "left": "Move one cell left (x - 1).",
+              "right": "Move one cell right (x + 1).",
+              "up": "Move one cell up (y - 1).",
+              "down": "Move one cell down (y + 1)."
+            }
+          }
+        }
+      },
+      "response": {
+        "model": "lfm2 350M Q4_K - Medium",
+        "answers": {
+          "answer": {
+            "type": "choice",
+            "choice": "up",
+            "confidence": 0.4816638928379363,
+            "probabilities": {
+              "left": 0.05266271453766792,
+              "right": 0.1778650311468161,
+              "up": 0.4816638928379363,
+              "down": 0.28780836147757977
+            }
+          }
+        },
+        "usage": {
+          "decisions": 1,
+          "input_tokens": 216,
+          "generated_tokens": 0
+        },
+        "_turbojev": {
+          "backend": "llamacpp",
+          "calibration": "softmax",
+          "calibrated": false,
+          "confidence_method": "selected-candidate-probability",
+          "contract": "turbojev.core.v4",
+          "order_robustness": "none",
+          "order_evaluations": 0,
+          "execution": {
+            "prefix_reuse": "none",
+            "scheduling": "serial",
+            "parallel_task_limit": 1,
+            "projection": "full-vocabulary"
+          }
+        }
+      },
+      "expected": "right",
+      "choice": "up",
+      "correct": false,
+      "first": "left",
+      "seconds": 5.445174899999984
+    },
+    {
+      "case": "snake-wall",
+      "request": {
+        "state": "Board: 12 columns and 10 rows. Coordinates are (x, y); x increases to the right and y increases downward. Head: (6, 0). Body from neck to tail: [(6, 1)]. Food: (11, 0). Current direction: up.",
+        "questions": {
+          "answer": {
+            "type": "choice",
+            "instructions": "Choose the next direction for the snake to reach the food. Avoid the board walls and the snake's body; do not reverse directly. The tail moves away unless the snake eats. Decide this move only.",
+            "criteria": {
+              "right": "Move one cell right (x + 1).",
+              "up": "Move one cell up (y - 1).",
+              "down": "Move one cell down (y + 1).",
+              "left": "Move one cell left (x - 1)."
+            }
+          }
+        }
+      },
+      "response": {
+        "model": "lfm2 350M Q4_K - Medium",
+        "answers": {
+          "answer": {
+            "type": "choice",
+            "choice": "down",
+            "confidence": 0.3766389749066396,
+            "probabilities": {
+              "right": 0.08808995949413083,
+              "up": 0.28750079040511356,
+              "down": 0.3766389749066396,
+              "left": 0.24777027519411599
+            }
+          }
+        },
+        "usage": {
+          "decisions": 1,
+          "input_tokens": 216,
+          "generated_tokens": 0
+        },
+        "_turbojev": {
+          "backend": "llamacpp",
+          "calibration": "softmax",
+          "calibrated": false,
+          "confidence_method": "selected-candidate-probability",
+          "contract": "turbojev.core.v4",
+          "order_robustness": "none",
+          "order_evaluations": 0,
+          "execution": {
+            "prefix_reuse": "none",
+            "scheduling": "serial",
+            "parallel_task_limit": 1,
+            "projection": "full-vocabulary"
+          }
+        }
+      },
+      "expected": "right",
+      "choice": "down",
+      "correct": false,
+      "first": "right",
+      "seconds": 13.084651999997732
+    }
+  ]
+}

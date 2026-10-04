@@ -115,6 +115,8 @@ def copy_shared_libraries(build_dir: Path, stage: Path) -> None:
         raise SystemExit("CMake build did not produce turbojev_llama_shim")
     if not any(path.name.startswith("libllama") for path in stage.iterdir()):
         raise SystemExit("CMake build did not produce libllama")
+    if not any(path.name.startswith("libmtmd") for path in stage.iterdir()):
+        raise SystemExit("CMake build did not produce libmtmd; multimodal runtime dependency is missing")
 
 
 def copy_required(path: Path, destination: Path) -> None:

@@ -1,0 +1,231 @@
+{
+  "version": "0.29.2",
+  "verified_at_utc": "2026-10-04T22:20:58.988847+00:00",
+  "npm": [
+    {
+      "name": "@turbojev/wasm",
+      "version": "0.29.2",
+      "integrity": "sha512-mB+cXuFUTSQNlg+zYCf85DI573ojggF6sVBMavEqeLa7W3MKwMMLieo107TVE8BhgnPSu/9DPNZORNA4Uc1prQ==",
+      "tarball": "https://registry.npmjs.org/@turbojev/wasm/-/wasm-0.29.2.tgz"
+    },
+    {
+      "name": "@turbojev/web",
+      "version": "0.29.2",
+      "integrity": "sha512-Uk73i75xwn+jkzXZuLNf+Wg4cFF7RV6iOTW4t+1UukYCLmMjckjQvR8RP30hgFIc/vq+Rs5xfafbcsTa0UiFJQ==",
+      "tarball": "https://registry.npmjs.org/@turbojev/web/-/web-0.29.2.tgz"
+    },
+    {
+      "name": "@turbojev/runtime-transformersjs",
+      "version": "0.29.2",
+      "integrity": "sha512-3UI07VQwBwF98XxBnG+2YQIwuSUp2ajyi0jslAcQRu2oSeaHwIvVXuZOulEpazD7lO30bh++/e2DOTDKifjDdg==",
+      "tarball": "https://registry.npmjs.org/@turbojev/runtime-transformersjs/-/runtime-transformersjs-0.29.2.tgz"
+    },
+    {
+      "name": "@turbojev/runtime-llamacpp-wasm",
+      "version": "0.29.2",
+      "integrity": "sha512-f0tivSFedTY1eyJ+yp1Q3/aLb0abVzmmoJ0Ytxm2e0X2d9ZsrpNrBbuIGdsTwC5JztbNCBId3fEJIqrKCM47Rw==",
+      "tarball": "https://registry.npmjs.org/@turbojev/runtime-llamacpp-wasm/-/runtime-llamacpp-wasm-0.29.2.tgz"
+    },
+    {
+      "name": "@turbojev/node-win32-ia32",
+      "version": "0.29.2",
+      "integrity": "sha512-KXpSuStKU3cj3Du0hCGqFM3pq8NF/N97Y3BG7Q1s0l/5Ndx11bwydi+mtaEvuGOBlaFsQo6u4FaPS6vi6Yixnw==",
+      "tarball": "https://registry.npmjs.org/@turbojev/node-win32-ia32/-/node-win32-ia32-0.29.2.tgz"
+    },
+    {
+      "name": "@turbojev/node-win32-x64",
+      "version": "0.29.2",
+      "integrity": "sha512-cmCczt+bOmFJIz/iOMag0gyuVByQtlDUYvw2vsMLTaTTB+ID6TKmcZ5r3inFFD5+6qZfL5ui5gQkKk/8UwDZSA==",
+      "tarball": "https://registry.npmjs.org/@turbojev/node-win32-x64/-/node-win32-x64-0.29.2.tgz"
+    },
+    {
+      "name": "@turbojev/node-win32-arm64",
+      "version": "0.29.2",
+      "integrity": "sha512-42NXzbAdH9QqGbSOGCQ4b7mgYYXj1haJ3ycP/+WSlTqeVKrIuUEDSpxo0i9AKN5y2TQbEgXuhOayXun3frskpQ==",
+      "tarball": "https://registry.npmjs.org/@turbojev/node-win32-arm64/-/node-win32-arm64-0.29.2.tgz"
+    },
+    {
+      "name": "@turbojev/node",
+      "version": "0.29.2",
+      "integrity": "sha512-w0E5fz9oi8qF44vJJ8EQjqC4OLWt0bFfmixuF0I110+ZSMpxFLCJYzQ8NTFntACrBq0NndDHXcMV8ZcVwQ0KNg==",
+      "tarball": "https://registry.npmjs.org/@turbojev/node/-/node-0.29.2.tgz"
+    }
+  ],
+  "pypi": [
+    {
+      "filename": "turbojev-0.29.2-cp39-abi3-win32.whl",
+      "sha256": "88f32fbd41a4db9cee47e0a40ee4c33d10fd42f998405731ad7c04ea5cd1b1c2"
+    },
+    {
+      "filename": "turbojev-0.29.2-cp39-abi3-win_amd64.whl",
+      "sha256": "de0d4a173efec6b0277501f803338a034911893b0f8a1fc4f23a6e575c3f8c26"
+    },
+    {
+      "filename": "turbojev-0.29.2-cp39-abi3-win_arm64.whl",
+      "sha256": "6d09db469486570bb9bf601c18b19715058f369ece9d950e4aeec05203547e84"
+    }
+  ],
+  "nuget": {
+    "version": "0.29.2",
+    "assets": [
+      {
+        "platform": "win-x86",
+        "dll_count": 8,
+        "pe_machine_verified": true
+      },
+      {
+        "platform": "win-x64",
+        "dll_count": 9,
+        "pe_machine_verified": true
+      },
+      {
+        "platform": "win-arm64",
+        "dll_count": 8,
+        "pe_machine_verified": true
+      }
+    ]
+  },
+  "crates_io": [
+    {
+      "name": "turbojev",
+      "version": "0.29.2",
+      "checksum": "f2ca9dd7c2ab70b1b1a5ee382071271f836280c501199feb1f7be5776e3ed575"
+    },
+    {
+      "name": "turbojev-backend",
+      "version": "0.29.2",
+      "checksum": "36a8763483fa385bf91015ad5391319700f43024db966c78767410fa1128f2d3"
+    },
+    {
+      "name": "turbojev-backend-custom",
+      "version": "0.29.2",
+      "checksum": "6131c6a3bacb098603031af77be38a64a1937647ebe3ade9a4f17f209c1c2cb2"
+    },
+    {
+      "name": "turbojev-backend-mock",
+      "version": "0.29.2",
+      "checksum": "8f43c8f75989b9c622efef8511a3bbc364a6bd222644f64fad63c74bb09eb448"
+    },
+    {
+      "name": "turbojev-benchmark",
+      "version": "0.29.2",
+      "checksum": "ba2f63f9bd97ba2bb294d6b7137b237a36b697431620557edb4be2b8add34756"
+    },
+    {
+      "name": "turbojev-calibration",
+      "version": "0.29.2",
+      "checksum": "182abe61c59bdeeef82ec9dcaf1bd913367624a986d303faebeb07f114c328bf"
+    },
+    {
+      "name": "turbojev-compat",
+      "version": "0.29.2",
+      "checksum": "1c5886f9b4da09e01e504fcd1dffdbaa38c51819b323d2c5ec1cd60f27389ceb"
+    },
+    {
+      "name": "turbojev-conformance",
+      "version": "0.29.2",
+      "checksum": "b5fd3fca8a85df877dbf0abddcfeddd925ffac853cdaf28d7a0acbd1ff8d9630"
+    },
+    {
+      "name": "turbojev-core",
+      "version": "0.29.2",
+      "checksum": "d9d16f63982930031e6f515489d8dd6763869d2117d6b8185f55a59c2b3cb411"
+    },
+    {
+      "name": "turbojev-engine",
+      "version": "0.29.2",
+      "checksum": "31e92217dc96d39aaa81880866e5149c261792aea2d5d6c3cb31bc7c1af8d829"
+    },
+    {
+      "name": "turbojev-host-native",
+      "version": "0.29.2",
+      "checksum": "b5d947102c9dca65d2622b063b1a57680b96561d9369cbba700240e099a39193"
+    },
+    {
+      "name": "turbojev-model",
+      "version": "0.29.2",
+      "checksum": "8ebbbf3c9a9af1a03050a07b878050d4fa013decc6068459f95889d93ec93951"
+    },
+    {
+      "name": "turbojev-projection",
+      "version": "0.29.2",
+      "checksum": "2353e1e41ee225c3ef12e679412078b8a04871737fc9252add21479cf1ae65d4"
+    },
+    {
+      "name": "turbojev-prompt",
+      "version": "0.29.2",
+      "checksum": "dc10195918a54a034e63442cbfbf6bbda43bfdcc9b854076f9b48b7ee8137d5c"
+    },
+    {
+      "name": "turbojev-runtime",
+      "version": "0.29.2",
+      "checksum": "d2e4c80f2ff9cd28becc8c9cc812762683e518d103e9e906c55b496638bacd3b"
+    },
+    {
+      "name": "turbojev-runtime-conformance",
+      "version": "0.29.2",
+      "checksum": "840a729e2a76f53f6cad9038c2a21c86282d66679eba18c8bcff90f2887e0904"
+    },
+    {
+      "name": "turbojev-runtime-llamacpp",
+      "version": "0.29.2",
+      "checksum": "9330d4f63f9271504b6018a0cea7ea8dfacfbd3845e89d76777adab543853ab8"
+    },
+    {
+      "name": "turbojev-runtime-projection",
+      "version": "0.29.2",
+      "checksum": "eb433702b766a92d2b2312b4f390a6a2fc2b2375f200c29da7054548195eb0f7"
+    },
+    {
+      "name": "turbojev-runtime-qualification",
+      "version": "0.29.2",
+      "checksum": "b6ba3123616f6dc969f3eaedc95e8dfee46cb9f1b982cfaff5fe0ab30fb995a8"
+    },
+    {
+      "name": "turbojev-schema",
+      "version": "0.29.2",
+      "checksum": "1f692e7661203a712eaf542e877f8170521f4e9a58733d8080c316d19793266e"
+    },
+    {
+      "name": "turbojev-sequence",
+      "version": "0.29.2",
+      "checksum": "aea2cb12c76b3a112cbd2de9441dcad677c32fc77affe28f3de1f6eb29b9e318"
+    },
+    {
+      "name": "turbojev-specialized",
+      "version": "0.29.2",
+      "checksum": "b40a1195737bd3d9a021cf823b4ac0120baeacc2da39ff0ad294d3e7ad453cf5"
+    },
+    {
+      "name": "turbojev-specialized-artifact",
+      "version": "0.29.2",
+      "checksum": "58720978b7e3887af2d4526d26f6060cae0cbb31823bf05fa246fbbf719af556"
+    },
+    {
+      "name": "turbojev-specialized-eval",
+      "version": "0.29.2",
+      "checksum": "a2658581d8110b7a9768bd1a754c8bed081705757ae86c104c507df1e2b7d78b"
+    },
+    {
+      "name": "turbojev-tokenizer",
+      "version": "0.29.2",
+      "checksum": "c3d9dcee659911a5dfd1892772dc6da9adc183611ac1f8de48346c1786fa73ec"
+    },
+    {
+      "name": "turbojev-training-data",
+      "version": "0.29.2",
+      "checksum": "b5b6b5bfe01316e02f631994c9079100c61f173e13ba6b762f455d4df47ae26c"
+    },
+    {
+      "name": "turbojev-wire",
+      "version": "0.29.2",
+      "checksum": "e38713b66c446cc77ae3e7c5ee825e59206a52f6ae7a1763f0bca8c7fe9a7c15"
+    }
+  ],
+  "execution_validation": {
+    "windows_x64": "real-model smoke tests passed for Node, Python and .NET before upload",
+    "windows_x86_arm64": "compiled and packaged; real inference not executed on ARM64 or x86 hardware",
+    "linux_macos_native_binaries": "not published by this local Windows publisher"
+  },
+  "source_workspace_check": "cargo check --workspace --all-targets passed; strict clippy not claimed"
+}

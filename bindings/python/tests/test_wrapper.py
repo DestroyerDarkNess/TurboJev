@@ -16,6 +16,9 @@ def test_worker_configuration_reaches_native_load():
     worker = {"program": "python", "args": ["scorer.py"]}
     assert LoadOptions(model="example/multimodal-model", worker=worker).to_wire()["worker"] == worker
 
+def test_mmproj_configuration_reaches_native_load():
+    assert LoadOptions(model="vision.gguf", mmproj="vision-mmproj.gguf").to_wire()["mmproj"] == "vision-mmproj.gguf"
+
 def test_order_robustness_configuration_reaches_native_load():
     execution = {"orderRobustness": "cyclic"}
     assert LoadOptions(model="fixture://test", execution=execution).to_wire()["execution"] == execution
@@ -32,3 +35,10 @@ def test_wrapper_roundtrip():
     response = jev.evaluate({"state": {"message": "x"}, "questions": {"route": {"type": "choice", "instructions": "Choose", "criteria": {"a": "A", "b": "B"}}}})
     assert "answers" in response
     assert jev.info()["runtime"] == "fixture"
+
+
+def test_thinking_defaults_off_and_is_forwarded_explicitly():
+    assert LoadOptions(model="qwen.gguf").to_wire()["thinking"] is False
+    wire = LoadOptions(model="qwen.gguf", thinking=True, max_thinking_tokens=256).to_wire()
+    assert wire["thinking"] is True
+    assert wire["maxThinkingTokens"] == 256

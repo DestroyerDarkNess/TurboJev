@@ -1460,6 +1460,9 @@ mod tests {
             load: NativeLoadOptions {
                 worker: None,
                 model: "fixture://server".to_owned(),
+                thinking: false,
+                max_thinking_tokens: 512,
+                mmproj: None,
                 n_ctx: 64,
                 n_batch: 64,
                 n_seq_max: 2,

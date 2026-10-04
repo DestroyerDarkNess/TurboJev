@@ -1,5 +1,5 @@
-export { TurboJevRemote, mediaEvidence } from "./remote.js";
-export type { MediaEvidence, MediaModality } from "./remote.js";
+export { TurboJevRemote, mediaEvidence, videoFrameEvidence } from "./remote.js";
+export type { MediaEvidence, MediaModality, VideoFrame, VideoFrameInput } from "./remote.js";
 export interface BrowserRuntimeDescriptor {
     name: string;
     model: string;
@@ -42,6 +42,7 @@ export interface WebLoadOptions {
     runtimeModuleUrl: string;
     wasmModuleUrl: string;
     runtimeOptions?: unknown;
+    cyclicOrderRobustness?: boolean;
     prompt?: {
         profile?: string;
         systemInstruction?: string;

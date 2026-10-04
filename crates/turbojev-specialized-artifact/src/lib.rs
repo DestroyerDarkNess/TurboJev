@@ -794,6 +794,7 @@ mod tests {
                 .collect::<Vec<_>>()
                 .join("|");
             Ok(RenderedMessages {
+                assistant_prefix: String::new(),
                 system: Some("fixture".into()),
                 user: format!("state:{};options:{options}", document.evidence),
                 profile: self.profile().to_owned(),

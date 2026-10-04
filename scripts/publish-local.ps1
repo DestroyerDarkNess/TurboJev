@@ -101,7 +101,7 @@ function Build-NativeRuntime {
     $rid = "win-$Architecture"
     $runtimeDirectory = Join-Path $NativeRuntimeRoot $rid
     $shimLib = Join-Path $runtimeDirectory "turbojev_llama_shim.lib"
-    $requiredDlls = @("turbojev_llama_shim.dll", "llama-common.dll", "llama.dll", "ggml.dll", "ggml-base.dll", "ggml-cpu.dll")
+    $requiredDlls = @("turbojev_llama_shim.dll", "mtmd.dll", "llama-common.dll", "llama.dll", "ggml.dll", "ggml-base.dll", "ggml-cpu.dll")
     $shimSourceHash = (@("turbojev_llama_shim.cpp", "turbojev_llama_shim.h", "decision_chat.h", "CMakeLists.txt") | ForEach-Object {
         (Get-FileHash -Algorithm SHA256 -LiteralPath (Join-Path $Root "crates/turbojev-runtime-llamacpp/native/$_")).Hash
     }) -join ":"
@@ -492,6 +492,8 @@ function Confirm-Publish {
 }
 
 Import-DotEnv (Join-Path $Root ".env")
+
+Invoke-Tool "python" @("scripts/release_preflight.py", "--tag", "v$ReleaseVersion")
 
 if (-not (Test-Path -LiteralPath (Join-Path $Root ".env"))) {
     Copy-Item -LiteralPath (Join-Path $Root ".env.example") -Destination (Join-Path $Root ".env")

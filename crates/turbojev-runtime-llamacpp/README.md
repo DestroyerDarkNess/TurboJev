@@ -25,7 +25,7 @@ TurboJev does not inspect CUDA, Metal, Vulkan, an operating system, or a device 
 
 The Rust adapter does **not** expose llama.cpp ABI structs. `native/turbojev_llama_shim.*` defines a small versioned C ABI owned by TurboJev. Upstream llama.cpp ABI changes are absorbed there instead of leaking into the Rust/core contracts.
 
-The current TurboJev-owned shim ABI is `5`. In addition to the existing independent/shared-prefix/sequence-scoring paths, v0.25 adds a distinct multi-root operation for cross-request execution:
+The current TurboJev-owned shim ABI is `8`. It includes mtmd media scoring with an explicit assistant answer prefix. In addition to the independent/shared-prefix/sequence-scoring paths, v0.25 added a distinct multi-root operation for cross-request execution:
 
 ```text
 tj_llama_multi_root_supported
@@ -49,8 +49,13 @@ API only approximates template families; for Qwen3 it omits the closed
 reasoning prefix and therefore scores candidates at the wrong boundary.
 No model-specific token IDs or reasoning markers are inserted by TurboJev.
 
-Native packages must include `llama-common` alongside `llama` and the shim.
-The CMake build enables that dependency automatically. The model-free
+Native packages must include `mtmd`, `llama-common`, `llama` and the shim. For
+image or audio `evaluate` calls, provide a matching `mmproj` GGUF at load time.
+Video is submitted as a timestamped sequence of decoded still frames and passed
+to mtmd as mergeable images. TurboJev does not decode MP4 or launch
+`ffmpeg`/`ffprobe`; the host decodes compressed containers. Use a checkpoint
+trained for video when temporal understanding matters. CMake builds mtmd from
+the pinned llama.cpp source for the selected target architecture. The model-free
 regression test checks Qwen-style and non-reasoning boundaries using the real
 Jinja renderer:
 
@@ -68,9 +73,27 @@ Examples:
 reference_gguf          independent correctness baseline
 shared_prefix_gguf      deterministic cached-serial reuse
 parallel_suffix_gguf    bounded parallel suffix execution
+multimodal_gguf         image, audio, or timestamped video-frame evaluation
 ```
+
+`multimodal_gguf` accepts one or more request JSON files after the model and
+matching `mmproj` paths, loads the model once, and prints one typed response per
+request. Pass `--cyclic` to opt into candidate-order robustness for choices;
+this performs one scoring pass per candidate. For a real GGUF audio accuracy
+and order-invariance check, see
+[`scripts/validate_multimodal_audio_gguf.py`](../../scripts/validate_multimodal_audio_gguf.py)
+and [`docs/MULTIMODAL_VALIDATION.md`](../../docs/MULTIMODAL_VALIDATION.md).
 
 
 ## Candidate-only projection
 
 The high-level `LlamaCppApi` now has selected-path operations for independent, shared-prefix, and bounded-parallel scoring. The executor dispatches to them only when the API explicitly reports `selective_output_head_supported() == true`. Optimized results report `candidate_rows_projected`, and conformance verifies numerical parity plus row accounting. See `../../docs/CANDIDATE_PROJECTION.md`.
+
+
+Optional text reasoning is configured with `FfiLlamaCpp::with_thinking(true, 512)`
+or native load JSON `thinking: true`, `maxThinkingTokens: 512`. It is off by
+default. It uses model-declared Jinja reasoning delimiters, requires a completed
+thought, verifies final candidate tokens and reports actual generated-token
+usage. Unsupported templates, insufficient context and unfinished budgets
+return explicit errors. See `docs/MODEL_REASONING.md` for real measurements and
+limitations; browser thinking and native-media thinking are not implemented.

@@ -7,6 +7,7 @@ import hashlib
 import json
 import math
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -30,7 +31,7 @@ def canonical_sha(value: Any) -> str:
     return hashlib.sha256(encoded).hexdigest()
 
 
-def parse_runner_stdout(stdout: str, identifier: str) -> tuple[dict[str, Any], dict[str, Any]]:
+def parse_runner_stdout(stdout: str, identifier: str, request: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
     text = stdout.strip()
     try:
         envelope = json.loads(text)
@@ -41,23 +42,29 @@ def parse_runner_stdout(stdout: str, identifier: str) -> tuple[dict[str, Any], d
     response = envelope.get("response")
     if not isinstance(response, dict):
         raise ValueError(f"{identifier} runner did not emit a response object")
-    validate_typed_response(response, identifier)
+    validate_typed_response(response, identifier, request)
     return envelope, response
 
 
-def validate_typed_response(response: dict[str, Any], identifier: str) -> None:
+def validate_typed_response(response: dict[str, Any], identifier: str, request: dict[str, Any]) -> None:
     answers = response.get("answers")
     if not isinstance(answers, dict):
         raise ValueError(f"{identifier}: missing answers object")
-    route = answers.get("route")
-    urgent = answers.get("urgent")
-    severity = answers.get("severity")
-    if not isinstance(route, dict) or route.get("type") != "choice" or not isinstance(route.get("choice"), str):
-        raise ValueError(f"{identifier}: invalid route choice answer")
-    if not isinstance(urgent, dict) or urgent.get("type") != "noul" or not isinstance(urgent.get("noul"), (int, float)):
-        raise ValueError(f"{identifier}: invalid urgent noul answer")
-    if not isinstance(severity, dict) or severity.get("type") != "score" or not isinstance(severity.get("score"), (int, float)):
-        raise ValueError(f"{identifier}: invalid severity score answer")
+    questions = request.get("questions")
+    if not isinstance(questions, dict) or not questions:
+        raise ValueError("E2E request has no typed questions")
+    for answer_id, question in questions.items():
+        answer = answers.get(answer_id)
+        expected = question.get("type") if isinstance(question, dict) else None
+        expected = "noul" if expected == "boolean" else expected
+        if not isinstance(answer, dict) or answer.get("type") != expected:
+            raise ValueError(f"{identifier}: invalid typed answer for {answer_id}")
+        field = {"choice": "choice", "noul": "noul", "score": "score"}.get(expected)
+        value = answer.get(field) if field else None
+        if expected == "choice" and not isinstance(value, str):
+            raise ValueError(f"{identifier}: {answer_id} has no choice value")
+        if expected in {"noul", "score"} and (not isinstance(value, (int, float)) or isinstance(value, bool)):
+            raise ValueError(f"{identifier}: {answer_id} has no numeric {expected} value")
     for answer_id, answer in answers.items():
         if not isinstance(answer, dict):
             raise ValueError(f"{identifier}: {answer_id} is not an object")
@@ -110,10 +117,10 @@ def equivalent(expected: Any, actual: Any, path: str, mismatches: list[str], abs
         mismatches.append(f"{path}: {expected!r} != {actual!r}")
 
 
-def run_case(identifier: str, command: list[str], env: dict[str, str], required: bool = True) -> dict[str, Any]:
+def run_case(identifier: str, command: list[str], env: dict[str, str], request: dict[str, Any], required: bool = True) -> dict[str, Any]:
     started = time.perf_counter()
     try:
-        process = subprocess.run(command, cwd=ROOT, env=env, text=True, capture_output=True, timeout=300)
+        process = subprocess.run(command, cwd=ROOT, env=env, text=True, encoding="utf-8", errors="replace", capture_output=True, timeout=300)
         duration = (time.perf_counter() - started) * 1000
         stdout = process.stdout.strip()
         if process.returncode != 0:
@@ -124,7 +131,7 @@ def run_case(identifier: str, command: list[str], env: dict[str, str], required:
                 "_response": None,
             }
         try:
-            _, response = parse_runner_stdout(stdout, identifier)
+            _, response = parse_runner_stdout(stdout, identifier, request)
         except ValueError as error:
             return {
                 "id": identifier, "status": "fail", "durationMs": round(duration, 3),
@@ -154,7 +161,7 @@ def run_process(command: list[str], env: dict[str, str], timeout: int = 300) -> 
     """Run a non-runner host command such as a compiler without parsing TurboJev JSON."""
     started = time.perf_counter()
     try:
-        process = subprocess.run(command, cwd=ROOT, env=env, text=True, capture_output=True, timeout=timeout)
+        process = subprocess.run(command, cwd=ROOT, env=env, text=True, encoding="utf-8", errors="replace", capture_output=True, timeout=timeout)
         duration = (time.perf_counter() - started) * 1000
         return {
             "exitCode": process.returncode,
@@ -167,6 +174,40 @@ def run_process(command: list[str], env: dict[str, str], timeout: int = 300) -> 
     except subprocess.TimeoutExpired:
         return {"exitCode": None, "durationMs": float(timeout * 1000), "stdout": "", "stderr": "timeout"}
 
+
+def windows_compiler_environment(env: dict[str, str]) -> dict[str, str]:
+    if sys.platform != "win32" or shutil.which("cl", path=env.get("PATH")):
+        return env
+    script = r"""$vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio/Installer/vswhere.exe'
+$vs = (& $vswhere -latest -products '*' -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath).Trim()
+if (-not $vs) { exit 1 }
+$vcvars = Join-Path $vs 'VC/Auxiliary/Build/vcvarsall.bat'
+& $env:ComSpec /d /s /c ('"{0}" x64 > nul && set' -f $vcvars)
+"""
+    install = subprocess.run(
+        ["powershell.exe", "-NoProfile", "-Command", script],
+        text=True, encoding="utf-8", errors="replace", capture_output=True, check=False,
+    )
+    if install.returncode != 0:
+        return env
+    result = env.copy()
+    for line in install.stdout.splitlines():
+        key, separator, value = line.partition("=")
+        if separator:
+            if key.casefold() == "path":
+                key = "PATH"
+            elif key.casefold() == "include":
+                key = "INCLUDE"
+            elif key.casefold() == "lib":
+                key = "LIB"
+            elif key.casefold() == "libpath":
+                key = "LIBPATH"
+            for existing in tuple(result):
+                if existing.casefold() == key.casefold():
+                    del result[existing]
+            result[key] = value
+    return result
+
 def public_result(result: dict[str, Any]) -> dict[str, Any]:
     return {key: value for key, value in result.items() if not key.startswith("_")}
 
@@ -178,6 +219,7 @@ def main() -> int:
     ap.add_argument("--node-addon", type=Path, required=True)
     ap.add_argument("--python-root", type=Path, default=ROOT / "bindings/python")
     ap.add_argument("--request", type=Path, default=ROOT / "tests/e2e/request.json")
+    ap.add_argument("--mmproj", type=Path, help="Optional llama.cpp multimodal projector GGUF")
     ap.add_argument("--report", type=Path, required=True)
     ap.add_argument("--include-swift", action="store_true")
     ap.add_argument("--abs-tolerance", type=float, default=1e-7)
@@ -185,18 +227,28 @@ def main() -> int:
     args = ap.parse_args()
     if args.abs_tolerance < 0 or args.rel_tolerance < 0:
         raise SystemExit("E2E tolerances must be non-negative")
-    model = args.model.resolve(); request = args.request.resolve(); libdir = args.native_lib_dir.resolve(); addon = args.node_addon.resolve()
-    for path in (model, request, libdir, addon):
+    model = args.model.resolve(); request_path = args.request.resolve(); libdir = args.native_lib_dir.resolve(); addon = args.node_addon.resolve()
+    mmproj = args.mmproj.resolve() if args.mmproj else None
+    if addon.suffix.lower() != ".node":
+        raise SystemExit("--node-addon must name the packaged .node addon; a raw DLL can silently fall back to a different installed build")
+    for path in (model, request_path, libdir, addon, *((mmproj,) if mmproj else ())):
         if not path.exists():
             raise SystemExit(f"missing E2E input: {path}")
+    request = json.loads(request_path.read_text(encoding="utf-8"))
+    mmproj_arg = [str(mmproj)] if mmproj else []
     env = os.environ.copy()
     env["LD_LIBRARY_PATH"] = str(libdir) + (os.pathsep + env["LD_LIBRARY_PATH"] if env.get("LD_LIBRARY_PATH") else "")
     env["DYLD_LIBRARY_PATH"] = str(libdir) + (os.pathsep + env["DYLD_LIBRARY_PATH"] if env.get("DYLD_LIBRARY_PATH") else "")
     env["PATH"] = str(libdir) + os.pathsep + env.get("PATH", "")
     env["PYTHONPATH"] = str(args.python_root.resolve()) + (os.pathsep + env["PYTHONPATH"] if env.get("PYTHONPATH") else "")
+    dotnet_output = ROOT / "tests/e2e/dotnet/bin/Release/net8.0"
+    dotnet_output.mkdir(parents=True, exist_ok=True)
+    for pattern in ("*.dll", "*.so", "*.so.*", "*.dylib"):
+        for library in libdir.glob(pattern):
+            shutil.copy2(library, dotnet_output / library.name)
     results: list[dict[str, Any]] = []
-    results.append(run_case("node-ts", ["node", str(ROOT / "tests/e2e/node/run.mjs"), str(model), str(request), str(addon)], env))
-    results.append(run_case("python", [sys.executable, str(ROOT / "tests/e2e/python/run.py"), str(model), str(request)], env))
+    results.append(run_case("node-ts", ["node", str(ROOT / "tests/e2e/node/run.mjs"), str(model), str(request_path), str(addon), *mmproj_arg], env, request))
+    results.append(run_case("python", [sys.executable, str(ROOT / "tests/e2e/python/run.py"), str(model), str(request_path), *mmproj_arg], env, request))
     with tempfile.TemporaryDirectory(prefix="turbojev-e2e-") as td:
         exe = Path(td) / "turbojev-c-e2e"
         cc = ["cc", "-std=c11", "-Wall", "-Wextra", "-Werror", str(ROOT / "tests/e2e/c/main.c"), "-I", str(ROOT / "bindings/c/include"), "-L", str(libdir), "-lturbojev_capi", "-o", str(exe)]
@@ -205,9 +257,23 @@ def main() -> int:
             cc = ["cl", "/nologo", "/std:c11", "/W4", "/WX", str(ROOT / "tests/e2e/c/main.c"),
                   "/I" + str(ROOT / "bindings/c/include"), "/Fo" + str(Path(td) / "main.obj"),
                   "/Fe" + str(exe), "/link", "/LIBPATH:" + str(libdir), "turbojev_capi.dll.lib"]
-        compile_result = run_process(cc, env)
+        compiler_env = windows_compiler_environment(env)
+        if sys.platform == "win32":
+            compiler = shutil.which("cl", path=compiler_env.get("PATH"))
+            if compiler is None:
+                compile_result = {
+                    "exitCode": None, "durationMs": 0.0, "stdout": "",
+                    "stderr": "MSVC compiler cl.exe was not found after initializing Visual Studio",
+                }
+            else:
+                # Use the resolved executable path. CreateProcess does not always
+                # resolve a bare `cl` consistently from Python's modified env PATH.
+                cc[0] = compiler
+                compile_result = run_process(cc, compiler_env)
+        else:
+            compile_result = run_process(cc, compiler_env)
         if compile_result["exitCode"] == 0:
-            results.append(run_case("c", [str(exe), str(model), str(request)], env))
+            results.append(run_case("c", [str(exe), str(model), str(request_path), *mmproj_arg], env, request))
         else:
             diagnostic = compile_result["stderr"] or compile_result["stdout"] or "C runner compilation failed"
             results.append({
@@ -215,9 +281,9 @@ def main() -> int:
                 "exitCode": compile_result["exitCode"], "stdoutSha256": None,
                 "responseSha256": None, "message": diagnostic, "_response": None,
             })
-    results.append(run_case("dotnet", ["dotnet", "run", "--project", str(ROOT / "tests/e2e/dotnet/TurboJev.E2E.csproj"), "-c", "Release", "--no-build", "--", str(model), str(request)], env))
+    results.append(run_case("dotnet", ["dotnet", "run", "--project", str(ROOT / "tests/e2e/dotnet/TurboJev.E2E.csproj"), "-c", "Release", "--no-build", "--", str(model), str(request_path), *mmproj_arg], env, request))
     if args.include_swift:
-        results.append(run_case("swift", ["swift", "build", "--package-path", str(ROOT / "bindings/swift"), "-Xswiftc", "-warnings-as-errors"], env, required=False))
+        results.append(run_case("swift", ["swift", "build", "--package-path", str(ROOT / "bindings/swift"), "-Xswiftc", "-warnings-as-errors"], env, request, required=False))
 
     required = {"node-ts", "python", "c", "dotnet"}
     passed_rows = {r["id"]: r for r in results if r["id"] in required and r["status"] == "pass"}
@@ -237,7 +303,8 @@ def main() -> int:
     report = {
         "contract": "turbojev.e2e-language-report.v2",
         "modelSha256": sha(model),
-        "requestSha256": sha(request),
+        "mmprojSha256": sha(mmproj) if mmproj else None,
+        "requestSha256": sha(request_path),
         "referenceLanguage": reference_language,
         "tolerance": {"absolute": args.abs_tolerance, "relative": args.rel_tolerance},
         "semanticParity": semantic_parity,

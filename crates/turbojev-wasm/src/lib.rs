@@ -178,7 +178,7 @@ impl Default for PromptProfile {
     }
 }
 fn default_profile() -> String {
-    "browser-direct-decision-en-v2".into()
+    "browser-direct-decision-en-v3".into()
 }
 fn default_system() -> String {
     "Make the requested decision from the supplied state. Follow the requested output format exactly.".into()
@@ -279,12 +279,6 @@ impl PromptRenderer for BrowserRenderer {
             })
             .collect::<Vec<_>>()
             .join("\n");
-        let codes = document
-            .options
-            .iter()
-            .map(|option| option.code.as_str())
-            .collect::<Vec<_>>()
-            .join(", ");
         let label = if document.options.iter().all(|option| {
             option.code.len() == 1 && option.code.bytes().all(|c| c.is_ascii_alphabetic())
         }) {
@@ -293,11 +287,12 @@ impl PromptRenderer for BrowserRenderer {
             "code"
         };
         let user = format!(
-            "State:\n{evidence}\n\nQuestion:\n{criterion}\n\nAllowed options:\n{options}\n\nReply with exactly one option {label} from: {codes}."
+            "State:\n{evidence}\n\nQuestion:\n{criterion}\n\nAllowed options:\n{options}\n\nAnswer as {{\"answer\": \"<option {label}>\"}}."
         );
         Ok(RenderedMessages {
             system: Some(self.profile.system_instruction.clone()),
             user,
+            assistant_prefix: "{\"answer\": \"".into(),
             profile: self.profile.profile.clone(),
         })
     }
@@ -318,6 +313,9 @@ impl JsExecutor {
             parallel_suffixes: c.parallel_suffixes,
             selective_output_head: c.selective_output_head,
             local_inference: c.local_inference,
+            image_input: false,
+            audio_input: false,
+            video_input: false,
         }
     }
 }
@@ -481,6 +479,11 @@ impl WasmEngine {
         {
             return Err(JsValue::from_str("invalid runtime modalities"));
         }
+        let order_robustness = if cyclic_order_robustness.unwrap_or(false) {
+            OrderRobustness::Cyclic
+        } else {
+            OrderRobustness::None
+        };
         if descriptor.scoring_mode == ScoringMode::Decisions {
             if !Reflect::get(&runtime, &JsValue::from_str("scoreDecisionBatch"))?.is_function() {
                 return Err(JsValue::from_str(
@@ -491,7 +494,10 @@ impl WasmEngine {
                 engine: TurboJevAsync::new(BrowserBackend::Decisions {
                     runtime,
                     descriptor,
-                }),
+                })
+                .with_planning_policy(PlanningPolicy::Auto)
+                .with_order_robustness(order_robustness)
+                .with_execution_budget(ExecutionBudget::unlimited()),
             });
         }
         if descriptor.modalities.iter().any(|m| m != "text") {
@@ -526,11 +532,7 @@ impl WasmEngine {
         Ok(Self {
             engine: TurboJevAsync::new(BrowserBackend::Tokens(backend))
                 .with_planning_policy(PlanningPolicy::Auto)
-                .with_order_robustness(if cyclic_order_robustness.unwrap_or(false) {
-                    OrderRobustness::Cyclic
-                } else {
-                    OrderRobustness::None
-                })
+                .with_order_robustness(order_robustness)
                 .with_execution_budget(ExecutionBudget::unlimited()),
         })
     }

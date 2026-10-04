@@ -60,17 +60,21 @@ Use `evaluate` for choices, boolean gates (`noul`), ordered scores, and multiple
 
 Response probabilities are relative candidate scores, not calibrated confidence by default. Only describe them as calibrated when a matching calibration profile was fitted and applied. Keep the model's choice, host policy, and calibration provenance distinct.
 
+The built-in candidate-logit adapters request a structured answer and insert the literal `{"answer": "` before scoring its option code. This prefill is supplied prompt text, not generated JSON or a chosen option. Codebook probes must include the identical prefill and verify the candidate tokens at that continuation point. Reading option-letter logits at the beginning of an unconstrained assistant message can introduce a strong first-letter bias. Custom codecs must honor `RenderedMessages.assistant_prefix`; its legacy default is empty.
+
+Do not confuse removing positional bias with solving model reasoning. In a real Windows Qwen3-0.6B Q4_K_M audit, five simpler tasks passed all four candidate rotations (20/20), while a Snake wall state expressed in raw coordinates failed all four (0/4), selecting `up` regardless of its position. The same GGUF and Wllama 3.8.1 binary passed four replacement-routing rotations in Node CPU WASM. These are specific measurements, not guarantees for other models, Snake navigation, browsers, or WebGPU.
+
 ## Design decisions models can answer
 
 - State the relevant relationship in plain language when a small model would otherwise need to infer it from raw JSON, coordinates, or arithmetic. Structured state is valid; make its decision-relevant meaning explicit too.
 - Keep prompts compact and avoid repeating the same facts in the state, instructions, and criteria. More prompt tokens can increase prefill latency; remove only redundant text, then remeasure decision quality and latency.
 - Ask for one bounded decision at a time. Do not expect a small checkpoint to plan a long sequence of actions just because the API accepts a complex state.
 - Give candidates meaningful keys and descriptions that expose the distinction being scored. Opaque keys such as `A/B/C` add a mapping the model must infer.
-- Filter illegal or unsafe candidates in host code. Let TurboJev score the semantic choice, then use deterministic host rules for hard constraints and ties between equivalent actions.
+- Production applications may constrain available actions in host code, but disclose that assistance. A demo claiming model-controlled actions must execute the returned choice directly; do not replace it with a heuristic, probability fallback, tie-break, or forced action and count it as a model decision.
 - Test for order sensitivity by permuting candidates. A model that repeatedly chooses the first candidate is order-biased, even when one fixed ordering appears accurate. `orderRobustness: "cyclic"` evaluates multiple rotations, costs additional model evaluations, and is not a guarantee of correctness. Keep single-pass mode by default unless reproducible tests justify the added latency.
 - Validate with the exact model, quantization, runtime, and prompt path intended for deployment. Use reproducible cases and a simple reference policy where possible; report both decision quality and latency.
 
-For sequential tasks such as Snake, expose a one-step decision rather than asking a small model to plan a whole path. Describe the food's direction and distance in the state, describe each move by its resulting progress, filter illegal moves in the host, and resolve equivalent moves deterministically. Test with multiple starting states and permuted candidate order; one successful game is not evidence of general reliability.
+For model-controlled Snake, provide board facts (head, body, food, current direction, bounds, and coordinate convention) and ask for one actual direction: up, down, left, or right. Do not precompute food distances or closer/farther categories, choose a direction in the host, or skip evaluation. Apply the model choice unchanged; game physics reports collisions as failures. Log the complete request, response, selected action, applied action, and outcome. Earlier progress-category Snake results measured an assisted policy and do not establish model-controlled navigation. Test multiple starting states and candidate orders; a successful game is not evidence of general reliability.
 
 ## Choose the right runtime
 
@@ -96,3 +100,51 @@ TurboJev is useful for classification, routing, typed gates, and bounded rubric 
 5. Change the smallest responsible layer: request design for ambiguous context, host code for legality, runtime adapter for execution support, or TurboJev core only for a demonstrated shared semantic defect.
 
 Do not claim all models are supported merely because they use GGUF, or all hardware/architectures are available because a language binding exists. State the tested model, runtime, platform, and limitations.
+
+
+## Optional native model reasoning and measured limitations
+
+Native load JSON accepts `thinking: false` by default. Set `thinking: true` and
+`maxThinkingTokens: 512` to generate model reasoning before the typed decision.
+Python uses `TurboJev.load(model, thinking=True, max_thinking_tokens=512)`;
+Node uses `TurboJev.load({model, thinking: true, maxThinkingTokens: 512})`;
+.NET passes those camelCase fields in the object given to
+`TurboJevEngine.LoadAsync` and evaluates with `EvaluateJsonAsync`.
+C, Android and Swift pass the same load JSON. Rust uses
+`FfiLlamaCpp::open(model, config)?.with_thinking(true, 512)` with suitable context
+and sequence capacity. These APIs are introduced in release 0.29.2;
+do not assume the installed registry version already supports them.
+
+The native adapter uses the actual model Jinja reasoning template and its
+closing delimiters, then verifies candidate tokens after the literal JSON
+answer prefill. It does not invent a thought or choose a direction in the host.
+`usage.generated_tokens` counts actual model generation, summed across questions
+and cyclic evaluations; direct scoring stays zero. Shared/parallel/fused scoring
+is disabled for thinking, and the native host limits the context to at most four
+sequences. Increase `nCtx` or reduce `nSeqMax` to make room for longer prompts and
+thoughts. `THINKING_UNSUPPORTED`, `THINKING_CONTEXT_LIMIT` and
+`THINKING_BUDGET_EXHAUSTED` are real failures; do not hide them or fabricate an
+answer. Current media, worker and browser adapters reject this mode explicitly.
+Native shim ABI 9 is required; rebuild native dependents together.
+
+Real Windows CPU results: Qwen3-0.6B Q4/Q8 passed 20/20 simpler rotated decisions
+but failed 0/4 on the raw-coordinate Snake wall state. Qwen3.5-0.8B,
+Qwen3.5-2B and LFM2-350M Q4_K_M each passed those 20 simpler decisions and only
+1/4 wall rotations. A literal ASCII grid gave Qwen3.5-2B 2/4; its seed-0 game
+still ate no food and hit a wall after six decisions. A relative-position and
+neighbor-observation experiment also failed and was removed from the demo.
+No representation above is a qualified Snake solution. In a real completed
+thinking test, Qwen0.6B chose red after 123 generated tokens. Qwen3.5-2B did
+not finish Snake reasoning within 512 tokens. Thinking has measurable cost and
+is not an automatic correction for insufficient planning or instruction following.
+
+Valen-Preview-0923 combines Qwen3.5-2B with a trained candidate decision head,
+language-model LoRA and adapted visual components. After general training it
+was trained on 30,000 Sokoban records for three epochs. Its data generator uses
+optimal-action labels offline; its model evaluation receives pixels/rules and
+executes the predicted action without a host solver or legal-action mask.
+The model card reports 87.60% single-step Sokoban accuracy and 38/100 complete
+games on an outcome-conditioned set, not universally correct navigation. Those
+figures are not a controlled Snake comparison; we reviewed its code and card
+but did not run its checkpoint locally. Copying a random, untrained scoring head
+would not reproduce its learned policy. Its checkpoint is not a drop-in GGUF.
