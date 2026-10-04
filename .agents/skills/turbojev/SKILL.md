@@ -76,6 +76,17 @@ Do not confuse removing positional bias with solving model reasoning. In a real 
 
 For model-controlled Snake, provide board facts (head, body, food, current direction, bounds, and coordinate convention) and ask for one actual direction: up, down, left, or right. Do not precompute food distances or closer/farther categories, choose a direction in the host, or skip evaluation. Apply the model choice unchanged; game physics reports collisions as failures. Log the complete request, response, selected action, applied action, and outcome. Earlier progress-category Snake results measured an assisted policy and do not establish model-controlled navigation. Test multiple starting states and candidate orders; a successful game is not evidence of general reliability.
 
+For a deliberately simpler application, an explicit sensor representation may
+derive relative food direction and immediate collision facts from game physics.
+Disclose this as perception assistance and distinguish it from raw-coordinate
+reasoning. Keep all four directions available and apply the returned direction
+unchanged. Do not search for a path or map a model-selected progress category
+to a host-selected move. With PyPI 0.29.2 and Qwen3-0.6B Q4_K_M, the sensor demo
+completed three 40-turn games (seeds 0/1/2), eating 3/4/3 food with no collision
+or replaced action. Six states under four rotations passed 18/24; the raw wall
+state remained 0/4. These small results do not guarantee order independence,
+optimal navigation or reliability on longer games.
+
 ## Choose the right runtime
 
 - **Native text inference:** use the llama.cpp adapter for GGUF models it can load. CPU is the normal default. GPU is opt-in; an unsupported GPU request should surface the runtime error, not silently change devices.

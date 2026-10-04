@@ -45,8 +45,21 @@ The [Python Snake demo](https://github.com/DestroyerDarkNess/TurboJev.Demos/tree
 now offers all four directions on every turn and applies the returned choice
 unchanged. The host checks collisions after the choice, which ends the game on
 failure. There are no host-selected moves, rescues, probability fallbacks, or
-skipped forced-move evaluations. Each turn logs its full request and response,
+skipped forced-move evaluations. The default `sensors` representation now
+prepares relative food direction and immediate collision facts before inference.
+This is disclosed perception assistance: it removes coordinate arithmetic,
+does not compute a path, and does not filter the four candidates or choose a move.
+Raw `coordinates` and `grid` modes remain available for separate reasoning tests.
+Each turn logs its full request and response,
 model choice, applied choice, and resulting position for audit.
+
+Using the published PyPI 0.29.2 package, Qwen3-0.6B Q4_K_M and single-pass CPU
+scoring, the sensor demo ate 3/4/3 food in three 40-turn games (seeds 0/1/2).
+All 120 choices were applied unchanged and none collided. Six states under
+four candidate rotations passed 18/24, while the raw-coordinate wall state
+still failed 0/4. This demonstrates a useful simpler representation, not a
+general planning fix or order-independence guarantee. Full evidence is in the
+demo's `snake-python/validation/qwen-sensors-0292.json` and game traces.
 
 ## Test order, quality, and latency
 
