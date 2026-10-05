@@ -34,6 +34,8 @@ def main() -> None:
             "-Werror",
             "-I",
             str(STUB_DIR),
+            "-isystem",
+            str(NATIVE / "tests/vendor"),
             "-I",
             str(NATIVE),
             str(SHIM),
@@ -44,7 +46,7 @@ def main() -> None:
         ]
         subprocess.run(command, check=True)
         subprocess.run([str(executable)], check=True)
-    print(f"OK: llama.cpp native shim compiles, links, and passes ABI smoke test with {Path(compiler).name}")
+    print(f"OK: complete shim compiled; fixture ABI regression tests passed with {Path(compiler).name} (not a real-model test)")
 
 
 if __name__ == "__main__":

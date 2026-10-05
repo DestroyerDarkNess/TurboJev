@@ -13,6 +13,14 @@ typedef int32_t llama_seq_id;
 typedef struct llama_model llama_model;
 typedef struct llama_context llama_context;
 typedef struct llama_vocab llama_vocab;
+typedef struct llama_sampler llama_sampler;
+typedef struct llama_token_data { llama_token id; float logit; float p; } llama_token_data;
+typedef struct llama_token_data_array {
+    llama_token_data * data;
+    size_t size;
+    int64_t selected;
+    bool sorted;
+} llama_token_data_array;
 typedef struct llama_memory_i * llama_memory_t;
 typedef struct llama_model_params { int32_t n_gpu_layers; } llama_model_params;
 typedef struct llama_context_params {
@@ -20,6 +28,8 @@ typedef struct llama_context_params {
     uint32_t n_batch;
     uint32_t n_seq_max;
     bool no_perf;
+    bool offload_kqv;
+    bool op_offload;
 } llama_context_params;
 typedef struct llama_chat_message { const char * role; const char * content; } llama_chat_message;
 typedef struct llama_batch {
@@ -60,6 +70,11 @@ void llama_batch_free(llama_batch);
 int32_t llama_decode(llama_context *, llama_batch);
 float * llama_get_logits_ith(llama_context *, int32_t);
 int32_t llama_vocab_n_tokens(const llama_vocab *);
+bool llama_vocab_is_eog(const llama_vocab *, llama_token);
+llama_sampler * llama_sampler_init_grammar(const llama_vocab *, const char *, const char *);
+void llama_sampler_apply(llama_sampler *, llama_token_data_array *);
+void llama_sampler_accept(llama_sampler *, llama_token);
+void llama_sampler_free(llama_sampler *);
 #ifdef __cplusplus
 }
 #endif

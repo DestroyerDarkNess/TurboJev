@@ -69,6 +69,15 @@ int main() {
     assert(tj_llama_max_parallel_tasks(runtime) == 7);
     assert(tj_llama_max_parallel_suffix_tokens(runtime) == 0);
 
+    // The complete field ABI is compiled, but this fixture has no grammar
+    // implementation. Never fabricate a generated value to pass this gate.
+    const char * field_task = R"({"state":"Seven","instructions":"Return the number.","thinking":false,"thinking_budget":0,"max_tokens":32,"output_schema":{"type":"integer"}})";
+    assert(tj_llama_generate_field(runtime, field_task, error, sizeof(error)) != 0);
+    assert(std::string(error).find("grammar generation unavailable in ABI stub") != std::string::npos);
+    char field_output[128] = {};
+    assert(tj_llama_field_result(runtime, field_output, sizeof(field_output), error, sizeof(error)) <= 0);
+    assert(field_output[0] == '\0');
+
     char desc[128] = {};
     const int64_t desc_len = tj_llama_model_desc(runtime, desc, sizeof(desc), error, sizeof(error));
     assert(desc_len > 0);
@@ -406,6 +415,8 @@ int main() {
     runtime = tj_llama_open("fixture.gguf", &config, error, sizeof(error));
     assert(runtime != nullptr);
     assert(tj_llama_max_parallel_tasks(runtime) == 0);
+    assert(tj_llama_shared_prefix_supported(runtime) == 0);
+    assert(tj_llama_prefill_shared(runtime, base.data(), prefix_count, error, sizeof(error)) != 0);
     assert(tj_llama_multi_root_supported(runtime) == 0);
     tj_llama_close(runtime);
     return 0;

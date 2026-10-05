@@ -28,7 +28,7 @@ struct llama_context {
 static llama_vocab STUB_VOCAB;
 
 llama_model_params llama_model_default_params(void) { return {0}; }
-llama_context_params llama_context_default_params(void) { return {2048, 512, 1, false}; }
+llama_context_params llama_context_default_params(void) { return {2048, 512, 1, false, false, false}; }
 void llama_backend_init(void) {}
 llama_model * llama_model_load_from_file(const char *, llama_model_params) { return new llama_model(); }
 void llama_model_free(llama_model * model) { delete model; }
@@ -305,3 +305,10 @@ float * llama_get_logits_ith(llama_context * context, int32_t index) {
 }
 
 int32_t llama_vocab_n_tokens(const llama_vocab *) { return 4096; }
+
+// ABI fixtures deliberately cannot enforce a grammar or generate field answers.
+bool llama_vocab_is_eog(const llama_vocab *, llama_token token) { return token == 1; }
+llama_sampler * llama_sampler_init_grammar(const llama_vocab *, const char *, const char *) { return nullptr; }
+void llama_sampler_apply(llama_sampler *, llama_token_data_array *) {}
+void llama_sampler_accept(llama_sampler *, llama_token) {}
+void llama_sampler_free(llama_sampler *) {}

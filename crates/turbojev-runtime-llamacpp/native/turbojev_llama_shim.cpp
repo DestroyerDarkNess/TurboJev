@@ -1120,10 +1120,14 @@ int32_t tj_llama_generate_field(tj_llama_runtime * runtime, const char * task_js
         const std::string system = "Answer the requested field from the supplied evidence. Return only the requested JSON object.";
         std::string context = media ? state.value("text", "") : (state.is_string() ? state.get<std::string>() : state.dump());
         if (media) {
+#if defined(TURBOJEV_HAS_MTMD)
             if (!runtime->mtmd) { set_error(error, error_capacity, "multimodal field generation requires a matching mmproj"); return -1; }
             const std::string marker = mtmd_get_marker(runtime->mtmd);
             const size_t count = state.value("modality", "") == "video" ? state.at("frames").size() : 1;
             for (size_t i = 0; i < count; ++i) context += "\n" + marker;
+#else
+            set_error(error, error_capacity, "multimodal field generation is unavailable in this build"); return -1;
+#endif
         }
         const std::string user = "State:\n" + context + "\n\nQuestion:\n" + task.at("instructions").get<std::string>()
             + "\n\nReturn exactly one JSON object with the key value and this value schema: " + task.at("output_schema").dump();
