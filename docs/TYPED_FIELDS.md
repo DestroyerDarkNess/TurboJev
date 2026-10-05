@@ -100,6 +100,13 @@ Native and browser GGUF field generation accept the existing image/audio/video-f
 
 The native ABI is shim version 10; rebuild native dependents together. Runtime options are scoped to each field and restored after errors. Existing `evaluate` requests and responses remain supported.
 
+Native `nSeqMax=1` works for scalar workflows and multi-question `evaluate`.
+Multi-question evaluation uses independent reference scoring at that capacity.
+Shared-prefix reuse requires at least two sequences (an immutable prefix and a
+suffix); parallel suffix reuse requires at least three. The runtime advertises
+only the optimizations its loaded context can perform. This changes scheduling,
+not the selected CPU/GPU device or the meaning of the answers.
+
 ## Tests and evals adapted from TypeLLM
 
 | Reference tests | TurboJev coverage |

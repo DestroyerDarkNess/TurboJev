@@ -273,6 +273,12 @@ Native and browser GGUF field generation accept the existing image/audio/video-f
 
 The native ABI is shim version 10; rebuild native dependents together. Runtime options are scoped to each field and restored after errors. Existing `evaluate` requests and responses remain supported.
 
+With native `nSeqMax=1`, multi-question `evaluate` uses independent reference
+scoring. Shared-prefix reuse requires at least two sequences; parallel suffix
+reuse requires at least three. The runtime negotiates these capabilities from
+the loaded context. Reducing sequence capacity can save memory while repeating
+prefill per question. It does not switch an explicit CPU/GPU device selection.
+
 
 
 Wllama 3.8.1 exposes top-N vocabulary scores and its Jinja autoparser does not apply custom GBNF on this path. The adapter resolves letter labels through the loaded model tokenizer using textual logit-bias keys, applies the same additive offset to every permitted label, and requests post-sampling probabilities with truncation disabled. A common offset preserves candidate log-odds and the conditional distribution; it does not favor the first option or select a winner. This uses one model call for 2–24 candidates. Missing or invalid scores are errors, never invented probabilities. The browser adapter does not claim a selective output head.
