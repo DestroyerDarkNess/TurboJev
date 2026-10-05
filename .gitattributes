@@ -2,3 +2,4 @@
 tests/specialized/*.json text eol=lf
 tests/server/*.json text eol=lf
 benchmarks/fixtures/*.json text eol=lf
+evals/data/**/*.jsonl text eol=lf
