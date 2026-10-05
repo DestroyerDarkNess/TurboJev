@@ -59,11 +59,17 @@ const options = extra => ({
   ...extra,
 });
 
-test('recovers omitted vocabulary candidates without inventing scores', async () => {
+test('uniform candidate offsets preserve every pairwise log-odds in one call', async () => {
   const mock = makeWllama({ decisionResponse: options => {
-    const labels = Array.from({ length: options.top_logprobs > 128 ? 24 : 20 }, (_, i) => String.fromCharCode(65 + i));
+    const labels = Object.keys(options.logit_bias);
+    assert.equal(labels.length, 24);
+    assert.ok(Object.values(options.logit_bias).every(value => value === 100));
+    assert.equal(options.post_sampling_probs, true);
+    assert.equal(options.min_p, 0);
+    const raw = labels.map((_, i) => i - 30);
+    const normalization = Math.log(raw.reduce((sum, value) => sum + Math.exp(value), 0));
     return { usage: { prompt_tokens: 12 }, choices: [{ logprobs: { content: [{
-      top_logprobs: labels.map(token => ({ token, logprob: token.charCodeAt(0) - 100 })),
+      top_probs: labels.map((token, i) => ({ token, prob: Math.exp(raw[i] - normalization) })),
     }] } }] };
   } });
   const runtime = await createRuntime(mock);
@@ -71,13 +77,10 @@ test('recovers omitted vocabulary candidates without inventing scores', async ()
   const output = JSON.parse(await runtime.scoreDecisionBatch(JSON.stringify({ state: 'Evidence', tasks: [{
     id: 'all', instruction: 'Choose the label', candidates: Array.from({ length: 24 }, (_, i) => ({ key: `option_${i}` })),
   }] })));
-  assert.deepEqual(output.scores[0].logits, Array.from({ length: 24 }, (_, i) => 65 + i - 100));
-  assert.equal(output.metrics.input_tokens, 24);
-  const requests = mock.calls().filter(c => c.kind === 'completion' && c.options.logprobs);
-  assert.equal(requests.length, 2);
-  assert.equal(requests[0].options.top_logprobs, 128);
-  assert.equal(requests[1].options.top_logprobs, 1000);
-  assert.deepEqual(requests[0].options.messages, requests[1].options.messages);
+  const scores = output.scores[0].logits;
+  for (let i = 0; i < 24; i++) assert.ok(Math.abs((scores[i] - scores[0]) - i) < 1e-12);
+  assert.equal(output.metrics.input_tokens, 12);
+  assert.equal(mock.calls().filter(c => c.kind === 'completion' && c.options.logprobs).length, 1);
   await runtime.close();
 });
 

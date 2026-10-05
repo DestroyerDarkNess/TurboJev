@@ -41,7 +41,7 @@ The same JSON request is accepted by every binding. Supply exactly one of `quest
 
 Token limits are request-level `text_max_tokens` (default 256) and `numeric_max_tokens` (default 64), each 1–32768. Booleans default to `[true, false]`, plus actual null for nullable booleans. Numeric equality distinguishes booleans from integers and does not round distinct 64-bit integer values. Unsupported keywords, including bounds, string length/format constraints and nested schemas, are rejected before inference rather than ignored. Invalid generated output and exhausted budgets are errors.
 
-Wllama 3.8.1 exposes top-N vocabulary scores. The adapter first requests 128 scores; if a permitted label is missing, it queries the actual vocabulary size from the loaded model and requests all scores with the same prompt. This recovery adds one model call and counts its actual input tokens. No missing candidate receives an invented probability. The core projects 1–24 candidates and normalizes their scores; the browser adapter does not claim a selective output head.
+Wllama 3.8.1 exposes top-N vocabulary scores and its Jinja autoparser does not apply custom GBNF on this path. The adapter resolves letter labels through the loaded model tokenizer using textual logit-bias keys, applies the same additive offset to every permitted label, and requests post-sampling probabilities with truncation disabled. A common offset preserves candidate log-odds and the conditional distribution; it does not favor the first option or select a winner. This uses one model call for 2–24 candidates. Missing or invalid scores are errors, never invented probabilities. The browser adapter does not claim a selective output head.
 
 ## Dependencies, conditions and null
 

@@ -45,9 +45,10 @@ def main():
         name, version = package['name'], package['version']
         request = urllib.request.Request(
             f'https://crates.io/api/v1/crates/{name}/{version}',
-            headers={'User-Agent': 'TurboJev local publisher (github.com/DestroyerDarkNess/TurboJev)'})
+            headers={'User-Agent': 'TurboJev local publisher (github.com/DestroyerDarkNess/TurboJev)',
+                     'Cache-Control': 'no-cache'})
         try:
-            with urllib.request.urlopen(request) as response:
+            with urllib.request.urlopen(request, timeout=30) as response:
                 existing = json.load(response)
             if existing['version'].get('yanked'):
                 raise RuntimeError(f'{name}@{version} is yanked')

@@ -133,6 +133,11 @@ export async function createRuntime(dependencies = {}) {
         if (candidates.length < 2 || candidates.length > 24) {
           throw new Error(`llama.cpp WASM supports 2–24 choices per decision (received ${candidates.length}).`);
         }
+        // Wllama's Jinja autoparser ignores custom GBNF for this path.
+        // Resolve textual labels through its actual model tokenizer and give
+        // every allowed token the SAME additive offset. Relative log-odds among
+        // candidates are unchanged; post-sampling top-N then includes them all.
+        // Never supply guessed token IDs or boost one answer over another.
         const labels = Array.from({ length: candidates.length }, (_, i) => String.fromCharCode(65 + i));
         const isBestMatch = String(task.intent).toLowerCase() === 'bestmatch';
         const criterion = task.instruction || (isBestMatch ? 'Choose the option that best matches the state.' : 'Choose the correct option.');
@@ -176,9 +181,10 @@ export async function createRuntime(dependencies = {}) {
             top_k: 0,
             top_p: 1,
             min_p: 0,
-            post_sampling_probs: false,
+            post_sampling_probs: true,
             logprobs: true,
-            top_logprobs: 128,
+            top_logprobs: labels.length,
+            logit_bias: Object.fromEntries(labels.map(label => [label, 100])),
 
             cache_prompt: false,
             chat_template_kwargs: { enable_thinking: false },
@@ -203,24 +209,7 @@ export async function createRuntime(dependencies = {}) {
             return typeof match?.logprob === 'number' ? match.logprob : NaN;
           });
         };
-        let logits = project(response);
-        if (logits.some(value => !Number.isFinite(value))) {
-          // Public Wllama completions expose top-N vocabulary scores, not a
-          // selective candidate projection. Its Jinja autoparser ignores custom
-          // GBNF in this version. Query the actual full vocabulary only when a
-          // requested candidate was omitted; never invent its probability.
-          const nVocab = engine.getLoadedContextInfo?.().n_vocab;
-          if (Number.isInteger(nVocab) && nVocab > 128) {
-            response = await engine.createChatCompletion({
-              messages, prefill_assistant: true, max_tokens: 1, temperature: 1,
-              top_k: 0, top_p: 1, min_p: 0, logprobs: true,
-              top_logprobs: nVocab, post_sampling_probs: false,
-              cache_prompt: false, chat_template_kwargs: { enable_thinking: false },
-            });
-            inputTokens += response.usage?.prompt_tokens || 0;
-            logits = project(response);
-          }
-        }
+        const logits = project(response);
         if (logits.some(value => !Number.isFinite(value))) {
           throw new Error(`llama.cpp did not return a score for every allowed answer (${labels.join(', ')}). Try another GGUF model or runtime version.`);
         }
