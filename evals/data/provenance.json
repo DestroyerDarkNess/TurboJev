@@ -1,0 +1,28 @@
+{
+  "typellm": {
+    "repository": "https://github.com/TypeLLM/TypeLLM",
+    "reference_version": "0.5.1",
+    "license": "Apache-2.0",
+    "source_hashes": {
+      "typellm/schema.py": "a70aee0533fe6927a048d928d46c7d72c798ce0d5d1947dc40741981eaff7beb",
+      "typellm/runtime.py": "048b0da62207596d6c50a6a35d6f583cbf508ad558863cb0d873f7db61bdea94",
+      "evals/numeric_eval.py": "fcda1556106d6a216d905a60f40c1d27956be7c40c0379efe7343b326e8962e6",
+      "evals/numeric_eval_cases.jsonl": "f9b9ec36208e198315a3a92088416acb6a0a69ad0e926d1990e8fb7de18cf204",
+      "pyproject.toml": "e21d5db880d5a72175c9e648de558163d689a62924c25974038381c47d0c4693",
+      "LICENSE": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+    }
+  },
+  "jevbench": {
+    "repository": "https://github.com/fstandhartinger/jevbench",
+    "commit": "f8ce71361165846101d02ebc83ad44e47ae44fc3",
+    "license": "MIT"
+  },
+  "files": {
+    "jevbench/easy.jsonl": "231df3c2c8e88a1a8c137ebe85de96ba70fabd330849098ac7b3c52c70b7172b",
+    "jevbench/hard.jsonl": "89e9e6becb33ed88c1de7d42dcc87531b2fb64cfaef4e1986faf7c37b3f80ebb",
+    "jevbench/LICENSE": "3e5beed774bb0bcbfb2fcf24ba9554212c6ae112937d308040989465ab0c5784",
+    "jevbench/original.jsonl": "5c2414edb3006b8bfcb70fda433f0f9ca015759433849f8d3104328a1f7c4180",
+    "numeric/cases.jsonl": "f9b9ec36208e198315a3a92088416acb6a0a69ad0e926d1990e8fb7de18cf204",
+    "numeric/LICENSE": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+  }
+}

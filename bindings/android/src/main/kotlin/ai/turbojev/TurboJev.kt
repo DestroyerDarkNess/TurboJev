@@ -14,6 +14,7 @@ class TurboJev private constructor(private val thread:HandlerThread, private val
         }
     }
     fun evaluate(request:JSONObject)=submit { JSONObject(NativeBridge.evaluate(requireHandle(),request.toString())) }
+    fun generate(request:JSONObject)=submit { JSONObject(NativeBridge.generate(requireHandle(),request.toString())) }
     fun evaluateCompatible(profile:String,request:JSONObject)=submit { JSONObject(NativeBridge.compatible(requireHandle(),profile,request.toString())) }
     private fun requireHandle():Long { if(handle==0L) throw IllegalStateException("TurboJev is closed"); return handle }
     private fun <T> submit(block:()->T):CompletableFuture<T>{val f=CompletableFuture<T>();handler.post{try{f.complete(block())}catch(t:Throwable){f.completeExceptionally(t)}};return f}

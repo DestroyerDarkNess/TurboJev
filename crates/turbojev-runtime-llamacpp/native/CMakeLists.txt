@@ -48,7 +48,7 @@ target_compile_features(turbojev_llama_shim PRIVATE cxx_std_17)
 target_compile_definitions(turbojev_llama_shim PRIVATE TURBOJEV_HAS_MTMD=1)
 target_include_directories(turbojev_llama_shim
   PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}"
-  PRIVATE "${LLAMA_CPP_SOURCE_DIR}/include")
+  PRIVATE "${LLAMA_CPP_SOURCE_DIR}/include" "${LLAMA_CPP_SOURCE_DIR}/vendor")
 target_include_directories(turbojev_llama_shim PRIVATE "${LLAMA_CPP_SOURCE_DIR}/tools/mtmd")
 target_link_libraries(turbojev_llama_shim PRIVATE llama llama-common mtmd)
 set_target_properties(turbojev_llama_shim PROPERTIES

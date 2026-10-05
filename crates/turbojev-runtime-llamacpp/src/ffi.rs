@@ -16,7 +16,7 @@ use turbojev_runtime::TokenId;
 use crate::{LlamaCppApi, LlamaCppError, LlamaCppRootTask, LlamaCppSuffixTask};
 use turbojev_prompt::RenderedMessages;
 
-const SHIM_ABI_VERSION: u32 = 9;
+const SHIM_ABI_VERSION: u32 = 10;
 const ERROR_CAPACITY: usize = 2048;
 
 #[repr(C)]
@@ -48,6 +48,19 @@ impl Default for NativeConfig {
 #[cfg(feature = "ffi")]
 #[link(name = "turbojev_llama_shim")]
 extern "C" {
+    fn tj_llama_generate_field(
+        runtime: *mut c_void,
+        task: *const c_char,
+        error: *mut c_char,
+        error_capacity: usize,
+    ) -> i32;
+    fn tj_llama_field_result(
+        runtime: *mut c_void,
+        out: *mut c_char,
+        capacity: usize,
+        error: *mut c_char,
+        error_capacity: usize,
+    ) -> i64;
     fn tj_llama_abi_version() -> u32;
     fn tj_llama_open(
         model_path: *const c_char,
@@ -220,8 +233,8 @@ pub struct FfiLlamaCpp {
     max_multi_root_tasks: Option<usize>,
     multi_root_enabled: bool,
     estimated_multi_root_item_bytes: Option<u64>,
-    thinking: bool,
-    max_thinking_tokens: u32,
+    thinking: std::cell::Cell<bool>,
+    max_thinking_tokens: std::cell::Cell<u32>,
     _not_send_sync: PhantomData<Rc<()>>,
 }
 
@@ -286,8 +299,8 @@ impl FfiLlamaCpp {
             max_multi_root_tasks: (native_multi_root_tasks > 0).then_some(native_multi_root_tasks),
             multi_root_enabled: false,
             estimated_multi_root_item_bytes: None,
-            thinking: false,
-            max_thinking_tokens: 512,
+            thinking: std::cell::Cell::new(false),
+            max_thinking_tokens: std::cell::Cell::new(512),
             _not_send_sync: PhantomData,
         };
         runtime.model_id = runtime.read_model_desc()?;
@@ -408,9 +421,9 @@ impl FfiLlamaCpp {
     }
 
     /// Enable bounded, template-supported text reasoning before scoring.
-    pub fn with_thinking(mut self, enabled: bool, max_tokens: u32) -> Self {
-        self.thinking = enabled;
-        self.max_thinking_tokens = max_tokens;
+    pub fn with_thinking(self, enabled: bool, max_tokens: u32) -> Self {
+        self.thinking.set(enabled);
+        self.max_thinking_tokens.set(max_tokens);
         self
     }
 
@@ -499,6 +512,64 @@ impl FfiLlamaCpp {
 
 #[cfg(feature = "ffi")]
 impl LlamaCppApi for FfiLlamaCpp {
+    fn with_field_options<T, F>(
+        &self,
+        thinking: bool,
+        budget: usize,
+        operation: F,
+    ) -> Result<T, LlamaCppError>
+    where
+        F: FnOnce() -> Result<T, LlamaCppError>,
+    {
+        struct Restore<'a>(&'a FfiLlamaCpp, bool, u32);
+        impl Drop for Restore<'_> {
+            fn drop(&mut self) {
+                self.0.thinking.set(self.1);
+                self.0.max_thinking_tokens.set(self.2);
+            }
+        }
+        let _restore = Restore(
+            self,
+            self.thinking.replace(thinking),
+            self.max_thinking_tokens.replace(budget as u32),
+        );
+        operation()
+    }
+
+    fn generate_field(
+        &self,
+        task: &turbojev_backend::FieldTask,
+    ) -> Result<turbojev_backend::FieldOutput, LlamaCppError> {
+        let input = CString::new(
+            serde_json::to_string(task).map_err(|e| LlamaCppError::InvalidInput(e.to_string()))?,
+        )
+        .map_err(|_| LlamaCppError::InvalidInput("field contains NUL".into()))?;
+        let mut error = vec![0 as c_char; ERROR_CAPACITY];
+        let status = unsafe {
+            tj_llama_generate_field(
+                self.handle.as_ptr(),
+                input.as_ptr(),
+                error.as_mut_ptr(),
+                error.len(),
+            )
+        };
+        if status != 0 {
+            return Err(native_error(&error, "field generation failed"));
+        }
+        let text = self.call_text(|out, cap, error, error_cap| unsafe {
+            tj_llama_field_result(self.handle.as_ptr(), out, cap, error, error_cap)
+        })?;
+        serde_json::from_str(&text)
+            .map_err(|e| LlamaCppError::Native(format!("invalid native field output: {e}")))
+    }
+    fn field_thinking(&self) -> Result<String, LlamaCppError> {
+        let text = self.call_text(|out, cap, error, error_cap| unsafe {
+            tj_llama_field_result(self.handle.as_ptr(), out, cap, error, error_cap)
+        })?;
+        let output: turbojev_backend::FieldOutput =
+            serde_json::from_str(&text).map_err(|e| LlamaCppError::Native(e.to_string()))?;
+        Ok(output.thinking)
+    }
     fn model_id(&self) -> &str {
         &self.model_id
     }
@@ -575,7 +646,7 @@ impl LlamaCppApi for FfiLlamaCpp {
     }
 
     fn thinking_enabled(&self) -> bool {
-        self.thinking
+        self.thinking.get()
     }
 
     fn score_thinking_next_token(
@@ -599,7 +670,7 @@ impl LlamaCppApi for FfiLlamaCpp {
                 prefix.as_ptr(),
                 candidate_token_ids.as_ptr(),
                 candidate_token_ids.len(),
-                self.max_thinking_tokens,
+                self.max_thinking_tokens.get(),
                 logits.as_mut_ptr(),
                 &mut generated,
                 error.as_mut_ptr(),
@@ -648,7 +719,8 @@ impl LlamaCppApi for FfiLlamaCpp {
     }
 
     fn sequence_scores_supported(&self) -> bool {
-        !self.thinking && unsafe { tj_llama_sequence_scores_supported(self.handle.as_ptr()) != 0 }
+        !self.thinking.get()
+            && unsafe { tj_llama_sequence_scores_supported(self.handle.as_ptr()) != 0 }
     }
 
     fn score_sequences(
@@ -679,19 +751,19 @@ impl LlamaCppApi for FfiLlamaCpp {
     }
 
     fn multi_root_supported(&self) -> bool {
-        !self.thinking
+        !self.thinking.get()
             && self.multi_root_enabled
             && unsafe { tj_llama_multi_root_supported(self.handle.as_ptr()) != 0 }
     }
 
     fn max_multi_root_tasks(&self) -> Option<usize> {
-        (!self.thinking && self.multi_root_enabled)
+        (!self.thinking.get() && self.multi_root_enabled)
             .then_some(self.max_multi_root_tasks)
             .flatten()
     }
 
     fn max_multi_root_tokens(&self) -> Option<usize> {
-        if self.thinking || !self.multi_root_enabled {
+        if self.thinking.get() || !self.multi_root_enabled {
             return None;
         }
         let value = unsafe { tj_llama_max_multi_root_tokens(self.handle.as_ptr()) };
@@ -699,7 +771,7 @@ impl LlamaCppApi for FfiLlamaCpp {
     }
 
     fn estimated_multi_root_item_bytes(&self) -> Option<u64> {
-        (!self.thinking && self.multi_root_enabled)
+        (!self.thinking.get() && self.multi_root_enabled)
             .then_some(self.estimated_multi_root_item_bytes)
             .flatten()
     }
@@ -708,7 +780,7 @@ impl LlamaCppApi for FfiLlamaCpp {
         &self,
         tasks: &[LlamaCppRootTask<'_>],
     ) -> Result<Vec<Vec<f32>>, LlamaCppError> {
-        if self.thinking || !self.multi_root_enabled {
+        if self.thinking.get() || !self.multi_root_enabled {
             return Err(LlamaCppError::Unsupported(
                 "llama.cpp multi-root fused scoring is disabled until explicitly enabled after target-specific conformance".to_owned(),
             ));
@@ -784,11 +856,13 @@ impl LlamaCppApi for FfiLlamaCpp {
     }
 
     fn shared_prefix_supported(&self) -> bool {
-        !self.thinking && unsafe { tj_llama_shared_prefix_supported(self.handle.as_ptr()) != 0 }
+        !self.thinking.get()
+            && unsafe { tj_llama_shared_prefix_supported(self.handle.as_ptr()) != 0 }
     }
 
     fn parallel_suffix_supported(&self) -> bool {
-        !self.thinking && unsafe { tj_llama_parallel_suffix_supported(self.handle.as_ptr()) != 0 }
+        !self.thinking.get()
+            && unsafe { tj_llama_parallel_suffix_supported(self.handle.as_ptr()) != 0 }
     }
 
     fn max_parallel_tasks(&self) -> Option<usize> {

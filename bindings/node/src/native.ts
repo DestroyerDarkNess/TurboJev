@@ -3,7 +3,7 @@ import { createRequire } from "node:module";
 import { resolve } from "node:path";
 import type { LoadOptions } from "./types.js";
 
-export interface NativeEngine { evaluateJson(s:string):string; evaluateCompatibleJson(p:string,s:string):string; infoJson():string; close():void; }
+export interface NativeEngine { evaluateJson(s:string):string; generateJson(s:string):string; evaluateCompatibleJson(p:string,s:string):string; infoJson():string; close():void; }
 export interface NativeModule { NativeEngine: { open(optionsJson:string): NativeEngine } }
 
 export function loadNative(options: LoadOptions): NativeModule {

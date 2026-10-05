@@ -47,6 +47,14 @@ impl NativeEngine {
             .map_err(map_error)
     }
     #[napi]
+    pub fn generate_json(&self, request_json: String) -> Result<String> {
+        self.inner
+            .as_ref()
+            .ok_or_else(|| Error::from_reason("ENGINE_CLOSED"))?
+            .generate_json(&request_json)
+            .map_err(map_error)
+    }
+    #[napi]
     pub fn info_json(&self) -> Result<String> {
         self.inner
             .as_ref()

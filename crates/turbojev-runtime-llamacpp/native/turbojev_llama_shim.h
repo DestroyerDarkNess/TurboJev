@@ -8,9 +8,15 @@
 extern "C" {
 #endif
 
-#define TURBOJEV_LLAMA_SHIM_ABI_VERSION 9u
+#define TURBOJEV_LLAMA_SHIM_ABI_VERSION 10u
 
 typedef struct tj_llama_runtime tj_llama_runtime;
+
+/* Schema-constrained field generation and retrieval; getters never rerun inference. */
+int32_t tj_llama_generate_field(tj_llama_runtime * runtime, const char * task_json,
+    char * error, size_t error_capacity);
+int64_t tj_llama_field_result(tj_llama_runtime * runtime, char * out, size_t capacity,
+    char * error, size_t error_capacity);
 
 /* Text-only, bounded model reasoning followed by exact candidate logits.
  * Fails on unsupported templates or an unfinished reasoning budget.

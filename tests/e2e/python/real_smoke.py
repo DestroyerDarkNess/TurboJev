@@ -44,7 +44,7 @@ def main():
             if answer["type"] == "choice":
                 assert answer["choice"] in answer["probabilities"]
 
-    with TurboJev.load(args.model, n_gpu_layers=0) as engine:
+    with TurboJev.load(args.model, device="cpu", n_gpu_layers=0,n_ctx=8192,n_seq_max=1,n_threads=4) as engine:
         check("all_three_types", lambda: valid(engine.evaluate(request)))
         baseline = engine.evaluate(request)["answers"]
 
@@ -71,6 +71,16 @@ def main():
         check("reject_one_option", lambda: rejects(lambda: engine.evaluate(invalid_choice)))
         check("reject_no_questions", lambda: rejects(lambda: engine.evaluate({"state": "hi", "questions": {}})))
         check("recovery_after_errors", lambda: valid(engine.evaluate(request)))
+        def generated_fields():
+            response=engine.generate(context="There are exactly seven items.",questions={
+                "count":{"type":"integer","instructions":"How many items are stated?"},
+                "seen":{"type":"boolean","depends_on":["count"],"instructions":"Was an item count provided?"},
+            })
+            assert type(response['result']['count']) is int
+            assert type(response['result']['seen']) is bool
+            assert response['usage']['generated_tokens']>0
+        check("generated_integer_dependency",generated_fields)
+        check("reject_unsupported_field_schema",lambda: rejects(lambda:engine.generate(context="x",questions={"bad":{"type":"number","minimum":0}})))
 
     check("use_after_close", lambda: rejects(lambda: engine.evaluate(request)))
     check("close_twice", engine.close)

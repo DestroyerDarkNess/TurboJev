@@ -16,6 +16,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let runtime = FfiLlamaCpp::open(
         &model,
         NativeConfig {
+            n_ctx: 8192,
+            n_seq_max: 1,
             n_gpu_layers: 0,
             n_threads: 4,
             n_threads_batch: 4,
@@ -28,6 +30,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         "Which department should handle this message?",
     ));
     let engine = TurboJev::new(reference_backend(renderer, runtime));
+    if text == "--generate" {
+        let request = serde_json::from_str(include_str!("../../typed-fields/request.json"))?;
+        println!(
+            "{}",
+            serde_json::to_string_pretty(&engine.generate(request)?)?
+        );
+        return Ok(());
+    }
     let criteria = [
         ("billing", "Payments and refunds"),
         ("shipping", "Delivery"),

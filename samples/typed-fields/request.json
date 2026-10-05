@@ -1,0 +1,12 @@
+{
+  "context": "Invoice total: 324.50 GBP. Payment is overdue. No payment reference was provided.",
+  "questions": {
+    "total": {"type": "number", "instructions": "What is the invoice total in GBP?"},
+    "overdue": {"type": "boolean", "instructions": "Is payment overdue?"},
+    "reference": {"type": ["string", "null"], "instructions": "Return the payment reference, or null when absent."},
+    "reminder": {"type": "string", "when": {"overdue": true}, "depends_on": ["total"], "instructions": "Write one short payment reminder including the total."}
+  },
+  "thinking": false,
+  "text_max_tokens": 128,
+  "numeric_max_tokens": 64
+}

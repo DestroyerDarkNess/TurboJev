@@ -19,7 +19,13 @@ function valueAfter(flag: string, fallback?: string): string | undefined {
   return index >= 0 ? argumentsAfterModel[index + 1] : fallback;
 }
 
-if (mediaFlag >= 0) {
+if (argumentsAfterModel.includes("--generate")) {
+  const engine = await TurboJev.load({ model, nativePath: join(stage, "turbojev.node"),device:"cpu",nCtx:8192,nSeqMax:1,nThreads:4 });
+  try {
+    const request=JSON.parse(readFileSync(new URL("../../typed-fields/request.json",import.meta.url),"utf8"));
+    console.log(JSON.stringify(await engine.generate(request),null,2));
+  } finally { await engine.close(); }
+} else if (mediaFlag >= 0) {
   const mediaPath = argumentsAfterModel[mediaFlag + 1];
   const modality = valueAfter("--modality", "image");
   const question = valueAfter("--question", "What is shown?");

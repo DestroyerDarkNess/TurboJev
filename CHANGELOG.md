@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.30.0
+
+- Add `generate` across Rust, Python, Node/TypeScript, browser/WASM, C, .NET, Android and Swift with a shared Rust workflow: scalar JSON types, nullable fields, typed enums, dependencies, conditions, plain prior answers and explicit skipped fields.
+- Add bounded native JSON grammar generation and browser GGUF JSON Schema generation for open strings/numbers; Transformers.js validates bounded text generation afterward. Finite fields retain direct candidate scoring.
+- Add per-field thinking flags, budgets, efforts and actual model-selected automatic effort; unsupported runtimes return errors. Add opt-in seeded, balanced and exhaustive permutation probability averaging with a 720-evaluation cap.
+- Preserve semantic option labels for boolean/numeric fields and distinguish actual JSON null from absent output or the string "null". Return typed probability distributions without key collisions.
+- Disable automatic llama.cpp operation offload for CPU requests, in addition to setting zero GPU weight layers. Native shim ABI advances to 10.
+- Accept integrated GPU devices for explicit GPU requests instead of rejecting a working Vulkan iGPU before model loading.
+- Add field regression coverage and reproducible real-model numeric/JevBench evals with licenses, hashes, raw outputs, error accounting and latency metrics. Port fair-die and receipt examples to published-package demos.
+
 ## 0.29.2
 
 - Score native option tokens after the structured answer prefill, using the same prefix during candidate tokenization. This fixes the measured first-option bias in simple text decisions; spatial reasoning still depends on the model and prompt.

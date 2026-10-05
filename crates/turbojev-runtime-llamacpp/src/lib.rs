@@ -206,6 +206,31 @@ pub struct LlamaCppRootTask<'a> {
 /// Rust adapter testable without linking native code and insulates TurboJev from
 /// llama.cpp API churn.
 pub trait LlamaCppApi {
+    /// Configure one field, keeping template and scoring settings synchronized.
+    fn with_field_options<T, F>(
+        &self,
+        thinking: bool,
+        _budget: usize,
+        operation: F,
+    ) -> Result<T, LlamaCppError>
+    where
+        F: FnOnce() -> Result<T, LlamaCppError>,
+    {
+        if thinking {
+            return Err(LlamaCppError::Unsupported("per-field thinking".into()));
+        }
+        operation()
+    }
+
+    fn generate_field(
+        &self,
+        _task: &turbojev_backend::FieldTask,
+    ) -> Result<turbojev_backend::FieldOutput, LlamaCppError> {
+        Err(LlamaCppError::Unsupported("open-value generation".into()))
+    }
+    fn field_thinking(&self) -> Result<String, LlamaCppError> {
+        Ok(String::new())
+    }
     /// Human-readable loaded model/checkpoint identity.
     fn model_id(&self) -> &str;
 
@@ -507,6 +532,39 @@ impl<A> LlamaCppExecutor<A> {
 }
 
 impl<A: LlamaCppApi> RuntimeExecutor for LlamaCppExecutor<A> {
+    fn with_field_options<T, F>(
+        &self,
+        thinking: bool,
+        budget: usize,
+        operation: F,
+    ) -> Result<T, turbojev_backend::BackendError>
+    where
+        F: FnOnce() -> Result<T, turbojev_backend::BackendError>,
+    {
+        // Preserve the backend error separately rather than coercing schema errors.
+        let mut result = None;
+        self.api
+            .with_field_options(thinking, budget, || {
+                result = Some(operation());
+                Ok(())
+            })
+            .map_err(|e| turbojev_backend::BackendError::Inference(e.to_string()))?;
+        result.expect("operation ran exactly once")
+    }
+
+    fn generate_field(
+        &self,
+        task: &turbojev_backend::FieldTask,
+    ) -> Result<turbojev_backend::FieldOutput, turbojev_backend::BackendError> {
+        self.api
+            .generate_field(task)
+            .map_err(|e| turbojev_backend::BackendError::Inference(e.to_string()))
+    }
+    fn field_thinking(&self) -> Result<String, turbojev_backend::BackendError> {
+        self.api
+            .field_thinking()
+            .map_err(|e| turbojev_backend::BackendError::Inference(e.to_string()))
+    }
     fn name(&self) -> &'static str {
         "llamacpp"
     }

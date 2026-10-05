@@ -29,6 +29,13 @@ It runs locally with open-weight models, keeps inference and decision semantics
 separate, and exposes the same contract through Rust, Node/TypeScript, Python,
 C, .NET, and browser/WASM hosts.
 
+For extraction and dependent workflows, `generate` also supports JSON-typed
+strings, integers, decimals, booleans, nullable enums, conditions, dependencies,
+per-field reasoning and optional probability averaging across option orders.
+Unrestricted values use bounded model generation; finite decisions keep direct
+candidate scoring. See [typed fields](docs/TYPED_FIELDS.md) and the
+[real-model evals](evals/README.md) for the contract and runtime limits.
+
 ## Get a real model running
 
 The fastest path is one of the runnable samples. It builds the native libraries,

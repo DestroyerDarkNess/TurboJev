@@ -102,6 +102,11 @@ public final class TurboJevEngine {
             }
         }
     }
+    public func generate(_ requestJSON: String) throws -> String {
+        try call { engine, out in
+            requestJSON.withCString { request in tj_engine_generate_json(engine, request, out) }
+        }
+    }
 
     public func evaluateCompatible(profile: String, requestJSON: String) throws -> String {
         try call { engine, out in

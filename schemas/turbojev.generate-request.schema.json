@@ -1,0 +1,320 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://turbojev.dev/schemas/generate-request.json",
+  "title": "TurboJev GenerateRequest",
+  "type": "object",
+  "additionalProperties": false,
+  "description": "Structural schema. The Rust core additionally validates field types, dependency graphs, condition operands, conflicting reasoning settings and permutation limits before inference.",
+  "oneOf": [
+    {
+      "required": [
+        "context"
+      ],
+      "not": {
+        "required": [
+          "state"
+        ]
+      }
+    },
+    {
+      "required": [
+        "state"
+      ],
+      "not": {
+        "required": [
+          "context"
+        ]
+      }
+    }
+  ],
+  "allOf": [
+    {
+      "oneOf": [
+        {
+          "required": [
+            "questions"
+          ],
+          "not": {
+            "required": [
+              "schema"
+            ]
+          }
+        },
+        {
+          "required": [
+            "schema"
+          ],
+          "not": {
+            "required": [
+              "questions"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "properties": {
+    "context": {},
+    "state": {},
+    "questions": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": {
+        "$ref": "#/$defs/field"
+      }
+    },
+    "schema": {
+      "type": "object",
+      "required": [
+        "type",
+        "properties"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "object"
+        },
+        "properties": {
+          "type": "object",
+          "minProperties": 1,
+          "additionalProperties": {
+            "$ref": "#/$defs/field"
+          }
+        },
+        "required": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": {
+          "const": false
+        }
+      }
+    },
+    "thinking": {
+      "type": [
+        "boolean",
+        "string"
+      ],
+      "enum": [
+        false,
+        true,
+        "auto"
+      ]
+    },
+    "thinking_effort": {
+      "enum": [
+        "none",
+        "low",
+        "medium",
+        "high"
+      ]
+    },
+    "thinking_budget": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 32768
+    },
+    "text_max_tokens": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 32768
+    },
+    "numeric_max_tokens": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 32768
+    },
+    "seed": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 18446744073709551615
+    }
+  },
+  "$defs": {
+    "field": {
+      "type": "object",
+      "required": [
+        "type"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "oneOf": [
+            {
+              "enum": [
+                "string",
+                "integer",
+                "number",
+                "boolean"
+              ]
+            },
+            {
+              "type": "array",
+              "items": {
+                "enum": [
+                  "string",
+                  "integer",
+                  "number",
+                  "boolean",
+                  "null"
+                ]
+              },
+              "minItems": 2,
+              "maxItems": 2,
+              "uniqueItems": true,
+              "contains": {
+                "const": "null"
+              }
+            }
+          ]
+        },
+        "enum": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 24,
+          "uniqueItems": true,
+          "items": {
+            "type": [
+              "string",
+              "number",
+              "boolean",
+              "null"
+            ]
+          }
+        },
+        "instructions": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "depends_on": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string"
+          }
+        },
+        "when": {
+          "type": "object",
+          "additionalProperties": {
+            "oneOf": [
+              {
+                "type": [
+                  "string",
+                  "number",
+                  "boolean",
+                  "null"
+                ]
+              },
+              {
+                "type": "array",
+                "items": {
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "null"
+                  ]
+                }
+              },
+              {
+                "type": "object",
+                "minProperties": 1,
+                "additionalProperties": false,
+                "properties": {
+                  "in": {
+                    "type": "array",
+                    "items": {
+                      "type": [
+                        "string",
+                        "number",
+                        "boolean",
+                        "null"
+                      ]
+                    }
+                  },
+                  "not_in": {
+                    "type": "array",
+                    "items": {
+                      "type": [
+                        "string",
+                        "number",
+                        "boolean",
+                        "null"
+                      ]
+                    }
+                  },
+                  "ne": {
+                    "type": [
+                      "string",
+                      "number",
+                      "boolean",
+                      "null"
+                    ]
+                  },
+                  "gt": {
+                    "type": "number"
+                  },
+                  "gte": {
+                    "type": "number"
+                  },
+                  "lt": {
+                    "type": "number"
+                  },
+                  "lte": {
+                    "type": "number"
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "return_probabilities": {
+          "type": "boolean"
+        },
+        "permutations": {
+          "oneOf": [
+            {
+              "type": "integer",
+              "minimum": 1
+            },
+            {
+              "enum": [
+                "auto",
+                "all"
+              ]
+            }
+          ]
+        },
+        "thinking": {
+          "type": [
+            "boolean",
+            "string"
+          ],
+          "enum": [
+            false,
+            true,
+            "auto"
+          ]
+        },
+        "thinking_effort": {
+          "enum": [
+            "none",
+            "low",
+            "medium",
+            "high"
+          ]
+        },
+        "thinking_budget": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 32768
+        }
+      }
+    }
+  }
+}

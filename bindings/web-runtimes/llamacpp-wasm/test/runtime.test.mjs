@@ -6,7 +6,7 @@ import { reserveMediaWorkers } from '../src/media-worker-pool.js';
 
 const workerSource = 'var Module=typeof Module!="undefined"?Module:{};';
 
-function makeWllama({ image = false, audio = false, decisionError } = {}) {
+function makeWllama({ image = false, audio = false, decisionError, fieldResponse, decisionResponse } = {}) {
   const calls = [];
   let modelSource;
   let exited = false;
@@ -28,6 +28,10 @@ function makeWllama({ image = false, audio = false, decisionError } = {}) {
         return { choices: [{ message: { content: 'ready' } }] };
       }
       if (decisionError) throw decisionError;
+      if (decisionResponse && options.response_format?.json_schema?.name === 'decision') return decisionResponse(options);
+      if(options.response_format?.json_schema?.name === 'field') return fieldResponse ?? {
+        usage:{prompt_tokens:12,completion_tokens:5},choices:[{message:{content:'{"value":null}'},finish_reason:'stop'}],
+      };
       return {
         usage: { prompt_tokens: 12 },
         choices: [{ logprobs: { content: [{ top_logprobs: [
@@ -52,6 +56,26 @@ const options = extra => ({
   modelLabel: 'test model',
   modality: 'text',
   ...extra,
+});
+
+test('requests scores after candidate restriction without a second inference', async () => {
+  const mock = makeWllama({ decisionResponse: options => {
+    assert.equal(options.post_sampling_probs, true);
+    assert.equal(options.min_p, 0);
+    const labels = options.response_format.json_schema.schema.properties.answer.enum;
+    return { usage: { prompt_tokens: 12 }, choices: [{ logprobs: { content: [{
+      top_probs: labels.map(token => ({ token, prob: Math.exp(token.charCodeAt(0) - 100) })),
+    }] } }] };
+  } });
+  const runtime = await createRuntime(mock);
+  await runtime.initialize(options());
+  const output = JSON.parse(await runtime.scoreDecisionBatch(JSON.stringify({ state: 'Evidence', tasks: [{
+    id: 'all', instruction: 'Choose the label', candidates: Array.from({ length: 24 }, (_, i) => ({ key: `option_${i}` })),
+  }] })));
+  assert.deepEqual(output.scores[0].logits, Array.from({ length: 24 }, (_, i) => 65 + i - 100));
+  assert.equal(output.metrics.input_tokens, 12);
+  assert.equal(mock.calls().filter(c => c.kind === 'completion' && c.options.response_format?.json_schema?.name === 'decision').length, 1);
+  await runtime.close();
 });
 
 const task = {
@@ -251,4 +275,34 @@ test('thinking requests fail explicitly rather than silently using the direct sc
   const runtime = await createRuntime(deps);
   await assert.rejects(runtime.initialize(options({ thinking: true })), /THINKING_UNSUPPORTED/);
   assert.equal(deps.calls().length, 0);
+});
+
+test('open nullable fields retain actual null and request JSON schema grammar', async () => {
+  const mock=makeWllama(); const runtime=await createRuntime(mock); await runtime.initialize(options());
+  const task={name:'reference',state:'No reference provided.',instructions:'Return the reference or null.',output_schema:{type:['string','null']},values:null,thinking:false,thinking_budget:0,max_tokens:64};
+  const result=JSON.parse(await runtime.inferField(JSON.stringify(task)));
+  assert.equal(result.value,null);assert.deepEqual(result.logits,[]);assert.equal(result.generated_tokens,5);
+  const request=mock.calls().filter(c=>c.kind==='completion').at(-1).options;
+  assert.equal(request.response_format.type,'json_schema');assert.equal(request.response_format.json_schema.strict,true);
+  assert.deepEqual(request.response_format.json_schema.schema.properties.value,task.output_schema);
+  assert.equal(request.max_tokens,64);await runtime.close();
+});
+
+test('unfinished generation and unsupported thinking fail without substituting values', async () => {
+  const mock=makeWllama({fieldResponse:{choices:[{message:{content:'{"value":"unfinished'},finish_reason:'length'}]}});
+  const runtime=await createRuntime(mock);await runtime.initialize(options());
+  const task={name:'text',state:'Evidence',instructions:'Extract text.',output_schema:{type:'string'},values:null,thinking:false,max_tokens:8};
+  await assert.rejects(runtime.inferField(JSON.stringify(task)),/GENERATION_BUDGET_EXHAUSTED/);
+  await assert.rejects(runtime.inferField(JSON.stringify({...task,thinking:true})),/THINKING_UNSUPPORTED/);
+  await runtime.close();
+});
+
+test('open media fields preserve actual evidence alongside the field instruction', async () => {
+  const mock=makeWllama({image:true});const runtime=await createRuntime(mock);await runtime.initialize(options({mmprojUrl:'https://models.example/projector.gguf'}));
+  await runtime.inferField(JSON.stringify({name:'total',state:{contract:'turbojev.media.v1',modality:'image',base64:'AQID',text:'Receipt'},instructions:'Read the total.',output_schema:{type:'number'},values:null,thinking:false,max_tokens:64}));
+  const completion=mock.calls().filter(c=>c.kind==='completion').at(-1).options;
+  const content=completion.messages[1].content;
+  assert.deepEqual(Array.from(new Uint8Array(content.find(c=>c.type==='image').data)),[1,2,3]);
+  assert.ok(content.at(-1).text.includes('Read the total.'));
+  assert.ok(!content.at(-1).text.includes('option letter'));await runtime.close();
 });

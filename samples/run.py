@@ -10,6 +10,7 @@ parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument("sample", choices=["web", "ts", "python", "csharp", "rust", "vision", "audio"])
 parser.add_argument("--model", type=Path, help="Local GGUF model used by native text samples")
 parser.add_argument("--text", default="My package arrived broken and I need a replacement.")
+parser.add_argument("--generate", action="store_true", help="Run the shared typed-field workflow in a native sample")
 parser.add_argument("--file", type=Path, help="Local media for vision/audio samples")
 parser.add_argument("--media", type=Path, help="Image/video input for the TypeScript or C# sample")
 parser.add_argument("--modality", choices=["image", "video", "audio"])
@@ -54,7 +55,7 @@ else:
         "csharp": ["dotnet", str(SAMPLES / "TurboJev-csharp-NET/bin/Release/net8.0/Sample.dll")],
     }
     if args.media is None:
-        command = executables[args.sample] + [str(args.model.resolve()), args.text]
+        command = executables[args.sample] + [str(args.model.resolve()), "--generate" if args.generate else args.text]
     else:
         python = ROOT / ".cache/multimodal-venv" / ("Scripts/python.exe" if os.name == "nt" else "bin/python")
         worker = SAMPLES / "multimodal/worker.py"

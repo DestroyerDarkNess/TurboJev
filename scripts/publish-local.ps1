@@ -24,6 +24,15 @@ $LlamaSource = Join-Path $Root ".cache/real-validation/llama.cpp"
 $NativeRuntimeRoot = Join-Path $Root "artifacts/native-runtime"
 $ReleaseVersion = [regex]::Match((Get-Content (Join-Path $Root "Cargo.toml") -Raw), '(?m)^version = "([0-9.]+)"').Groups[1].Value
 
+function Assert-WorkspacePath {
+    param([string]$Path)
+    $resolved = [IO.Path]::GetFullPath($Path)
+    $workspace = [IO.Path]::GetFullPath($Root).TrimEnd('\', '/') + [IO.Path]::DirectorySeparatorChar
+    if (-not $resolved.StartsWith($workspace, [StringComparison]::OrdinalIgnoreCase)) {
+        throw "Refusing cleanup outside workspace: $resolved"
+    }
+}
+
 function Import-DotEnv {
     param([string]$Path)
 
@@ -245,6 +254,7 @@ function Publish-Wasm {
     $output = Join-Path $Root "artifacts/npm-wasm"
     $toolsRoot = Join-Path $Root ".cache/wasm-tools"
     $wasmBindgen = Join-Path $toolsRoot ("bin/wasm-bindgen" + $(if ($IsWindows -or $env:OS -eq "Windows_NT") { ".exe" } else { "" }))
+    Assert-WorkspacePath $output
     if (Test-Path -LiteralPath $output) { Remove-Item -LiteralPath $output -Recurse -Force }
     New-Item -ItemType Directory -Force -Path $output | Out-Null
 
@@ -256,6 +266,7 @@ function Publish-Wasm {
     Invoke-Tool $wasmBindgen @((Join-Path $Root "target/wasm32-unknown-unknown/release/turbojev_wasm.wasm"), "--target", "web", "--out-dir", $output, "--out-name", "turbojev_wasm")
     Copy-Item -LiteralPath (Join-Path $Root "bindings/wasm/package.json") -Destination $output -Force
     Copy-Item -LiteralPath (Join-Path $Root "LICENSE") -Destination (Join-Path $output "LICENSE") -Force
+    Invoke-Tool "node" @("scripts/validate-fields-wasm-contract.mjs", $output)
     Publish-NpmPackage $script:NpmCommand $output
 }
 
@@ -266,6 +277,7 @@ function Publish-Node {
     $output = Join-Path $Root "artifacts/npm-native"
     $manifest = Get-Content -Raw (Join-Path $nodePackage "package.json") | ConvertFrom-Json
     $platformPackages = @()
+    Assert-WorkspacePath $output
     if (Test-Path -LiteralPath $output) { Remove-Item -LiteralPath $output -Recurse -Force }
     New-Item -ItemType Directory -Force -Path $output | Out-Null
 
@@ -328,6 +340,7 @@ function Publish-Npm {
         Set-Content -LiteralPath $tempNpmrc -Value ("//registry.npmjs.org/:_authToken={0}" -f $env:NPM_TOKEN) -NoNewline
         $env:NPM_CONFIG_USERCONFIG = $tempNpmrc
         $script:NpmCommand = $npm
+        Invoke-Tool "node" @("--test", "bindings/web-runtimes/llamacpp-wasm/test/runtime.test.mjs")
         Publish-Wasm
 
         foreach ($package in @("bindings/web", "bindings/web-runtimes/transformersjs", "bindings/web-runtimes/llamacpp-wasm")) {
@@ -355,6 +368,7 @@ function Publish-Npm {
 function Publish-Python {
     Require-Value "PYPI_API_TOKEN" | Out-Null
     $output = Join-Path $Root "artifacts/pypi"
+    Assert-WorkspacePath $output
     if (Test-Path -LiteralPath $output) {
         Get-ChildItem -LiteralPath $output -Directory | Remove-Item -Recurse -Force
     }
@@ -425,9 +439,11 @@ function Publish-NuGet {
     Require-Value "NUGET_API_KEY" | Out-Null
     $nativeRoot = Join-Path $Root "artifacts/nuget-native"
     $output = Join-Path $Root "artifacts/nuget"
+    Assert-WorkspacePath $nativeRoot
     if (Test-Path -LiteralPath $nativeRoot) { Remove-Item -LiteralPath $nativeRoot -Recurse -Force }
     New-Item -ItemType Directory -Force -Path $nativeRoot | Out-Null
     New-Item -ItemType Directory -Force -Path $output | Out-Null
+    Assert-WorkspacePath $nativeRoot
     Get-ChildItem -LiteralPath $nativeRoot -Directory -ErrorAction SilentlyContinue | Remove-Item -Recurse -Force
     Get-ChildItem -LiteralPath $output -Filter "*.nupkg" -File -ErrorAction SilentlyContinue | Remove-Item -Force
 

@@ -26,13 +26,19 @@ $source = @'
 using System.Text.Json;
 using TurboJev;
 if (args.Length != 1) throw new ArgumentException("Pass the pinned GGUF path.");
-await using var engine = await TurboJevEngine.LoadAsync(new { model = args[0], nGpuLayers = 0, nThreads = 4 });
+await using var engine = await TurboJevEngine.LoadAsync(new { model = args[0], device="cpu", nGpuLayers = 0, nThreads = 4,nCtx=8192,nSeqMax=1 });
 var request = File.ReadAllText(Path.Combine(Environment.GetEnvironmentVariable("TURBOJEV_SOURCE_ROOT")!, "tests/e2e/request.json"));
 var output = await engine.EvaluateJsonAsync(request);
 using var response = JsonDocument.Parse(output);
 foreach (var key in new[] { "route", "urgent", "severity" })
     if (!response.RootElement.GetProperty("answers").TryGetProperty(key, out _)) throw new Exception($"Missing typed answer {key}");
-Console.WriteLine("Published NuGet package real-model smoke test passed.");
+using var generated = JsonDocument.Parse(await engine.GenerateJsonAsync("""
+{"context":"There are exactly seven items.","questions":{"count":{"type":"integer","instructions":"How many items are stated?"},"seen":{"type":"boolean","depends_on":["count"],"instructions":"Was an item count provided?"}}}
+"""));
+if (!generated.RootElement.GetProperty("result").GetProperty("count").TryGetInt64(out _)) throw new Exception("Missing generated integer");
+if (generated.RootElement.GetProperty("result").GetProperty("seen").ValueKind is not (JsonValueKind.True or JsonValueKind.False)) throw new Exception("Missing dependent boolean");
+if (generated.RootElement.GetProperty("usage").GetProperty("generated_tokens").GetInt32()==0) throw new Exception("No actual generation was performed");
+Console.WriteLine("Built NuGet package real-model evaluate/generate smoke test passed.");
 '@
 Set-Content -LiteralPath $Project -Value $csproj -NoNewline
 Set-Content -LiteralPath $Program -Value $source -NoNewline

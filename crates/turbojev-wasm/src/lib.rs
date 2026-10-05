@@ -72,6 +72,67 @@ enum BrowserBackend {
     },
 }
 impl AsyncScoringBackend for BrowserBackend {
+    fn infer_field_async<'a>(
+        &'a self,
+        task: &'a turbojev_backend::FieldTask,
+    ) -> BackendFuture<'a, Result<turbojev_backend::FieldOutput, BackendError>> {
+        Box::pin(async move {
+            let (runtime, descriptor) = match self {
+                Self::Tokens(backend) => {
+                    (&backend.executor().runtime, &backend.executor().descriptor)
+                }
+                Self::Decisions {
+                    runtime,
+                    descriptor,
+                } => (runtime, descriptor),
+            };
+            turbojev::schema::media::MediaEvidence::check_modalities(
+                &task.state,
+                &descriptor.modalities,
+            )
+            .map_err(BackendError::Unsupported)?;
+            let hook = Reflect::get(runtime, &JsValue::from_str("inferField"))
+                .map_err(|e| BackendError::Inference(js_message(e)))?;
+            if let Some(function) = hook
+                .dyn_into::<Function>()
+                .ok()
+                .filter(|_| task.values.is_none() || task.thinking)
+            {
+                let json = serde_json::to_string(task)
+                    .map_err(|e| BackendError::InvalidInput(e.to_string()))?;
+                let value = function
+                    .call1(runtime, &JsValue::from_str(&json))
+                    .map_err(|e| BackendError::Inference(js_message(e)))?;
+                let value = JsFuture::from(Promise::resolve(&value))
+                    .await
+                    .map_err(|e| BackendError::Inference(js_message(e)))?;
+                let json = value.as_string().ok_or_else(|| {
+                    BackendError::Inference("inferField must return a JSON string".into())
+                })?;
+                return serde_json::from_str(&json)
+                    .map_err(|e| BackendError::Inference(e.to_string()));
+            }
+            if task.thinking {
+                return Err(BackendError::Unsupported(
+                    "per-field browser reasoning".into(),
+                ));
+            }
+            if task.values.as_ref().is_some_and(|v| v.len() == 1) {
+                return Ok(turbojev_backend::FieldOutput {
+                    value: None,
+                    logits: vec![0.0],
+                    thinking: String::new(),
+                    input_tokens: Some(0),
+                    generated_tokens: 0,
+                });
+            }
+            let batch = task.decision_batch()?;
+            turbojev_backend::field_output_from_scores(
+                task,
+                self.score_async(&batch, ExecutionPlan::default()).await?,
+            )
+        })
+    }
     fn name(&self) -> &'static str {
         match self {
             Self::Tokens(b) => b.name(),
@@ -542,6 +603,17 @@ impl WasmEngine {
             turbojev::wire::decode_request(input).map_err(|e| JsValue::from_str(&e.to_string()))?;
         let response = self.engine.evaluate(request).await.map_err(core_error)?;
         turbojev::wire::encode_response(&response).map_err(|e| JsValue::from_str(&e.to_string()))
+    }
+
+    pub async fn generate_json(&self, input: &str) -> Result<String, JsValue> {
+        let request: turbojev::schema::fields::GenerateRequest =
+            serde_json::from_str(input).map_err(js_json)?;
+        let response = self
+            .engine
+            .generate(request)
+            .await
+            .map_err(|e| JsValue::from_str(&e.to_string()))?;
+        serde_json::to_string(&response).map_err(js_json)
     }
     pub async fn evaluate_compatible_json(
         &self,

@@ -117,6 +117,28 @@ pub extern "system" fn Java_ai_turbojev_NativeBridge_compatible(
         }
     }
 }
+
+#[no_mangle]
+pub extern "system" fn Java_ai_turbojev_NativeBridge_generate(
+    mut env: JNIEnv<'_>,
+    _: JClass<'_>,
+    raw: jlong,
+    req: JString<'_>,
+) -> jstring {
+    let Some(req) = read(&mut env, req) else {
+        return std::ptr::null_mut();
+    };
+    let Some(handle) = (unsafe { h(&mut env, raw) }) else {
+        return std::ptr::null_mut();
+    };
+    match handle.session.generate_json(&req) {
+        Ok(value) => out(&mut env, value),
+        Err(error) => {
+            throw(&mut env, error.to_string());
+            std::ptr::null_mut()
+        }
+    }
+}
 #[no_mangle]
 pub extern "system" fn Java_ai_turbojev_NativeBridge_close(
     mut env: JNIEnv<'_>,

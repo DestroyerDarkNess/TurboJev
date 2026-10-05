@@ -8,6 +8,7 @@ export class WasmEngine {
   free(): void;
   constructor(runtime: any, descriptor_json: string, prompt_profile_json?: string | null, cyclic_order_robustness?: boolean | null);
   evaluate_json(input: string): Promise<string>;
+  generate_json(input: string): Promise<string>;
   evaluate_compatible_json(profile: string, input: string): Promise<string>;
 }
 
@@ -18,6 +19,7 @@ export interface InitOutput {
   readonly __wbg_wasmengine_free: (a: number, b: number) => void;
   readonly wasmengine_new: (a: any, b: number, c: number, d: number, e: number, f: number) => [number, number, number];
   readonly wasmengine_evaluate_json: (a: number, b: number, c: number) => any;
+  readonly wasmengine_generate_json: (a: number, b: number, c: number) => any;
   readonly wasmengine_evaluate_compatible_json: (a: number, b: number, c: number, d: number, e: number) => any;
   readonly turbojev_wasm_contract: () => [number, number];
   readonly __wbindgen_exn_store: (a: number) => void;
@@ -28,8 +30,8 @@ export interface InitOutput {
   readonly __wbindgen_realloc: (a: number, b: number, c: number, d: number) => number;
   readonly __externref_table_dealloc: (a: number) => void;
   readonly __wbindgen_free: (a: number, b: number, c: number) => void;
-  readonly closure58_externref_shim: (a: number, b: number, c: any) => void;
-  readonly closure194_externref_shim: (a: number, b: number, c: any, d: any) => void;
+  readonly closure74_externref_shim: (a: number, b: number, c: any) => void;
+  readonly closure265_externref_shim: (a: number, b: number, c: any, d: any) => void;
   readonly __wbindgen_start: () => void;
 }
 

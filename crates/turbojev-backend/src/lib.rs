@@ -258,7 +258,96 @@ impl BackendResourceHints {
 /// This trait deliberately describes *semantic inference*, not a concrete model
 /// format or OS API. A runtime adapter is responsible for prompt rendering,
 /// tokenization and model execution, then returns candidate logits.
+/// One field after schema validation and dependency resolution.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct FieldTask {
+    pub name: String,
+    pub state: Value,
+    pub instructions: String,
+    pub output_schema: Value,
+    /// None requests bounded open-value generation; Some scores these values.
+    pub values: Option<Vec<Value>>,
+    pub thinking: bool,
+    pub thinking_budget: usize,
+    pub max_tokens: usize,
+}
+
+impl FieldTask {
+    /// Finite fields reuse the existing tokenizer-independent decision contract.
+    pub fn decision_batch(&self) -> Result<DecisionBatch, BackendError> {
+        let values = self
+            .values
+            .as_ref()
+            .ok_or_else(|| BackendError::Unsupported("open-value generation".into()))?;
+        Ok(DecisionBatch {
+            state: self.state.clone(),
+            tasks: vec![DecisionTask {
+                id: self.name.clone(),
+                intent: DecisionIntent::Criterion,
+                instruction: Some(self.instructions.clone()),
+                candidates: values
+                    .iter()
+                    .map(|value| Candidate {
+                        key: value.to_string(),
+                        description: serde_json::to_string(value).expect("JSON value serializes"),
+                    })
+                    .collect(),
+            }],
+        })
+    }
+}
+
+/// Model evidence for one field; the portable core validates and types it.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct FieldOutput {
+    /// Missing means logits; explicit JSON null is a generated nullable value.
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "present_field_value"
+    )]
+    pub value: Option<Value>,
+    pub logits: Vec<f32>,
+    pub thinking: String,
+    pub input_tokens: Option<usize>,
+    pub generated_tokens: usize,
+}
+
+fn present_field_value<'de, D: serde::Deserializer<'de>>(
+    deserializer: D,
+) -> Result<Option<Value>, D::Error> {
+    Value::deserialize(deserializer).map(Some)
+}
+
+pub fn field_output_from_scores(
+    task: &FieldTask,
+    output: BackendOutput,
+) -> Result<FieldOutput, BackendError> {
+    if output.scores.len() != 1 || output.scores[0].id != task.name {
+        return Err(BackendError::Inference(
+            "field scorer returned missing, duplicate, or unexpected rows".into(),
+        ));
+    }
+    Ok(FieldOutput {
+        value: None,
+        logits: output.scores.into_iter().next().unwrap().logits,
+        thinking: String::new(),
+        input_tokens: output.metrics.input_tokens,
+        generated_tokens: output.metrics.generated_tokens.unwrap_or(0),
+    })
+}
+
 pub trait ScoringBackend {
+    /// Typed field inference. Existing scorers support finite fields by default.
+    /// Open values or reasoning overrides require a concrete implementation.
+    fn infer_field(&self, task: &FieldTask) -> Result<FieldOutput, BackendError> {
+        if task.thinking {
+            return Err(BackendError::Unsupported("per-field thinking".into()));
+        }
+        let batch = task.decision_batch()?;
+        let output = self.score(&batch, ExecutionPlan::default())?;
+        field_output_from_scores(task, output)
+    }
     /// Stable backend implementation identifier.
     fn name(&self) -> &'static str;
 
@@ -375,6 +464,22 @@ pub type BackendFuture<'a, T> = Pin<Box<dyn Future<Output = T> + 'a>>;
 /// not pay for an async runtime, while browser/WebGPU/JS-hosted executors can
 /// integrate without blocking or depending on Tokio/async-std.
 pub trait AsyncScoringBackend {
+    /// Async counterpart of typed field inference.
+    fn infer_field_async<'a>(
+        &'a self,
+        task: &'a FieldTask,
+    ) -> BackendFuture<'a, Result<FieldOutput, BackendError>> {
+        Box::pin(async move {
+            if task.thinking {
+                return Err(BackendError::Unsupported("per-field thinking".into()));
+            }
+            let batch = task.decision_batch()?;
+            field_output_from_scores(
+                task,
+                self.score_async(&batch, ExecutionPlan::default()).await?,
+            )
+        })
+    }
     /// Stable backend implementation identifier.
     fn name(&self) -> &'static str;
 

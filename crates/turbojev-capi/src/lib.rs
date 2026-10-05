@@ -184,6 +184,33 @@ pub unsafe extern "C" fn tj_engine_evaluate_compatible_json(
     }
 }
 
+/// Generate typed JSON Schema fields through the same thread-affine session.
+#[no_mangle]
+pub unsafe extern "C" fn tj_engine_generate_json(
+    engine: *mut tj_engine,
+    request_json: *const c_char,
+    out_json: *mut *mut c_char,
+) -> i32 {
+    match catch_unwind(AssertUnwindSafe(|| {
+        // SAFETY: validate the owned handle and borrowed UTF-8 C string.
+        let handle = match unsafe { handle_ref(engine) } {
+            Ok(v) => v,
+            Err(c) => return c,
+        };
+        let request = match unsafe { input(request_json, "request_json") } {
+            Ok(v) => v,
+            Err(c) => return c,
+        };
+        match handle.session.generate_json(request) {
+            Ok(v) => write_output(v, out_json),
+            Err(e) => host_error(e),
+        }
+    })) {
+        Ok(code) => code,
+        Err(_) => set_error("PANIC", "panic contained at TurboJev C ABI boundary"),
+    }
+}
+
 #[no_mangle]
 pub unsafe extern "C" fn tj_engine_info_json(
     engine: *mut tj_engine,

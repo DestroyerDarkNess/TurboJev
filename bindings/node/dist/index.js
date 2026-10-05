@@ -20,6 +20,7 @@ export class TurboJev {
         throw error;
     } }
     async evaluate(request) { return JSON.parse(await this.#call("evaluate", { request: JSON.stringify(request) })); }
+    async generate(request) { return JSON.parse(await this.#call("generate", { request: JSON.stringify(request) })); }
     async evaluateCompatible(profile, request) { return JSON.parse(await this.#call("compatible", { profile, request: JSON.stringify(request) })); }
     async info() { return JSON.parse(await this.#call("info", {})); }
     async close() { if (this.#closed)

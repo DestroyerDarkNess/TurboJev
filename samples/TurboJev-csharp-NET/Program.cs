@@ -2,6 +2,12 @@ using System.Text.Json;
 using TurboJev;
 
 if (args.Length == 0) throw new ArgumentException("Pass a GGUF model path.");
+if (Array.IndexOf(args, "--generate") >= 0) {
+    var requestPath = Path.Combine(AppContext.BaseDirectory, "typed-fields-request.json");
+    await using var fieldsEngine = await TurboJevEngine.LoadAsync(new {model=args[0],device="cpu",nCtx=8192,nSeqMax=1,nThreads=4});
+    Console.WriteLine(await fieldsEngine.GenerateJsonAsync(await File.ReadAllTextAsync(requestPath)));
+    return;
+}
 
 var mediaIndex = Array.IndexOf(args, "--media");
 if (mediaIndex >= 0) {

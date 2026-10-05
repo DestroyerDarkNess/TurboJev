@@ -47,6 +47,8 @@ public sealed class TurboJevEngine : IAsyncDisposable {
 
     public Task<string> EvaluateJsonAsync(string request) =>
         Run(queue, () => Call((out nint output) => Native.tj_engine_evaluate_json(handle, request, out output)));
+    public Task<string> GenerateJsonAsync(string request) =>
+        Run(queue, () => Call((out nint output) => Native.tj_engine_generate_json(handle, request, out output)));
 
     public Task<string> EvaluateCompatibleJsonAsync(string profile, string request) =>
         Run(queue, () => Call((out nint output) => Native.tj_engine_evaluate_compatible_json(handle, profile, request, out output)));

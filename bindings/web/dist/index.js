@@ -16,6 +16,7 @@ export class TurboJevWeb {
         throw error;
     } }
     async evaluate(request) { return this.#call("evaluate", { request }); }
+    async generate(request) { return this.#call("generate", { request }); }
     async evaluateCompatible(profile, request) { return this.#call("compatible", { profile, request }); }
     async info() { return this.#call("info", {}); }
     async close() { if (this.#closed)

@@ -5,6 +5,7 @@ internal static class Native {
  [DllImport(Lib,CallingConvention=CallingConvention.Cdecl)] internal static extern uint tj_abi_version();
  [DllImport(Lib,CallingConvention=CallingConvention.Cdecl)] internal static extern int tj_engine_open_json([MarshalAs(UnmanagedType.LPUTF8Str)]string o,out nint h);
  [DllImport(Lib,CallingConvention=CallingConvention.Cdecl)] internal static extern int tj_engine_evaluate_json(nint h,[MarshalAs(UnmanagedType.LPUTF8Str)]string r,out nint o);
+ [DllImport(Lib,CallingConvention=CallingConvention.Cdecl)] internal static extern int tj_engine_generate_json(nint h,[MarshalAs(UnmanagedType.LPUTF8Str)]string r,out nint o);
  [DllImport(Lib,CallingConvention=CallingConvention.Cdecl)] internal static extern int tj_engine_evaluate_compatible_json(nint h,[MarshalAs(UnmanagedType.LPUTF8Str)]string p,[MarshalAs(UnmanagedType.LPUTF8Str)]string r,out nint o);
  [DllImport(Lib,CallingConvention=CallingConvention.Cdecl)] internal static extern int tj_engine_close(nint h);
  [DllImport(Lib,CallingConvention=CallingConvention.Cdecl)] internal static extern void tj_string_free(nint p);

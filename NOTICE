@@ -1,0 +1,13 @@
+TurboJev typed-field contracts, regression cases, numeric evaluation cases and
+receipt/fair-die examples are informed by TypeLLM:
+https://github.com/TypeLLM/TypeLLM
+See evals/data/provenance.json for the exact local reference identity.
+TypeLLM is licensed under Apache License 2.0; its numeric dataset is retained
+with the original license in evals/data/numeric/LICENSE.
+
+JevBench public datasets are redistributed under the MIT License:
+https://github.com/fstandhartinger/jevbench
+Copyright (c) 2026 Florian Standhartinger and contributors.
+The full license is in evals/data/jevbench/LICENSE.
+
+No TypeLLM weights, hosted services, or model benchmark results are bundled.

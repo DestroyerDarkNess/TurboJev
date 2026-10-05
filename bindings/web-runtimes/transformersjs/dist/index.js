@@ -32,6 +32,38 @@ export async function createRuntime() {
                 attention_mask.dispose?.();
             }
         } return JSON.stringify({ model: options.model, scores, metrics: { input_tokens: inputTokens } }); },
+        async inferField(taskJson) {
+            const task = JSON.parse(taskJson);
+            if (task.thinking)
+                throw new Error("THINKING_UNSUPPORTED: this Transformers.js adapter supports direct scoring and bounded values only");
+            if (task.values)
+                throw new Error("Finite fields must use the Rust token-scoring path");
+            if (task.state?.contract === "turbojev.media.v1")
+                throw new Error("UNSUPPORTED_MODALITY: use a multimodal runtime");
+            const state = typeof task.state === "string" ? task.state : JSON.stringify(task.state);
+            const messages = [{ role: "system", content: "Answer the requested field from the supplied evidence. Return only the requested JSON object." }, { role: "user", content: `State:\n${state}\n\nQuestion:\n${task.instructions}\nReturn exactly one JSON object with key value. Value schema: ${JSON.stringify(task.output_schema)}` }];
+            const text = tokenizer.apply_chat_template(messages, { tokenize: false, add_generation_prompt: true, enable_thinking: false });
+            const inputs = tokenizer(text, { add_special_tokens: false });
+            let output;
+            try {
+                output = await model.generate({ ...inputs, max_new_tokens: task.max_tokens, do_sample: false });
+                const sequences = output.sequences ?? output;
+                const ids = Array.from(sequences.data, Number);
+                const answerIds = ids.slice(inputs.input_ids.data.length);
+                // This adapter validates bounded generation after decoding. GGUF runtimes
+                // additionally constrain decoding with grammar. Invalid output is an error.
+                const decoded = tokenizer.decode(answerIds, { skip_special_tokens: true });
+                const answer = JSON.parse(decoded);
+                if (Object.keys(answer).length !== 1 || !Object.hasOwn(answer, "value"))
+                    throw new Error("Invalid generated field object");
+                return JSON.stringify({ value: answer.value, logits: [], thinking: "", input_tokens: inputs.input_ids.data.length, generated_tokens: answerIds.length });
+            }
+            finally {
+                inputs.input_ids.dispose?.();
+                inputs.attention_mask?.dispose?.();
+                (output?.sequences ?? output)?.dispose?.();
+            }
+        },
         async close() { await model?.dispose?.(); model = undefined; tokenizer = undefined; }
     };
 }

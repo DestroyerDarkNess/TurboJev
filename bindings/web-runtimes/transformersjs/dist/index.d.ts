@@ -23,5 +23,6 @@ export declare function createRuntime(): Promise<{
     encodePromptWithAnswer(messagesJson: string, answer: string): string;
     decodeTokens(tokenIdsJson: string): any;
     scoreRuntimeBatch(batchJson: string, _planJson: string): Promise<string>;
+    inferField(taskJson: string): Promise<string>;
     close(): Promise<void>;
 }>;

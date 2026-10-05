@@ -20,7 +20,7 @@ const version = createHash('sha256').update(JSON.stringify(manifest) + await dig
 const landing = (await readFile(root + 'index.html','utf8')).replace(/(src="(?:demo|app)\.js|href="styles\.css)(?:\?v=[a-z0-9]+)?/g, `$1?v=${version}`);
 await writeFile(root + 'index.html',landing);
 const source = await readFile(root + 'src/docs-content.html', 'utf8');
-const pages = [ ['quickstart','Quickstart'], ['architecture','Architecture'], ['api','Core API'],
+const pages = [ ['quickstart','Quickstart'], ['architecture','Architecture'], ['api','Core API'], ['fields','Typed fields'],
   ['rust','Rust'], ['node','Node / TypeScript'], ['python','Python'], ['c','C ABI'], ['dotnet','.NET / C#'],
   ['browser','Browser / WASM'], ['mobile','Android + Swift'], ['multimodal','Multimodal'], ['examples','Examples'], ['publishing','Publishing'] ];
 const esc = s => s.replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('"','&quot;');
@@ -45,4 +45,4 @@ for (const [i,[slug,title]] of pages.entries()) {
 }
 await writeFile(root + 'docs/search.json',JSON.stringify(search));
 await writeFile(root + 'docs.html',`<!doctype html><html lang="en"><head><meta charset="utf-8"><title>TurboJev documentation</title><meta name="viewport" content="width=device-width,initial-scale=1"><script>const pages=${JSON.stringify(pages.map(p=>p[0]))};const slug=location.hash.slice(1);location.replace('docs/'+(pages.includes(slug)?slug:'quickstart')+'.html');</script></head><body><a href="docs/quickstart.html">Open documentation</a></body></html>`);
-console.log('Built browser runtime and 13 documentation pages.');
+console.log('Built browser runtime and 14 documentation pages.');

@@ -29,6 +29,8 @@ class LoadOptions:
     n_batch: int = 512
     n_seq_max: int = 8
     n_gpu_layers: int = 0
+    n_threads: int | None = None
+    n_threads_batch: int | None = None
     device: Literal["cpu", "gpu"] | None = None
     worker: Mapping[str, Any] | None = None
     execution: Mapping[str, Any] | None = None
@@ -48,6 +50,10 @@ class LoadOptions:
         }
         if self.mmproj is not None:
             options["mmproj"] = self.mmproj
+        if self.n_threads is not None:
+            options["nThreads"] = self.n_threads
+        if self.n_threads_batch is not None:
+            options["nThreadsBatch"] = self.n_threads_batch
         if self.device is not None:
             options["device"] = self.device
         if self.execution is not None:
@@ -68,6 +74,16 @@ class TurboJev:
 
     def evaluate(self, request: Mapping[str, Any]) -> dict[str, Any]:
         return json.loads(self._call("evaluate_json", json.dumps(request, ensure_ascii=False)))
+
+    def generate(self, request: Mapping[str, Any] | None = None, **kwargs: Any) -> dict[str, Any]:
+        """Generate JSON-typed fields with enums, dependencies, and conditions.
+
+        Pass a request mapping or use context=..., questions=... / schema=... .
+        The native Rust core owns all validation and workflow semantics.
+        """
+        if request is not None and kwargs:
+            raise TypeError("pass a request mapping or keyword arguments, not both")
+        return json.loads(self._call("generate_json", json.dumps(request if request is not None else kwargs, ensure_ascii=False, allow_nan=False)))
 
     def evaluate_compatible(self, profile: str, request: Mapping[str, Any]) -> dict[str, Any]:
         return json.loads(self._call("evaluate_compatible_json", profile, json.dumps(request, ensure_ascii=False)))

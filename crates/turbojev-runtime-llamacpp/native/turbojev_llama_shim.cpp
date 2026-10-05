@@ -1,5 +1,7 @@
 #include "turbojev_llama_shim.h"
 #include "decision_chat.h"
+#include "json-schema-to-grammar.h"
+#include "nlohmann/json.hpp"
 
 #include "llama.h"
 #include "ggml-backend.h"
@@ -32,6 +34,7 @@ struct tj_llama_runtime {
     std::string cached_user;
     std::string cached_prompt;
     bool prompt_cached = false;
+    std::string field_result;
     size_t shared_prefix_len = 0;
     std::vector<float> shared_prefix_logits;
     bool shared_prefix_ready = false;
@@ -459,7 +462,8 @@ tj_llama_runtime * tj_llama_open(
     init_backend_once();
 
     if (config->n_gpu_layers != 0
-        && ggml_backend_dev_by_type(GGML_BACKEND_DEVICE_TYPE_GPU) == nullptr) {
+        && ggml_backend_dev_by_type(GGML_BACKEND_DEVICE_TYPE_GPU) == nullptr
+        && ggml_backend_dev_by_type(GGML_BACKEND_DEVICE_TYPE_IGPU) == nullptr) {
         set_error(error, error_capacity,
             "GPU was requested, but this llama.cpp build has no available GPU backend/device");
         return nullptr;
@@ -497,6 +501,10 @@ tj_llama_runtime * tj_llama_open(
     }
 
     llama_context_params context_params = llama_context_default_params();
+    // A CPU request must also disable llama.cpp's automatic operation offload.
+    // Zero GPU weight layers alone can still allocate a Vulkan compute graph.
+    context_params.offload_kqv = config->n_gpu_layers != 0;
+    context_params.op_offload = config->n_gpu_layers != 0;
     if (config->n_ctx > 0) {
         context_params.n_ctx = config->n_ctx;
     }
@@ -1076,11 +1084,144 @@ int32_t tj_llama_score_thinking_next(
         }
         // Independent reference scoring. Re-evaluate the completed thought exactly.
         std::vector<uint32_t> ids(final_tokens.begin(), final_tokens.end());
-        return tj_llama_score_next(runtime, ids.data(), ids.size(), candidate_tokens,
+        const auto status = tj_llama_score_next(runtime, ids.data(), ids.size(), candidate_tokens,
             candidate_count, out_logits, error, error_capacity);
+        if (status == 0) {
+            runtime->field_result = nlohmann::ordered_json{
+                {"logits", std::vector<float>(out_logits, out_logits + candidate_count)},
+                {"thinking", reasoning}, {"input_tokens", prompt.size()}, {"generated_tokens", *generated_tokens}}.dump();
+        }
+        return status;
     } catch (const std::exception & exception) {
         set_error(error, error_capacity, std::string("thinking failed: ") + exception.what()); return -1;
     }
+}
+
+int32_t tj_llama_generate_field(tj_llama_runtime * runtime, const char * task_json,
+    char * error, size_t error_capacity) {
+    if (runtime == nullptr || runtime->context == nullptr || task_json == nullptr) {
+        set_error(error, error_capacity, "invalid field generation arguments"); return -1;
+    }
+    runtime->field_result.clear();
+    try {
+        using json = nlohmann::ordered_json;
+        const auto task = json::parse(task_json);
+        const auto state = task.at("state");
+        const bool media = state.is_object() && state.value("contract", "") == "turbojev.media.v1";
+        const bool thinking = task.at("thinking").get<bool>();
+        const uint32_t thinking_budget = task.at("thinking_budget").get<uint32_t>();
+        const uint32_t max_tokens = task.at("max_tokens").get<uint32_t>();
+        if (max_tokens == 0 || max_tokens > 32768 || thinking_budget > 32768) {
+            set_error(error, error_capacity, "invalid field token limits"); return -1;
+        }
+        if (media && thinking) {
+            set_error(error, error_capacity, "THINKING_UNSUPPORTED: media reasoning is not implemented"); return -1;
+        }
+        const std::string system = "Answer the requested field from the supplied evidence. Return only the requested JSON object.";
+        std::string context = media ? state.value("text", "") : (state.is_string() ? state.get<std::string>() : state.dump());
+        if (media) {
+            if (!runtime->mtmd) { set_error(error, error_capacity, "multimodal field generation requires a matching mmproj"); return -1; }
+            const std::string marker = mtmd_get_marker(runtime->mtmd);
+            const size_t count = state.value("modality", "") == "video" ? state.at("frames").size() : 1;
+            for (size_t i = 0; i < count; ++i) context += "\n" + marker;
+        }
+        const std::string user = "State:\n" + context + "\n\nQuestion:\n" + task.at("instructions").get<std::string>()
+            + "\n\nReturn exactly one JSON object with the key value and this value schema: " + task.at("output_schema").dump();
+        const auto chat = tj_render_chat_params(runtime->chat_templates.get(), system.c_str(), user.c_str(), runtime->chat_time, thinking);
+        if (thinking && (!chat.supports_thinking || chat.thinking_end_tags.empty() || thinking_budget == 0)) {
+            set_error(error, error_capacity, "THINKING_UNSUPPORTED: model exposes no reasoning boundary"); return -1;
+        }
+        const auto object_schema = json{{"type", "object"}, {"properties", {{"value", task.at("output_schema")}}}, {"required", {"value"}}, {"additionalProperties", false}};
+        const auto grammar_text = json_schema_to_grammar(common_json::parse(object_schema.dump()), true);
+        std::unique_ptr<llama_sampler, decltype(&llama_sampler_free)> grammar(
+            llama_sampler_init_grammar(runtime->vocab, grammar_text.c_str(), "root"), &llama_sampler_free);
+        if (!grammar) { set_error(error, error_capacity, "failed to compile output grammar"); return -1; }
+        size_t input_tokens = 0;
+        std::string failure;
+        if (media) {
+            const auto modality_name = state.at("modality").get<std::string>();
+            const int modality = modality_name == "image" ? 0 : modality_name == "audio" ? 1 : modality_name == "video" ? 2 : -1;
+            const std::string payload = state.value("base64", "");
+            std::vector<std::string> storage; std::vector<const char *> frames;
+            std::vector<size_t> lengths; std::vector<uint64_t> timestamps;
+            for (const auto & frame : state.value("frames", json::array())) {
+                storage.push_back(frame.at("base64").get<std::string>());
+                timestamps.push_back(frame.at("timestamp_ms").get<uint64_t>());
+            }
+            for (const auto & frame : storage) { frames.push_back(frame.c_str()); lengths.push_back(frame.size()); }
+            // Reuse the exact mtmd preprocessing/prefill route. The two dummy
+            // projections only expose its final logits; they do not choose output.
+            const uint32_t ids[] = {0, 1}; float ignored[2];
+            if (tj_llama_score_media_next(runtime, system.c_str(), user.c_str(), "", modality,
+                payload.c_str(), payload.size(), frames.data(), lengths.data(), timestamps.data(), frames.size(),
+                ids, 2, ignored, error, error_capacity) != 0) return -1;
+        } else {
+            std::vector<llama_token> tokens;
+            if (!tokenize(runtime, chat.prompt, tokens, failure)) { set_error(error, error_capacity, failure); return -1; }
+            input_tokens = tokens.size();
+            if (tokens.size() + max_tokens + (thinking ? thinking_budget : 0) >= llama_n_ctx_seq(runtime->context)) {
+                set_error(error, error_capacity, "GENERATION_CONTEXT_LIMIT: increase nCtx or reduce nSeqMax"); return -1;
+            }
+            if (llama_get_memory(runtime->context)) llama_memory_clear(llama_get_memory(runtime->context), true);
+            runtime->shared_prefix_ready = false; runtime->shared_prefix_len = 0; runtime->shared_prefix_logits.clear();
+            for (size_t i = 0; i < tokens.size();) {
+                const auto count = std::min(tokens.size() - i, size_t(llama_n_batch(runtime->context)));
+                auto batch = llama_batch_get_one(tokens.data() + i, static_cast<int32_t>(count));
+                if (llama_decode(runtime->context, batch) != 0) { set_error(error, error_capacity, "field prefill failed"); return -1; }
+                i += count;
+            }
+        }
+        const int32_t vocab_size = llama_vocab_n_tokens(runtime->vocab);
+        std::vector<llama_token_data> candidates(size_t(vocab_size), llama_token_data{});
+        std::string thought, answer;
+        bool thinking_done = !thinking;
+        uint32_t thought_tokens = 0, answer_tokens = 0;
+        const uint32_t total_budget = max_tokens + (thinking ? thinking_budget : 0);
+        for (uint32_t generated = 0; generated < total_budget; ++generated) {
+            if ((thinking_done && answer_tokens >= max_tokens) || (!thinking_done && thought_tokens >= thinking_budget)) break;
+            const auto * logits = llama_get_logits_ith(runtime->context, -1);
+            if (!logits) { set_error(error, error_capacity, "field logits unavailable"); return -1; }
+            for (llama_token i = 0; i < vocab_size; ++i) candidates[size_t(i)] = {i, logits[i], 0.0f};
+            llama_token_data_array array{candidates.data(), candidates.size(), -1, false};
+            if (thinking_done) llama_sampler_apply(grammar.get(), &array);
+            const auto best = std::max_element(array.data, array.data + array.size, [](const auto & a, const auto & b) { return a.logit < b.logit; });
+            if (best == array.data + array.size || !std::isfinite(best->logit)) { set_error(error, error_capacity, "grammar permits no token"); return -1; }
+            llama_token next = best->id;
+            if (llama_vocab_is_eog(runtime->vocab, next)) break;
+            const int32_t required = llama_detokenize(runtime->vocab, &next, 1, nullptr, 0, false, true);
+            if (required == std::numeric_limits<int32_t>::min()) { set_error(error, error_capacity, "token decoding overflow"); return -1; }
+            std::string piece(size_t(required < 0 ? -required : required), '\0');
+            const auto size = llama_detokenize(runtime->vocab, &next, 1, piece.data(), static_cast<int32_t>(piece.size()), false, true);
+            if (size < 0) { set_error(error, error_capacity, "field token decoding failed"); return -1; }
+            piece.resize(size_t(size));
+            if (thinking_done) {
+                ++answer_tokens; answer += piece; llama_sampler_accept(grammar.get(), next);
+                const auto parsed = json::parse(answer, nullptr, false);
+                if (!parsed.is_discarded() && parsed.is_object() && parsed.size() == 1 && parsed.contains("value")) {
+                    runtime->field_result = json{{"value", parsed.at("value")}, {"logits", json::array()}, {"thinking", thought},
+                        {"input_tokens", media ? json(nullptr) : json(input_tokens)}, {"generated_tokens", thought_tokens + answer_tokens}}.dump();
+                    return 0;
+                }
+            } else {
+                ++thought_tokens; thought += piece;
+                for (const auto & end : chat.thinking_end_tags) {
+                    if (!end.empty() && thought.size() >= end.size() && thought.compare(thought.size()-end.size(), end.size(), end) == 0) thinking_done = true;
+                }
+            }
+            auto batch = llama_batch_get_one(&next, 1);
+            if (llama_decode(runtime->context, batch) != 0) { set_error(error, error_capacity, "field token inference failed"); return -1; }
+        }
+        set_error(error, error_capacity, thinking_done ? "GENERATION_BUDGET_EXHAUSTED: unfinished field value" : "THINKING_BUDGET_EXHAUSTED: unfinished reasoning");
+        return -1;
+    } catch (const std::exception & exception) {
+        set_error(error, error_capacity, std::string("field generation failed: ") + exception.what()); return -1;
+    }
+}
+
+int64_t tj_llama_field_result(tj_llama_runtime * runtime, char * out, size_t capacity,
+    char * error, size_t error_capacity) {
+    if (!runtime || runtime->field_result.empty()) { set_error(error, error_capacity, "no completed field result"); return -1; }
+    return copy_text(runtime->field_result, out, capacity);
 }
 
 int32_t tj_llama_sequence_scores_supported(tj_llama_runtime * runtime) {

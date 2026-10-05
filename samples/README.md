@@ -1,5 +1,7 @@
 # TurboJev samples
 
+The shared [typed-field workflow](typed-fields/README.md) runs `generate` with numbers, booleans, nullable text, dependencies and conditions in Python, TypeScript, C# and Rust. After building, add `--generate` to the native sample launcher.
+
 Small projects using compiled TurboJev libraries and local inference.
 
 | Project | Interface | Engine |

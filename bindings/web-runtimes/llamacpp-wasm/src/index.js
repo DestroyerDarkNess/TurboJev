@@ -107,7 +107,7 @@ export async function createRuntime(dependencies = {}) {
       return {
         name: 'llama.cpp-wasm',
         model,
-        codecProfile: 'llamacpp-wasm-json-prefill-v2',
+        codecProfile: 'llamacpp-wasm-json-prefill-v3',
         scoringMode: 'decisions',
         modalities,
         capabilities: {
@@ -130,8 +130,8 @@ export async function createRuntime(dependencies = {}) {
 
       for (const task of batch.tasks) {
         const candidates = task.candidates || [];
-        if (candidates.length < 2 || candidates.length > 20) {
-          throw new Error(`llama.cpp WASM supports 2–20 choices per decision (received ${candidates.length}).`);
+        if (candidates.length < 2 || candidates.length > 24) {
+          throw new Error(`llama.cpp WASM supports 2–24 choices per decision (received ${candidates.length}).`);
         }
         const labels = Array.from({ length: candidates.length }, (_, i) => String.fromCharCode(65 + i));
         const isBestMatch = String(task.intent).toLowerCase() === 'bestmatch';
@@ -152,7 +152,8 @@ export async function createRuntime(dependencies = {}) {
           { role: 'user', content: userContent },
           { role: 'assistant', content: '{"answer": "' },
         ];
-        const grammar = `root ::= ${labels.map(label => `"${label}"`).join(' | ')}`;
+        const schema = { type: 'object', properties: { answer: { type: 'string', enum: labels } },
+          required: ['answer'], additionalProperties: false };
         if (media) {
           const needsImage = media.modality === 'image' || media.modality === 'video';
           if (needsImage && !engine.supportInputModality('image')) {
@@ -175,9 +176,11 @@ export async function createRuntime(dependencies = {}) {
             temperature: 1,
             top_k: 0,
             top_p: 1,
+            min_p: 0,
+            post_sampling_probs: true,
             logprobs: true,
-            top_logprobs: 20,
-            grammar,
+            top_logprobs: 24,
+            response_format: { type: 'json_schema', json_schema: { name: 'decision', schema, strict: true } },
             cache_prompt: false,
             chat_template_kwargs: { enable_thinking: false },
           });
@@ -191,12 +194,15 @@ export async function createRuntime(dependencies = {}) {
         }
 
         inputTokens += response.usage?.prompt_tokens || 0;
-        const alternatives = response.choices?.[0]?.logprobs?.content?.[0]?.top_logprobs || [];
-        const logits = labels.map(label => {
+        const tokenScores = response.choices?.[0]?.logprobs?.content?.[0];
+        const alternatives = tokenScores?.top_probs || tokenScores?.top_logprobs || [];
+        const readScore = (alternatives, label) => {
           const byte = label.charCodeAt(0);
           const match = alternatives.find(item => item.token === label || (item.bytes?.length === 1 && item.bytes[0] === byte));
-          return Number(match?.logprob);
-        });
+          if (typeof match?.prob === 'number' && match.prob > 0) return Math.log(match.prob);
+          return typeof match?.logprob === 'number' ? match.logprob : NaN;
+        };
+        const logits = labels.map(label => readScore(alternatives, label));
         if (logits.some(value => !Number.isFinite(value))) {
           throw new Error(`llama.cpp did not return a score for every allowed answer (${labels.join(', ')}). Try another GGUF model or runtime version.`);
         }
@@ -204,6 +210,39 @@ export async function createRuntime(dependencies = {}) {
       }
 
       return JSON.stringify({ model, scores, metrics: { input_tokens: inputTokens } });
+    },
+
+    async inferField(taskJson) {
+      if (!engine) throw new Error('Load a GGUF model first.');
+      const task = JSON.parse(taskJson);
+      if (task.thinking) throw new Error('THINKING_UNSUPPORTED: per-field reasoning requires the native GGUF runtime.');
+      if (task.values) {
+        if (task.values.length === 1) return JSON.stringify({ logits: [0], thinking: '', input_tokens: 0, generated_tokens: 0 });
+        const output = JSON.parse(await this.scoreDecisionBatch(JSON.stringify({
+          state: task.state,
+          tasks: [{ id: task.name, intent: 'criterion', instruction: task.instructions,
+            candidates: task.values.map(value => ({ key: JSON.stringify(value), description: JSON.stringify(value) })) }],
+        })));
+        return JSON.stringify({ logits: output.scores[0].logits, thinking: '', input_tokens: output.metrics.input_tokens, generated_tokens: 0 });
+      }
+      const schema = { type: 'object', properties: { value: task.output_schema }, required: ['value'], additionalProperties: false };
+      const question = `${task.instructions}\nReturn exactly one JSON object with key value. Schema: ${JSON.stringify(task.output_schema)}`;
+      const media = task.state?.contract === 'turbojev.media.v1' ? task.state : null;
+      const user = media ? multimodalContent(media, question, '', [])
+        : `State:\n${typeof task.state === 'string' ? task.state : JSON.stringify(task.state)}\n\nQuestion:\n${question}`;
+      // For media, replace the categorical suffix while retaining the same bytes.
+      if (media) user.at(-1).text = `\nQuestion:\n${question}`;
+      const response = await engine.createChatCompletion({
+        messages: [{ role: 'system', content: 'Answer the requested field from the supplied evidence. Return only the requested JSON object.' }, { role: 'user', content: user }],
+        max_tokens: task.max_tokens, temperature: 0, cache_prompt: false,
+        chat_template_kwargs: { enable_thinking: false },
+        response_format: { type: 'json_schema', json_schema: { name: 'field', schema, strict: true } },
+      });
+      const choice = response.choices?.[0];
+      if (choice?.finish_reason === 'length') throw new Error('GENERATION_BUDGET_EXHAUSTED: unfinished field value.');
+      const value = JSON.parse(choice?.message?.content ?? '');
+      if (Object.keys(value).length !== 1 || !Object.hasOwn(value, 'value')) throw new Error('Invalid field generation response.');
+      return JSON.stringify({ value: value.value, logits: [], thinking: '', input_tokens: response.usage?.prompt_tokens, generated_tokens: response.usage?.completion_tokens ?? 0 });
     },
 
     async close() {

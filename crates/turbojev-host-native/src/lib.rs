@@ -510,6 +510,20 @@ impl NativeSession {
         turbojev_wire::encode_response(&response).map_err(|e| HostError::Wire(e.to_string()))
     }
 
+    /// Additive JSON Schema API; all field semantics live in the portable core.
+    pub fn generate_json(&self, input: &str) -> Result<String, HostError> {
+        let request: turbojev_schema::fields::GenerateRequest =
+            serde_json::from_str(input).map_err(HostError::Json)?;
+        let response = match &self.engine {
+            NativeEngine::Worker(engine) => engine.generate(request),
+            NativeEngine::Fixture(engine) => engine.generate(request),
+            #[cfg(feature = "llamacpp")]
+            NativeEngine::Llama(engine) => engine.generate(request),
+        }
+        .map_err(|e| HostError::Core(e.to_string()))?;
+        serde_json::to_string(&response).map_err(HostError::Json)
+    }
+
     /// Evaluate one external compatibility profile without duplicating semantic logic.
     pub fn evaluate_compatible_json(
         &self,

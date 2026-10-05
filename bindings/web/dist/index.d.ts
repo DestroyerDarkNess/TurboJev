@@ -26,6 +26,7 @@ export interface BrowserRuntime {
     encodePromptWithAnswer(messagesJson: string, answer: string): string;
     decodeTokens(tokenIdsJson: string): string;
     scoreRuntimeBatch(runtimeBatchJson: string, planJson: string): Promise<string> | string;
+    inferField?(taskJson: string): Promise<string> | string;
     close(): Promise<void> | void;
 }
 /** Model-independent scoring; the provider owns media decoding and preprocessing. */
@@ -35,6 +36,8 @@ export interface BrowserDecisionRuntime {
         modalities: Array<"text" | "image" | "audio" | "video">;
     }>;
     scoreDecisionBatch(batchJson: string, planJson: string): Promise<string> | string;
+    /** Optional bounded, schema-constrained inference; workflow semantics stay in Rust. */
+    inferField?(taskJson: string): Promise<string> | string;
     close(): Promise<void> | void;
 }
 export interface WebLoadOptions {
@@ -55,6 +58,7 @@ export declare class TurboJevWeb {
     private constructor();
     static load(options: WebLoadOptions): Promise<TurboJevWeb>;
     evaluate(request: Record<string, unknown>): Promise<unknown>;
+    generate(request: Record<string, unknown>): Promise<unknown>;
     evaluateCompatible(profile: string, request: Record<string, unknown>): Promise<unknown>;
     info(): Promise<unknown>;
     close(): Promise<void>;

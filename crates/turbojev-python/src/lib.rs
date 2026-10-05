@@ -29,6 +29,13 @@ impl PyNativeEngine {
             .evaluate_json(request_json)
             .map_err(py_error)
     }
+    fn generate_json(&self, request_json: &str) -> PyResult<String> {
+        self.inner
+            .as_ref()
+            .ok_or_else(|| PyRuntimeError::new_err("engine is closed"))?
+            .generate_json(request_json)
+            .map_err(py_error)
+    }
     fn evaluate_compatible_json(&self, profile: &str, request_json: &str) -> PyResult<String> {
         self.inner
             .as_ref()

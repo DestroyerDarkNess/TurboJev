@@ -5,6 +5,7 @@
     <TurboJevRid Condition="'$(TurboJevRid)' == ''">$(NETCoreSdkRuntimeIdentifier)</TurboJevRid>
   </PropertyGroup>
   <ItemGroup>
+    <None Include="../typed-fields/request.json" Link="typed-fields-request.json" CopyToOutputDirectory="PreserveNewest" />
     <Reference Include="TurboJev"><HintPath>../.artifacts/$(TurboJevRid)/dotnet/TurboJev.dll</HintPath></Reference>
   </ItemGroup>
 </Project>

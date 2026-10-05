@@ -144,6 +144,32 @@ pub trait PromptCodec {
 
 /// Executes already prepared token-level decision batches.
 pub trait RuntimeExecutor {
+    /// Scope per-field reasoning configuration, restoring it after the operation.
+    fn with_field_options<T, F>(
+        &self,
+        thinking: bool,
+        _budget: usize,
+        operation: F,
+    ) -> Result<T, BackendError>
+    where
+        F: FnOnce() -> Result<T, BackendError>,
+    {
+        if thinking {
+            return Err(BackendError::Unsupported("per-field reasoning".into()));
+        }
+        operation()
+    }
+
+    /// Grammar-constrained generation implemented by supporting runtimes.
+    fn generate_field(
+        &self,
+        _task: &turbojev_backend::FieldTask,
+    ) -> Result<turbojev_backend::FieldOutput, BackendError> {
+        Err(BackendError::Unsupported("open-value generation".into()))
+    }
+    fn field_thinking(&self) -> Result<String, BackendError> {
+        Ok(String::new())
+    }
     /// Stable runtime implementation identifier.
     fn name(&self) -> &'static str;
 
@@ -316,6 +342,36 @@ where
             output.metrics.effective_plan = Some(effective_plan);
         }
         Ok(map_runtime_output(output))
+    }
+
+    fn infer_field(
+        &self,
+        task: &turbojev_backend::FieldTask,
+    ) -> Result<turbojev_backend::FieldOutput, BackendError> {
+        self.executor
+            .with_field_options(task.thinking, task.thinking_budget, || {
+                if task.values.is_none() {
+                    return self.executor.generate_field(task);
+                }
+                if task.values.as_ref().is_some_and(|values| values.len() == 1) {
+                    return Ok(turbojev_backend::FieldOutput {
+                        value: None,
+                        logits: vec![0.0],
+                        thinking: String::new(),
+                        input_tokens: Some(0),
+                        generated_tokens: 0,
+                    });
+                }
+                let batch = task.decision_batch()?;
+                let mut output = turbojev_backend::field_output_from_scores(
+                    task,
+                    self.score(&batch, ExecutionPlan::default())?,
+                )?;
+                if task.thinking {
+                    output.thinking = self.executor.field_thinking()?;
+                }
+                Ok(output)
+            })
     }
 }
 

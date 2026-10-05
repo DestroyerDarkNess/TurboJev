@@ -8,6 +8,7 @@ onmessage=async({data:{id,op,args}})=>{try{
   }
   if(!engine)throw new Error("ENGINE_NOT_LOADED");
   if(op==="evaluate")return reply(id,true,JSON.parse(await engine.evaluate_json(JSON.stringify(args.request))));
+  if(op==="generate")return reply(id,true,JSON.parse(await engine.generate_json(JSON.stringify(args.request))));
   if(op==="compatible")return reply(id,true,JSON.parse(await engine.evaluate_compatible_json(args.profile,JSON.stringify(args.request))));
   if(op==="info")return reply(id,true,descriptor);
   if(op==="close"){await runtime?.close?.();engine?.free?.();runtime=null;engine=null;return reply(id,true,null);}

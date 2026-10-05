@@ -21,6 +21,9 @@ use turbojev_schema::{
 /// Stable native core contract identifier.
 pub const CORE_CONTRACT: &str = "turbojev.core.v4";
 
+/// Dependency-aware typed-field generation shared by synchronous and async hosts.
+pub mod fields;
+
 /// Mitigation for positional bias in unordered `choice` questions.
 ///
 /// `None` scores the supplied order once. Opt-in `Cyclic` evaluates each cyclic

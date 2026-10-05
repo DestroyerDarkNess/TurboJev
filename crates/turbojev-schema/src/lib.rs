@@ -367,3 +367,5 @@ mod tests {
         ));
     }
 }
+/// JSON Schema fields and dependency-aware generation contracts.
+pub mod fields;
