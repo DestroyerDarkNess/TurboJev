@@ -87,6 +87,18 @@ or replaced action. Six states under four rotations passed 18/24; the raw wall
 state remained 0/4. These small results do not guarantee order independence,
 optimal navigation or reliability on longer games.
 
+A matched Windows x64 comparison using PyPI 0.29.2 and Qwen3-0.6B Q4_K_M
+checked TurboJev against direct llama.cpp candidate logits and greedy JSON
+generation both with and without the assistant prefill. All four paths selected
+the same option in 36/36 cases, with exactly equal conditional probabilities
+for direct logits and TurboJev (maximum absolute difference 0.0). Four raw wall
+states under four rotations passed only 1/16; the corresponding sensor inputs
+passed 13/16; a color control passed 4/4. All generations completed valid JSON
+within 32 tokens, with thinking disabled. These results exclude an observed
+scoring/mapping discrepancy in that sample; they do not prove the model cannot
+solve the task with other prompts or inference modes, or qualify other runtimes.
+Do not describe the remaining accuracy/order issue as solved by sensor games.
+
 ## Choose the right runtime
 
 - **Native text inference:** use the llama.cpp adapter for GGUF models it can load. CPU is the normal default. GPU is opt-in; an unsupported GPU request should surface the runtime error, not silently change devices.

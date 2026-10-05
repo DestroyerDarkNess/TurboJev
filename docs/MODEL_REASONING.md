@@ -1,6 +1,6 @@
 # Model reasoning and the Snake audit
 
-Date: 2026-10-04. These are source-built Windows CPU measurements, not measurements of the currently published packages.
+Date: 2026-10-04. The earlier model probes used source-built Windows CPU inference. The matched direct-model comparison below uses the published PyPI 0.29.2 package and its runtime DLLs.
 
 ## What was identified
 
@@ -21,6 +21,42 @@ All five simpler tasks passed all four rotations with the models below. The orig
 A literal ASCII board improved Qwen3.5-2B's wall result to 2/4, but its seed-0 game still ate no food and hit a wall after six decisions. It is not a qualified navigation solution. A separate observation experiment exposed relative food position and adjacent-cell contents; Qwen0.6B still failed 0/4 and the game. That experimental preprocessing was removed from the demo. Its complete requests and negative results remain in the report, explicitly as an assisted perception experiment rather than raw-coordinate reasoning.
 
 This evidence qualifies neither these models nor these prompts for reliable autonomous navigation. It also does not establish that all remaining failures are solely model capacity: input representation, instruction following and positional sensitivity interact. Replacing quantization or increasing parameter count alone did not solve this scenario.
+
+## Matched direct-model comparison: published 0.29.2
+
+The [complete audit](validation/direct-vs-turbojev-qwen-0292.json) compares
+Qwen3-0.6B Q4_K_M on Windows x64 using the installed PyPI package against a
+standalone executable calling llama.cpp directly. The executable does not call
+TurboJev's engine, scorer or native shim. Both paths load the same model and
+runtime DLLs, use the same system/user messages, Jinja template and disabled
+thinking setting, and request CPU inference with identical context parameters.
+There is no grammar or candidate mask during generation.
+
+| Input / four candidate rotations | TurboJev | Direct candidate logits | Direct generation with prefill | Direct generation without prefill |
+| --- | ---: | ---: | ---: | ---: |
+| Four wall states, raw coordinates | 1/16 | 1/16 | 1/16 | 1/16 |
+| Same wall states, sensor representation | 13/16 | 13/16 | 13/16 | 13/16 |
+| Color control | 4/4 | 4/4 | 4/4 | 4/4 |
+
+All four paths selected the same semantic option in every one of the 36 cases.
+Direct candidate probabilities matched TurboJev exactly: maximum absolute
+difference **0.0**. Every generated answer was valid requested JSON; none hit
+the 32-token limit. Candidate token IDs were derived and checked against the
+complete tokenized prompt, not fixed for this model. Full prompts, token IDs,
+candidate logits, responses and model/DLL hashes are recorded.
+
+This audit found no numerical scoring or answer-mapping discrepancy in this
+path. The bad decisions are reproduced by direct generation using the same
+instructions, including without the forced assistant prefill. It does not prove
+that this checkpoint cannot solve the task with another prompt, thinking mode
+or training. It does not qualify every model/runtime or rule out other bugs.
+The outstanding issue is reliable model decisions under the tested decision
+formulation, not a demonstrated core-scoring defect. Successful sensor games
+must not be advertised as a general solution to reasoning or order sensitivity.
+
+The [diagnostic instructions](../scripts/native-decision-audit/README.md) explain
+how to reproduce the comparison. This is a static accuracy audit, not a Snake
+game benchmark or an equal-work speed comparison.
 
 ## Why Valen behaves differently
 
