@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.30.1
+
+- Negotiate shared-prefix scoring only when the loaded llama.cpp context has at least two sequences. A context configured with `nSeqMax=1` now evaluates multiple questions through the independent reference path instead of decoding an invalid sequence ID.
+- Add real-model regression checks for single-sequence, multi-question requests in Node, Python and the NuGet package gate. Preserve shared-prefix reuse when two or more sequences are available.
+
 ## 0.30.0
 
 - Add `generate` across Rust, Python, Node/TypeScript, browser/WASM, C, .NET, Android and Swift with a shared Rust workflow: scalar JSON types, nullable fields, typed enums, dependencies, conditions, plain prior answers and explicit skipped fields.

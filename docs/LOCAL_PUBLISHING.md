@@ -48,7 +48,7 @@ response and confirm that the expected version and platform assets are visible.
 
 ```powershell
 python scripts/verify-published-release.py
-python scripts/verify-published-release.py --registry npm --version 0.30.0
+python scripts/verify-published-release.py --registry npm --version 0.30.1
 ```
 
 The verifier uses public registry endpoints without credentials. It checks all

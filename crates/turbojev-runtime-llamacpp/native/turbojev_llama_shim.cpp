@@ -1470,7 +1470,9 @@ int32_t tj_llama_score_root_batch(
 }
 
 int32_t tj_llama_shared_prefix_supported(tj_llama_runtime * runtime) {
-    if (runtime == nullptr || runtime->context == nullptr) {
+    // Shared scoring keeps the immutable prefix in sequence 0 and evaluates
+    // suffixes in sequence 1, even when suffixes are scheduled serially.
+    if (runtime == nullptr || runtime->context == nullptr || runtime->n_seq_max < 2) {
         return 0;
     }
     return llama_get_memory(runtime->context) != nullptr ? 1 : 0;
@@ -1517,6 +1519,10 @@ int32_t tj_llama_prefill_shared(
     if (runtime == nullptr || runtime->context == nullptr || runtime->vocab == nullptr
         || prefix_tokens == nullptr || prefix_count == 0) {
         set_error(error, error_capacity, "invalid shared-prefix arguments");
+        return -1;
+    }
+    if (tj_llama_shared_prefix_supported(runtime) == 0) {
+        set_error(error, error_capacity, "shared-prefix scoring requires at least two sequences and reusable memory");
         return -1;
     }
     llama_memory_t memory = llama_get_memory(runtime->context);

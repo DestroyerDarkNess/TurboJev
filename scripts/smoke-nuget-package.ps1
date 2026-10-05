@@ -30,6 +30,7 @@ await using var engine = await TurboJevEngine.LoadAsync(new { model = args[0], d
 var request = File.ReadAllText(Path.Combine(Environment.GetEnvironmentVariable("TURBOJEV_SOURCE_ROOT")!, "tests/e2e/request.json"));
 var output = await engine.EvaluateJsonAsync(request);
 using var response = JsonDocument.Parse(output);
+if (response.RootElement.GetProperty("_turbojev").GetProperty("execution").GetProperty("prefix_reuse").GetString() != "none") throw new Exception("One sequence cannot retain a shared prefix and a separate suffix");
 foreach (var key in new[] { "route", "urgent", "severity" })
     if (!response.RootElement.GetProperty("answers").TryGetProperty(key, out _)) throw new Exception($"Missing typed answer {key}");
 using var generated = JsonDocument.Parse(await engine.GenerateJsonAsync("""

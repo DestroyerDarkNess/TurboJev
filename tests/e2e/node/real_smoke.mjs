@@ -15,6 +15,12 @@ try {
     assert.ok(["billing", "shipping", "other"].includes(result.answers.route.choice));
     assert.deepEqual(result.answers, results[0].answers);
   }
+  const multi = await engine.evaluate({state:"The service is down.", questions:{
+    team:{type:"choice",instructions:"Which team handles this?",criteria:{outage:"Service down",billing:"Payments"}},
+    urgent:{type:"noul",instructions:"Is the service unavailable?"}
+  }});
+  assert.deepEqual(Object.keys(multi.answers),["team","urgent"]);
+  assert.equal(multi._turbojev.execution.prefix_reuse,"none");
   await assert.rejects(engine.evaluate({ state: "hello", questions: { route: { type: "choice", instructions: "Choose", criteria: { only: "Only" } } } }));
   assert.ok(["billing", "shipping", "other"].includes((await engine.evaluate(request("Refund please"))).answers.route.choice));
   const generated=await engine.generate({context:"There are exactly seven items.",questions:{count:{type:"integer",instructions:"How many items are stated?"},seen:{type:"boolean",depends_on:["count"],instructions:"Was an item count provided?"}}});
@@ -28,4 +34,4 @@ try {
 await engine.close();
 await assert.rejects(engine.info());
 console.log(JSON.stringify({passed: true, checks: ["failed_load_cleanup", "file_url_model",
-  "unicode", "three_concurrent_calls", "invalid_options", "recovery", "generate_integer_dependency", "reject_unsupported_schema", "close_twice", "use_after_close"]}));
+  "unicode", "three_concurrent_calls", "single_sequence_multiple_questions", "invalid_options", "recovery", "generate_integer_dependency", "reject_unsupported_schema", "close_twice", "use_after_close"]}));

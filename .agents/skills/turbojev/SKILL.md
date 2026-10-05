@@ -148,7 +148,7 @@ sequences. Increase `nCtx` or reduce `nSeqMax` to make room for longer prompts a
 thoughts. `THINKING_UNSUPPORTED`, `THINKING_CONTEXT_LIMIT` and
 `THINKING_BUDGET_EXHAUSTED` are real failures; do not hide them or fabricate an
 answer. Current media, worker and browser adapters reject this mode explicitly.
-Native shim ABI 10 is required in 0.30.0; rebuild native dependents together.
+Native shim ABI 10 is required in 0.30.1; rebuild native dependents together.
 
 Real Windows CPU results: Qwen3-0.6B Q4/Q8 passed 20/20 simpler rotated decisions
 but failed 0/4 on the raw-coordinate Snake wall state. Qwen3.5-0.8B,
@@ -173,7 +173,7 @@ but did not run its checkpoint locally. Copying a random, untrained scoring head
 would not reproduce its learned policy. Its checkpoint is not a drop-in GGUF.
 
 
-## JSON-typed fields in 0.30.0
+## JSON-typed fields in 0.30.1
 
 `generate` adds JSON-typed fields to TurboJev's portable core. `evaluate` remains the direct `choice`, `noul` and ordered `score` API. Finite fields score model candidates; unrestricted strings and numbers generate a bounded value. Extraction therefore generates tokens and can take longer than a single candidate decision.
 

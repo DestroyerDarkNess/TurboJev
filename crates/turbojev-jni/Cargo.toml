@@ -16,7 +16,7 @@ default = []
 llamacpp = ["turbojev-host-native/llamacpp"]
 
 [dependencies]
-turbojev-host-native = { version = "=0.30.0", path = "../turbojev-host-native" }
+turbojev-host-native = { version = "=0.30.1", path = "../turbojev-host-native" }
 jni = "=0.21.1"
 
 [lints.rust]

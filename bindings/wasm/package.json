@@ -1,6 +1,6 @@
 {
   "name": "@turbojev/wasm",
-  "version": "0.30.0",
+  "version": "0.30.1",
   "description": "TurboJev WebAssembly core for browser applications",
   "license": "Apache-2.0",
   "repository": {

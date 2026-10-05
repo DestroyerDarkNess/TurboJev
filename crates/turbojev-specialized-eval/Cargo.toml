@@ -11,9 +11,9 @@ homepage.workspace = true
 [dependencies]
 serde.workspace = true
 thiserror.workspace = true
-turbojev-benchmark = { version = "=0.30.0", path = "../turbojev-benchmark" }
-turbojev-calibration = { version = "=0.30.0", path = "../turbojev-calibration" }
-turbojev-specialized = { version = "=0.30.0", path = "../turbojev-specialized" }
+turbojev-benchmark = { version = "=0.30.1", path = "../turbojev-benchmark" }
+turbojev-calibration = { version = "=0.30.1", path = "../turbojev-calibration" }
+turbojev-specialized = { version = "=0.30.1", path = "../turbojev-specialized" }
 
 [lints]
 workspace = true

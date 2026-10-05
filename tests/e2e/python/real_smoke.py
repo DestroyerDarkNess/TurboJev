@@ -47,6 +47,7 @@ def main():
     with TurboJev.load(args.model, device="cpu", n_gpu_layers=0,n_ctx=8192,n_seq_max=1,n_threads=4) as engine:
         check("all_three_types", lambda: valid(engine.evaluate(request)))
         baseline = engine.evaluate(request)["answers"]
+        assert engine.evaluate(request)["_turbojev"]["execution"]["prefix_reuse"] == "none", "one sequence cannot retain a shared prefix and a separate suffix"
 
         def repeat():
             for _ in range(5):
