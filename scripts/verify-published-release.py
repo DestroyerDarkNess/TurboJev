@@ -3,6 +3,7 @@ import argparse
 import base64
 from concurrent.futures import ThreadPoolExecutor
 import hashlib
+import io
 import json
 import os
 from pathlib import Path
@@ -55,19 +56,20 @@ def verify_python(version):
 
 def verify_nuget(version):
     base = f"https://api.nuget.org/v3-flatcontainer/turbojev/{version}/turbojev.{version}.nupkg"
-    expected = fetch(base + ".sha512", raw=True).decode().strip().strip('"')
+    # NuGet's flat container serves the package, not a .nupkg.sha512 blob.
+    # Hash the actual public bytes and inspect their runtime assets directly.
+    published = fetch(base, raw=True)
+    expected = base64.b64encode(hashlib.sha512(published).digest()).decode()
     local = ROOT / f"artifacts/nuget/TurboJev.{version}.nupkg"
     if local.exists():
         actual = base64.b64encode(hashlib.sha512(local.read_bytes()).digest()).decode()
         assert actual == expected, "Local and published NuGet packages differ"
-        with zipfile.ZipFile(local) as archive:
-            names = set(archive.namelist())
-        for rid in ("win-x86", "win-x64", "win-arm64"):
-            for library in ("turbojev_capi.dll", "turbojev_llama_shim.dll", "mtmd.dll", "llama.dll"):
-                assert f"runtimes/{rid}/native/{library}" in names, (rid, library)
-        assets = ["win-x86", "win-x64", "win-arm64"]
-    else:
-        assets = None
+    with zipfile.ZipFile(io.BytesIO(published)) as archive:
+        names = set(archive.namelist())
+    assets = ["win-x86", "win-x64", "win-arm64"]
+    for rid in assets:
+        for library in ("turbojev_capi.dll", "turbojev_llama_shim.dll", "mtmd.dll", "llama.dll"):
+            assert f"runtimes/{rid}/native/{library}" in names, (rid, library)
     return {"name": "TurboJev", "version": version, "sha512": expected, "verified_native_assets": assets}
 
 
