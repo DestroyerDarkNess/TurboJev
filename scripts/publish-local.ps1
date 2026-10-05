@@ -5,6 +5,7 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+$env:CARGO_CACHE_AUTO_CLEAN_FREQUENCY = "never"
 $Root = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 Set-Location $Root
 . (Join-Path $PSScriptRoot 'use-arm64-toolchain.ps1')
@@ -259,7 +260,7 @@ function Publish-Wasm {
     New-Item -ItemType Directory -Force -Path $output | Out-Null
 
     Invoke-Tool "rustup" @("target", "add", "wasm32-unknown-unknown")
-    Invoke-Tool "cargo" @("build", "--locked", "--release", "-p", "turbojev-wasm", "--target", "wasm32-unknown-unknown")
+    Invoke-Tool "cargo" @("build", "--offline", "--locked", "--release", "-p", "turbojev-wasm", "--target", "wasm32-unknown-unknown")
     if (-not (Test-Path -LiteralPath $wasmBindgen)) {
         Invoke-Tool "cargo" @("install", "wasm-bindgen-cli", "--version", "0.2.100", "--locked", "--root", $toolsRoot)
     }
