@@ -86,6 +86,7 @@ async function action(name, body) {
 }
 log(await start());
 class Wllama {
+  getLoadedContextInfo() { return this.info; }
   getWorkerResources() { return { wasmPath: 'local', compat: false }; }
   async loadModelFromUrl(source, options) {
     this.info = await action('load', {
@@ -113,7 +114,7 @@ class Wllama {
       if (result.data_json && result.data_json !== 'null') response = JSON.parse(result.data_json);
       if (!result.has_more) {
         if (!response) throw new Error('WASM returned no model scores');
-        if (args.includes('--debug-scores') && (options.grammar || options.response_format?.json_schema?.name === 'decision')) log(JSON.stringify({schema:options.response_format, scores:response.choices?.[0]?.logprobs?.content?.[0]}));
+        if (args.includes('--debug-scores') && options.logprobs) log(JSON.stringify({requested:options.top_logprobs, returned:response.choices?.[0]?.logprobs?.content?.[0]?.top_logprobs?.length}));
         return response;
       }
     }

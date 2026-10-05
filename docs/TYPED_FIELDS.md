@@ -41,7 +41,7 @@ The same JSON request is accepted by every binding. Supply exactly one of `quest
 
 Token limits are request-level `text_max_tokens` (default 256) and `numeric_max_tokens` (default 64), each 1–32768. Booleans default to `[true, false]`, plus actual null for nullable booleans. Numeric equality distinguishes booleans from integers and does not round distinct 64-bit integer values. Unsupported keywords, including bounds, string length/format constraints and nested schemas, are rejected before inference rather than ignored. Invalid generated output and exhausted budgets are errors.
 
-The Wllama adapter requests probabilities after the candidate grammar, with top-k, top-p and min-p truncation disabled. This returns all 1–24 allowed candidates without a recovery pass; the Rust core normalizes and constructs the typed response.
+Wllama 3.8.1 exposes top-N vocabulary scores. The adapter first requests 128 scores; if a permitted label is missing, it queries the actual vocabulary size from the loaded model and requests all scores with the same prompt. This recovery adds one model call and counts its actual input tokens. No missing candidate receives an invented probability. The core projects 1–24 candidates and normalizes their scores; the browser adapter does not claim a selective output head.
 
 ## Dependencies, conditions and null
 

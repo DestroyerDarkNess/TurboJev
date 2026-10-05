@@ -152,8 +152,7 @@ export async function createRuntime(dependencies = {}) {
           { role: 'user', content: userContent },
           { role: 'assistant', content: '{"answer": "' },
         ];
-        const schema = { type: 'object', properties: { answer: { type: 'string', enum: labels } },
-          required: ['answer'], additionalProperties: false };
+
         if (media) {
           const needsImage = media.modality === 'image' || media.modality === 'video';
           if (needsImage && !engine.supportInputModality('image')) {
@@ -177,10 +176,10 @@ export async function createRuntime(dependencies = {}) {
             top_k: 0,
             top_p: 1,
             min_p: 0,
-            post_sampling_probs: true,
+            post_sampling_probs: false,
             logprobs: true,
-            top_logprobs: 24,
-            response_format: { type: 'json_schema', json_schema: { name: 'decision', schema, strict: true } },
+            top_logprobs: 128,
+
             cache_prompt: false,
             chat_template_kwargs: { enable_thinking: false },
           });
@@ -194,15 +193,34 @@ export async function createRuntime(dependencies = {}) {
         }
 
         inputTokens += response.usage?.prompt_tokens || 0;
-        const tokenScores = response.choices?.[0]?.logprobs?.content?.[0];
-        const alternatives = tokenScores?.top_probs || tokenScores?.top_logprobs || [];
-        const readScore = (alternatives, label) => {
-          const byte = label.charCodeAt(0);
-          const match = alternatives.find(item => item.token === label || (item.bytes?.length === 1 && item.bytes[0] === byte));
-          if (typeof match?.prob === 'number' && match.prob > 0) return Math.log(match.prob);
-          return typeof match?.logprob === 'number' ? match.logprob : NaN;
+        const project = response => {
+          const tokenScores = response.choices?.[0]?.logprobs?.content?.[0];
+          const alternatives = tokenScores?.top_probs || tokenScores?.top_logprobs || [];
+          return labels.map(label => {
+            const byte = label.charCodeAt(0);
+            const match = alternatives.find(item => item.token === label || (item.bytes?.length === 1 && item.bytes[0] === byte));
+            if (typeof match?.prob === 'number' && match.prob > 0) return Math.log(match.prob);
+            return typeof match?.logprob === 'number' ? match.logprob : NaN;
+          });
         };
-        const logits = labels.map(label => readScore(alternatives, label));
+        let logits = project(response);
+        if (logits.some(value => !Number.isFinite(value))) {
+          // Public Wllama completions expose top-N vocabulary scores, not a
+          // selective candidate projection. Its Jinja autoparser ignores custom
+          // GBNF in this version. Query the actual full vocabulary only when a
+          // requested candidate was omitted; never invent its probability.
+          const nVocab = engine.getLoadedContextInfo?.().n_vocab;
+          if (Number.isInteger(nVocab) && nVocab > 128) {
+            response = await engine.createChatCompletion({
+              messages, prefill_assistant: true, max_tokens: 1, temperature: 1,
+              top_k: 0, top_p: 1, min_p: 0, logprobs: true,
+              top_logprobs: nVocab, post_sampling_probs: false,
+              cache_prompt: false, chat_template_kwargs: { enable_thinking: false },
+            });
+            inputTokens += response.usage?.prompt_tokens || 0;
+            logits = project(response);
+          }
+        }
         if (logits.some(value => !Number.isFinite(value))) {
           throw new Error(`llama.cpp did not return a score for every allowed answer (${labels.join(', ')}). Try another GGUF model or runtime version.`);
         }

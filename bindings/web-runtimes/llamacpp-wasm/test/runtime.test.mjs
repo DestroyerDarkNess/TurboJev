@@ -18,6 +18,7 @@ function makeWllama({ image = false, audio = false, decisionError, fieldResponse
       modelSource = source;
       calls.push({ kind: 'load', options, resources: this.getWorkerResources() });
     }
+    getLoadedContextInfo() { return { n_vocab: 1000 }; }
     getWorkerResources() { return { wasmPath: 'test.wasm', compat: false }; }
     supportInputModality(modality) {
       return modality === 'image' ? image : modality === 'audio' ? audio : false;
@@ -28,7 +29,7 @@ function makeWllama({ image = false, audio = false, decisionError, fieldResponse
         return { choices: [{ message: { content: 'ready' } }] };
       }
       if (decisionError) throw decisionError;
-      if (decisionResponse && options.response_format?.json_schema?.name === 'decision') return decisionResponse(options);
+      if (decisionResponse && options.logprobs) return decisionResponse(options);
       if(options.response_format?.json_schema?.name === 'field') return fieldResponse ?? {
         usage:{prompt_tokens:12,completion_tokens:5},choices:[{message:{content:'{"value":null}'},finish_reason:'stop'}],
       };
@@ -58,13 +59,11 @@ const options = extra => ({
   ...extra,
 });
 
-test('requests scores after candidate restriction without a second inference', async () => {
+test('recovers omitted vocabulary candidates without inventing scores', async () => {
   const mock = makeWllama({ decisionResponse: options => {
-    assert.equal(options.post_sampling_probs, true);
-    assert.equal(options.min_p, 0);
-    const labels = options.response_format.json_schema.schema.properties.answer.enum;
+    const labels = Array.from({ length: options.top_logprobs > 128 ? 24 : 20 }, (_, i) => String.fromCharCode(65 + i));
     return { usage: { prompt_tokens: 12 }, choices: [{ logprobs: { content: [{
-      top_probs: labels.map(token => ({ token, prob: Math.exp(token.charCodeAt(0) - 100) })),
+      top_logprobs: labels.map(token => ({ token, logprob: token.charCodeAt(0) - 100 })),
     }] } }] };
   } });
   const runtime = await createRuntime(mock);
@@ -73,8 +72,12 @@ test('requests scores after candidate restriction without a second inference', a
     id: 'all', instruction: 'Choose the label', candidates: Array.from({ length: 24 }, (_, i) => ({ key: `option_${i}` })),
   }] })));
   assert.deepEqual(output.scores[0].logits, Array.from({ length: 24 }, (_, i) => 65 + i - 100));
-  assert.equal(output.metrics.input_tokens, 12);
-  assert.equal(mock.calls().filter(c => c.kind === 'completion' && c.options.response_format?.json_schema?.name === 'decision').length, 1);
+  assert.equal(output.metrics.input_tokens, 24);
+  const requests = mock.calls().filter(c => c.kind === 'completion' && c.options.logprobs);
+  assert.equal(requests.length, 2);
+  assert.equal(requests[0].options.top_logprobs, 128);
+  assert.equal(requests[1].options.top_logprobs, 1000);
+  assert.deepEqual(requests[0].options.messages, requests[1].options.messages);
   await runtime.close();
 });
 
