@@ -105,7 +105,7 @@ mod tests {
     use super::*;
     use turbojev_backend::{BackendMetrics, Candidate, DecisionIntent, DecisionTask, TaskScores};
 
-    fn block_on<F: std::future::Future>(future: F) -> F::Output {
+    fn block_on<F: Future>(future: F) -> F::Output {
         use std::sync::Arc;
         use std::task::{Context, Poll, Wake, Waker};
 

@@ -1,0 +1,308 @@
+{
+  "config": {
+    "model": "C:\\Users\\Administrator\\.cache\\turbojev\\Qwen3-0.6B-Q4_K_M.gguf",
+    "device": "cpu",
+    "nCtx": 8192,
+    "nSeqMax": 1,
+    "nThreads": 4,
+    "nThreadsBatch": 4
+  },
+  "records": [
+    {
+      "id": "string",
+      "request": {
+        "context": "The merchant is Hilton London.",
+        "questions": {
+          "merchant": {
+            "type": "string",
+            "instructions": "Return only the merchant name."
+          }
+        }
+      },
+      "response": {
+        "result": {
+          "merchant": "Hilton London"
+        },
+        "thinking": {},
+        "thinking_effort": {},
+        "skipped": [],
+        "usage": {
+          "decisions": 1,
+          "input_tokens": 68,
+          "generated_tokens": 8
+        }
+      },
+      "expected": {
+        "merchant": "Hilton London"
+      },
+      "matched": true,
+      "seconds": 2.0038744999983464
+    },
+    {
+      "id": "integer",
+      "request": {
+        "context": "There are exactly 37 units.",
+        "questions": {
+          "count": {
+            "type": "integer",
+            "instructions": "How many units?"
+          }
+        }
+      },
+      "response": {
+        "result": {
+          "count": 37
+        },
+        "thinking": {},
+        "thinking_effort": {},
+        "skipped": [],
+        "usage": {
+          "decisions": 1,
+          "input_tokens": 68,
+          "generated_tokens": 7
+        }
+      },
+      "expected": {
+        "count": 37
+      },
+      "matched": true,
+      "seconds": 1.725574800002505
+    },
+    {
+      "id": "number",
+      "request": {
+        "context": "The total is 324.50 GBP.",
+        "questions": {
+          "total": {
+            "type": "number",
+            "instructions": "What is the total in GBP?"
+          }
+        }
+      },
+      "response": {
+        "result": {
+          "total": 324.5
+        },
+        "thinking": {},
+        "thinking_effort": {},
+        "skipped": [],
+        "usage": {
+          "decisions": 1,
+          "input_tokens": 75,
+          "generated_tokens": 11
+        }
+      },
+      "expected": {
+        "total": 324.5
+      },
+      "matched": true,
+      "seconds": 3.0222501999960514
+    },
+    {
+      "id": "nullable",
+      "request": {
+        "context": "No invoice number is provided.",
+        "questions": {
+          "invoice": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "instructions": "Return the invoice number, or null when absent."
+          }
+        }
+      },
+      "response": {
+        "result": {
+          "invoice": null
+        },
+        "thinking": {},
+        "thinking_effort": {},
+        "skipped": [],
+        "usage": {
+          "decisions": 1,
+          "input_tokens": 100,
+          "generated_tokens": 5
+        }
+      },
+      "expected": {
+        "invoice": null
+      },
+      "matched": true,
+      "seconds": 4.143314000000828
+    },
+    {
+      "id": "finite",
+      "request": {
+        "context": "The service is down.",
+        "questions": {
+          "team": {
+            "type": "string",
+            "enum": [
+              "outage",
+              "billing",
+              "feature"
+            ],
+            "instructions": "Which team handles this?"
+          },
+          "urgent": {
+            "type": "boolean",
+            "instructions": "Is this urgent?"
+          }
+        }
+      },
+      "response": {
+        "result": {
+          "team": "outage",
+          "urgent": true
+        },
+        "thinking": {},
+        "thinking_effort": {},
+        "skipped": [],
+        "usage": {
+          "decisions": 2,
+          "input_tokens": 151,
+          "generated_tokens": 0
+        }
+      },
+      "expected": {
+        "team": "outage",
+        "urgent": true
+      },
+      "matched": true,
+      "seconds": 2.1698155000049155
+    },
+    {
+      "id": "dependency",
+      "request": {
+        "context": "There are exactly 7 units.",
+        "questions": {
+          "count": {
+            "type": "integer",
+            "instructions": "How many units?"
+          },
+          "check": {
+            "type": "boolean",
+            "depends_on": [
+              "count"
+            ],
+            "instructions": "Is count greater than five?"
+          },
+          "skip": {
+            "type": "string",
+            "when": {
+              "count": {
+                "lt": 5
+              }
+            },
+            "instructions": "Write a note."
+          }
+        }
+      },
+      "response": {
+        "result": {
+          "count": 7,
+          "check": true
+        },
+        "thinking": {},
+        "thinking_effort": {},
+        "skipped": [
+          "skip"
+        ],
+        "usage": {
+          "decisions": 2,
+          "input_tokens": 164,
+          "generated_tokens": 6
+        }
+      },
+      "expected": {
+        "count": 7,
+        "check": true
+      },
+      "matched": true,
+      "seconds": 2.288443199999165
+    },
+    {
+      "id": "numeric_enum",
+      "request": {
+        "context": "The severity level is 2.",
+        "questions": {
+          "severity": {
+            "type": "integer",
+            "enum": [
+              0,
+              1,
+              2
+            ],
+            "instructions": "What severity level is stated?",
+            "return_probabilities": true
+          }
+        }
+      },
+      "response": {
+        "result": {
+          "severity": {
+            "confidence": 0.9999999465647711,
+            "probabilities": {
+              "0": 1.296408137264304e-08,
+              "1": 4.047114761304926e-08,
+              "2": 0.9999999465647711
+            },
+            "value": 2
+          }
+        },
+        "thinking": {},
+        "thinking_effort": {},
+        "skipped": [],
+        "usage": {
+          "decisions": 1,
+          "input_tokens": 82,
+          "generated_tokens": 0
+        }
+      },
+      "expected": null,
+      "matched": null,
+      "seconds": 0.5056722000008449
+    },
+    {
+      "id": "permutations",
+      "request": {
+        "context": "A fair coin is tossed.",
+        "questions": {
+          "coin": {
+            "type": "string",
+            "enum": [
+              "heads",
+              "tails"
+            ],
+            "permutations": "all",
+            "return_probabilities": true
+          }
+        }
+      },
+      "response": {
+        "result": {
+          "coin": {
+            "confidence": 0.5186659089960461,
+            "probabilities": {
+              "heads": 0.5186659089960461,
+              "tails": 0.48133409100395375
+            },
+            "value": "heads"
+          }
+        },
+        "thinking": {},
+        "thinking_effort": {},
+        "skipped": [],
+        "usage": {
+          "decisions": 1,
+          "input_tokens": 154,
+          "generated_tokens": 0
+        }
+      },
+      "expected": null,
+      "matched": null,
+      "seconds": 1.7487244000003557
+    }
+  ]
+}

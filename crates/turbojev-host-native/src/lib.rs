@@ -22,7 +22,6 @@ use turbojev_engine::{ExecutionBudget, PlanningPolicy};
 use turbojev_runtime_qualification::LLAMACPP_SHIM_ABI_V5;
 use turbojev_runtime_qualification::{RuntimeFingerprint, RuntimeQualificationManifest};
 use turbojev_schema::{EvaluationRequest, EvaluationResponse};
-use turbojev_wire;
 
 #[cfg(feature = "llamacpp")]
 use turbojev_runtime::RuntimeBackend;

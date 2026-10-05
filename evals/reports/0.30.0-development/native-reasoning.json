@@ -1,0 +1,118 @@
+{
+  "config": {
+    "model": "C:\\Users\\Administrator\\.cache\\turbojev\\Qwen3-0.6B-Q4_K_M.gguf",
+    "device": "gpu",
+    "nCtx": 8192,
+    "nSeqMax": 1,
+    "nThreads": 4,
+    "nThreadsBatch": 4
+  },
+  "records": [
+    {
+      "id": "thinking",
+      "request": {
+        "context": "There are exactly seven items.",
+        "questions": {
+          "count": {
+            "type": "integer",
+            "instructions": "How many items?",
+            "thinking": true,
+            "thinking_budget": 512
+          }
+        }
+      },
+      "response": {
+        "result": {
+          "count": 7
+        },
+        "thinking": {
+          "count": "<think>\nOkay, let's see. The user provided that there are exactly seven items. The question is asking how many items there are, and they want the answer in a JSON object with an integer key.\n\nFirst, I need to make sure I understand the problem correctly. The statement says there are seven items. The question is straightforward: how many? So the answer should be 7. \n\nNow, the required JSON object has the key \"items\" and the value is 7. The schema specifies that the value should be an integer. So I need to structure the JSON correctly. \n\nWait, the user mentioned \"Return exactly one JSON object with the key value and this value schema: {\"type\":\"integer\"}\". So the JSON should have the key \"items\" and the value as an integer. Let me double-check: yes, exactly. So the correct JSON would be {\"items\": 7}. \n\nI don't see any other information or context provided here. The only given statement is that there are seven items. Therefore, the answer is 7.\n</think>"
+        },
+        "thinking_effort": {},
+        "skipped": [],
+        "usage": {
+          "decisions": 1,
+          "input_tokens": 62,
+          "generated_tokens": 225
+        }
+      },
+      "seconds": 22.97797509999998
+    },
+    {
+      "id": "auto",
+      "request": {
+        "context": "The label is red.",
+        "questions": {
+          "color": {
+            "type": "string",
+            "enum": [
+              "red",
+              "blue"
+            ],
+            "instructions": "Which color is stated?",
+            "thinking": "auto"
+          }
+        }
+      },
+      "response": {
+        "result": {
+          "color": "red"
+        },
+        "thinking": {
+          "color": "<think>\nOkay, let's see. The question is asking which color is stated in the given label. The label says \"The label is red.\" The options are A. \"red\" and B. \"blue\".\n\nSo, the label explicitly states that the color is red. The answer should be A because it directly mentions \"red\". The other option, \"blue\", isn't part of the label's content. So the correct choice is A.\n</think>"
+        },
+        "thinking_effort": {
+          "color": "high"
+        },
+        "skipped": [],
+        "usage": {
+          "decisions": 1,
+          "input_tokens": 207,
+          "generated_tokens": 92
+        }
+      },
+      "seconds": 38.89446699999996
+    },
+    {
+      "id": "restored",
+      "request": {
+        "context": "There are exactly seven items.",
+        "questions": {
+          "count": {
+            "type": "integer",
+            "instructions": "How many items?"
+          }
+        }
+      },
+      "response": {
+        "result": {
+          "count": 7
+        },
+        "thinking": {},
+        "thinking_effort": {},
+        "skipped": [],
+        "usage": {
+          "decisions": 1,
+          "input_tokens": 66,
+          "generated_tokens": 6
+        }
+      },
+      "seconds": 1.3214864000000262
+    }
+  ],
+  "source": {
+    "kind": "unpublished-native-build",
+    "libraries": {
+      "ggml-base.dll": "17c9df95b6722c279db3970dab927e1139cf167ac0d7869efa3979825152a842",
+      "ggml-cpu.dll": "71c9207ac83d65e39ee13d288928d544e428d5b98b3fbfd9cca42f0027665cab",
+      "ggml-vulkan.dll": "fc45102b7e758e8d25ae177300bb9823d8ce2ed168087393334429514c469306",
+      "ggml.dll": "33139127f4baacee7fc0f99832f7f394a61318f88ef1581dcaf962cb52fbbdcf",
+      "llama-common.dll": "40af9a6ddde7d819579a4fdb2b33d95fc5347333076d05330e4dff067561856d",
+      "llama.dll": "a311d54a4371ae713b1f7a04123805d63f7b16ddd833b649cb7a9a23fda329b1",
+      "mtmd.dll": "3e8a2cb0cd9d6f50f56d73237fd1f547864473cf428f2de601761048e2e31002",
+      "turbojev_capi.dll": "8bc21d59a84525b3d84773843690f489704ee7d994c58e4ba6ebce8ce57a26f9",
+      "turbojev_llama_shim.dll": "d7aeb7b0b0457e809c40a2d19804b404ec5c6089a5192932874970e2d636d1e7"
+    }
+  },
+  "model_sha256": "9acfc1e001311f34b4252001b626f2e466d592a42065f66571bff3790d4e1b14"
+}

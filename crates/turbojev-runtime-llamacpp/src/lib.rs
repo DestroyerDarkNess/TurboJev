@@ -1880,7 +1880,7 @@ mod tests {
             state: serde_json::Value::Null,
             common_prefix: vec![],
             tasks: vec![turbojev_runtime::RuntimeTask {
-                messages: turbojev_prompt::RenderedMessages::default(),
+                messages: RenderedMessages::default(),
                 id: "route".into(),
                 prompt_suffix: api.encode_chat(Some("fixture"), "test", None).unwrap(),
                 candidates: verified
@@ -2095,14 +2095,14 @@ mod tests {
             common_prefix: vec![],
             tasks: vec![
                 turbojev_runtime::RuntimeTask {
-                    messages: turbojev_prompt::RenderedMessages::default(),
+                    messages: RenderedMessages::default(),
                     id: "a".into(),
                     prompt_suffix: full_a.clone(),
                     candidates: candidates.clone(),
                     codebook_kind: turbojev_tokenizer::CodebookKind::SingleToken,
                 },
                 turbojev_runtime::RuntimeTask {
-                    messages: turbojev_prompt::RenderedMessages::default(),
+                    messages: RenderedMessages::default(),
                     id: "b".into(),
                     prompt_suffix: full_b.clone(),
                     candidates: candidates.clone(),
@@ -2115,14 +2115,14 @@ mod tests {
             common_prefix: vec![1, 2, 3],
             tasks: vec![
                 turbojev_runtime::RuntimeTask {
-                    messages: turbojev_prompt::RenderedMessages::default(),
+                    messages: RenderedMessages::default(),
                     id: "a".into(),
                     prompt_suffix: vec![10],
                     candidates: candidates.clone(),
                     codebook_kind: turbojev_tokenizer::CodebookKind::SingleToken,
                 },
                 turbojev_runtime::RuntimeTask {
-                    messages: turbojev_prompt::RenderedMessages::default(),
+                    messages: RenderedMessages::default(),
                     id: "b".into(),
                     prompt_suffix: vec![20],
                     candidates,
@@ -2232,7 +2232,7 @@ mod tests {
                     let mut full = prefix.clone();
                     full.extend_from_slice(suffix);
                     turbojev_runtime::RuntimeTask {
-                        messages: turbojev_prompt::RenderedMessages::default(),
+                        messages: RenderedMessages::default(),
                         id: format!("q{index}"),
                         prompt_suffix: full,
                         candidates: candidates.clone(),
@@ -2248,7 +2248,7 @@ mod tests {
                 .iter()
                 .enumerate()
                 .map(|(index, suffix)| turbojev_runtime::RuntimeTask {
-                    messages: turbojev_prompt::RenderedMessages::default(),
+                    messages: RenderedMessages::default(),
                     id: format!("q{index}"),
                     prompt_suffix: suffix.clone(),
                     candidates: candidates.clone(),
@@ -2316,7 +2316,7 @@ mod tests {
             common_prefix: vec![1, 2, 3],
             tasks: (0..5)
                 .map(|index| turbojev_runtime::RuntimeTask {
-                    messages: turbojev_prompt::RenderedMessages::default(),
+                    messages: RenderedMessages::default(),
                     id: format!("q{index}"),
                     prompt_suffix: vec![10 + index],
                     candidates: candidates.clone(),
@@ -2398,14 +2398,14 @@ mod tests {
             common_prefix: vec![1, 2, 3],
             tasks: vec![
                 turbojev_runtime::RuntimeTask {
-                    messages: turbojev_prompt::RenderedMessages::default(),
+                    messages: RenderedMessages::default(),
                     id: "a".into(),
                     prompt_suffix: vec![10],
                     candidates: candidates.clone(),
                     codebook_kind: turbojev_tokenizer::CodebookKind::SingleToken,
                 },
                 turbojev_runtime::RuntimeTask {
-                    messages: turbojev_prompt::RenderedMessages::default(),
+                    messages: RenderedMessages::default(),
                     id: "b".into(),
                     prompt_suffix: vec![20, 30],
                     candidates,
@@ -2591,7 +2591,7 @@ mod tests {
             state: serde_json::Value::Null,
             common_prefix: vec![1, 2],
             tasks: vec![turbojev_runtime::RuntimeTask {
-                messages: turbojev_prompt::RenderedMessages::default(),
+                messages: RenderedMessages::default(),
                 id: "a".into(),
                 prompt_suffix: vec![10, 11],
                 candidates: candidates.clone(),
@@ -2602,7 +2602,7 @@ mod tests {
             state: serde_json::Value::Null,
             common_prefix: vec![3, 4],
             tasks: vec![turbojev_runtime::RuntimeTask {
-                messages: turbojev_prompt::RenderedMessages::default(),
+                messages: RenderedMessages::default(),
                 id: "b".into(),
                 prompt_suffix: vec![20],
                 candidates,
@@ -2636,7 +2636,7 @@ mod tests {
             state: serde_json::Value::Null,
             common_prefix: vec![1],
             tasks: vec![turbojev_runtime::RuntimeTask {
-                messages: turbojev_prompt::RenderedMessages::default(),
+                messages: RenderedMessages::default(),
                 id: "multi".into(),
                 prompt_suffix: vec![2],
                 candidates: vec![

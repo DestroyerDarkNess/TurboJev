@@ -237,7 +237,7 @@ fn rotations_average_probabilities_rather_than_logits() {
                     input_tokens: None,
                     generated_tokens: 0,
                 },
-                &turbojev_calibration::SoftmaxCalibrator::default(),
+                &turbojev_calibration::SoftmaxCalibrator,
             )
             .unwrap();
     }
@@ -263,7 +263,7 @@ fn dependencies_preserve_the_media_envelope() {
                 input_tokens: None,
                 generated_tokens: 0,
             },
-            &turbojev_calibration::SoftmaxCalibrator::default(),
+            &turbojev_calibration::SoftmaxCalibrator,
         )
         .unwrap();
     let task = generation.next_task().unwrap().unwrap();

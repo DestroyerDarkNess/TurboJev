@@ -1,0 +1,189 @@
+{
+  "host": "Real Node CPU WASM, not browser API qualification",
+  "wllama": "3.8.1",
+  "model": "C:\\Users\\Administrator\\.cache\\turbojev\\Qwen3-0.6B-Q4_K_M.gguf",
+  "results": [
+    {
+      "id": "24_candidates",
+      "request": {
+        "context": "The explicitly stated label is option_23.",
+        "questions": {
+          "label": {
+            "type": "string",
+            "enum": [
+              "option_0",
+              "option_1",
+              "option_2",
+              "option_3",
+              "option_4",
+              "option_5",
+              "option_6",
+              "option_7",
+              "option_8",
+              "option_9",
+              "option_10",
+              "option_11",
+              "option_12",
+              "option_13",
+              "option_14",
+              "option_15",
+              "option_16",
+              "option_17",
+              "option_18",
+              "option_19",
+              "option_20",
+              "option_21",
+              "option_22",
+              "option_23"
+            ],
+            "instructions": "Which label is explicitly stated?",
+            "return_probabilities": true
+          }
+        }
+      },
+      "response": {
+        "result": {
+          "label": {
+            "confidence": 0.9999480744810738,
+            "distribution": [
+              {
+                "probability": 2.736262651978699e-7,
+                "value": "option_0"
+              },
+              {
+                "probability": 8.114317388445514e-7,
+                "value": "option_1"
+              },
+              {
+                "probability": 0.000009221813595658172,
+                "value": "option_2"
+              },
+              {
+                "probability": 0.00002866403126295837,
+                "value": "option_3"
+              },
+              {
+                "probability": 1.0639319145099456e-8,
+                "value": "option_4"
+              },
+              {
+                "probability": 1.230684801918618e-8,
+                "value": "option_5"
+              },
+              {
+                "probability": 1.292962700974279e-9,
+                "value": "option_6"
+              },
+              {
+                "probability": 0.000002998776616519616,
+                "value": "option_7"
+              },
+              {
+                "probability": 0.0000010851313905680207,
+                "value": "option_8"
+              },
+              {
+                "probability": 3.844027338486411e-9,
+                "value": "option_9"
+              },
+              {
+                "probability": 7.14633504090412e-9,
+                "value": "option_10"
+              },
+              {
+                "probability": 7.111122584396373e-8,
+                "value": "option_11"
+              },
+              {
+                "probability": 1.0333526817962636e-7,
+                "value": "option_12"
+              },
+              {
+                "probability": 7.012153947625582e-8,
+                "value": "option_13"
+              },
+              {
+                "probability": 0.000003526608605604901,
+                "value": "option_14"
+              },
+              {
+                "probability": 1.8281493160474455e-7,
+                "value": "option_15"
+              },
+              {
+                "probability": 2.5376970137630744e-8,
+                "value": "option_16"
+              },
+              {
+                "probability": 5.2488964079839284e-8,
+                "value": "option_17"
+              },
+              {
+                "probability": 0.0000017132968928062791,
+                "value": "option_18"
+              },
+              {
+                "probability": 8.379689541907089e-7,
+                "value": "option_19"
+              },
+              {
+                "probability": 1.563663185281799e-7,
+                "value": "option_20"
+              },
+              {
+                "probability": 8.73389354935063e-8,
+                "value": "option_21"
+              },
+              {
+                "probability": 0.000002008649958276075,
+                "value": "option_22"
+              },
+              {
+                "probability": 0.9999480744810738,
+                "value": "option_23"
+              }
+            ],
+            "probabilities": {
+              "option_0": 2.736262651978699e-7,
+              "option_1": 8.114317388445514e-7,
+              "option_10": 7.14633504090412e-9,
+              "option_11": 7.111122584396373e-8,
+              "option_12": 1.0333526817962636e-7,
+              "option_13": 7.012153947625582e-8,
+              "option_14": 0.000003526608605604901,
+              "option_15": 1.8281493160474455e-7,
+              "option_16": 2.5376970137630744e-8,
+              "option_17": 5.2488964079839284e-8,
+              "option_18": 0.0000017132968928062791,
+              "option_19": 8.379689541907089e-7,
+              "option_2": 0.000009221813595658172,
+              "option_20": 1.563663185281799e-7,
+              "option_21": 8.73389354935063e-8,
+              "option_22": 0.000002008649958276075,
+              "option_23": 0.9999480744810738,
+              "option_3": 0.00002866403126295837,
+              "option_4": 1.0639319145099456e-8,
+              "option_5": 1.230684801918618e-8,
+              "option_6": 1.292962700974279e-9,
+              "option_7": 0.000002998776616519616,
+              "option_8": 0.0000010851313905680207,
+              "option_9": 3.844027338486411e-9
+            },
+            "value": "option_23"
+          }
+        },
+        "thinking": {},
+        "thinking_effort": {},
+        "skipped": [],
+        "usage": {
+          "decisions": 1,
+          "input_tokens": 252,
+          "generated_tokens": 0
+        }
+      },
+      "expected": null,
+      "matched": null,
+      "seconds": 195.4155077
+    }
+  ]
+}

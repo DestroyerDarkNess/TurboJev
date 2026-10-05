@@ -1,0 +1,59 @@
+{
+  "source": {
+    "kind": "unpublished-native-build",
+    "library": "D:\\Projects\\TurboJev\\target\\release\\turbojev_capi.dll",
+    "sha256": "a3cfbbbd2c590e82249d16ddc56df7ea32c751a1ce4ae386f07ac49586203b7c"
+  },
+  "model": {
+    "path": "C:\\Users\\Administrator\\.cache\\turbojev\\Qwen3-0.6B-Q4_K_M.gguf",
+    "sha256": "9acfc1e001311f34b4252001b626f2e466d592a42065f66571bff3790d4e1b14"
+  },
+  "config": {
+    "model": "C:\\Users\\Administrator\\.cache\\turbojev\\Qwen3-0.6B-Q4_K_M.gguf",
+    "device": "cpu",
+    "nCtx": 8192,
+    "nSeqMax": 1,
+    "nThreads": 4,
+    "nThreadsBatch": 4,
+    "thinking": false,
+    "maxThinkingTokens": 512
+  },
+  "platform": "Windows-11-10.0.26100-SP0",
+  "machine": "AMD64",
+  "python": "3.12.7",
+  "datasets": {
+    "data\\numeric\\cases.jsonl": "f9b9ec36208e198315a3a92088416acb6a0a69ad0e926d1990e8fb7de18cf204",
+    "data\\jevbench\\original.jsonl": "5c2414edb3006b8bfcb70fda433f0f9ca015759433849f8d3104328a1f7c4180",
+    "data\\jevbench\\easy.jsonl": "231df3c2c8e88a1a8c137ebe85de96ba70fabd330849098ac7b3c52c70b7172b",
+    "data\\jevbench\\hard.jsonl": "89e9e6becb33ed88c1de7d42dcc87531b2fb64cfaef4e1986faf7c37b3f80ebb"
+  },
+  "subset": false,
+  "offset": 0,
+  "limit_per_suite": null,
+  "thinking": "false",
+  "max_tokens": 64,
+  "started_utc": "2026-10-05T01:34:43Z",
+  "resumed_utc": [
+    "2026-10-05T14:56:52Z",
+    "2026-10-05T15:09:29Z",
+    "2026-10-05T16:14:18Z",
+    "2026-10-05T17:22:25Z"
+  ],
+  "relocated_libraries": [
+    {
+      "kind": "unpublished-native-build",
+      "library": "D:\\Projects\\TurboJev\\.cache\\fields-eval-runtime\\turbojev_capi.dll",
+      "sha256": "a3cfbbbd2c590e82249d16ddc56df7ea32c751a1ce4ae386f07ac49586203b7c"
+    },
+    {
+      "kind": "unpublished-native-build",
+      "library": "D:\\Projects\\TurboJev\\.cache\\fields-eval-runtime\\turbojev_capi.dll",
+      "sha256": "a3cfbbbd2c590e82249d16ddc56df7ea32c751a1ce4ae386f07ac49586203b7c"
+    },
+    {
+      "kind": "unpublished-native-build",
+      "library": "D:\\Projects\\TurboJev\\.cache\\fields-eval-runtime\\turbojev_capi.dll",
+      "sha256": "a3cfbbbd2c590e82249d16ddc56df7ea32c751a1ce4ae386f07ac49586203b7c"
+    }
+  ]
+}

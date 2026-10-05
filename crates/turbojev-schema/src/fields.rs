@@ -552,13 +552,19 @@ fn condition_passes(answer: &Value, test: &Value) -> bool {
                 .any(|v| same_value(answer, v)),
             "ne" => !same_value(answer, operand),
             _ => match (answer.as_number(), operand.as_number()) {
-                (Some(a), Some(b)) => match (op.as_str(), number_order(a, b)) {
+                (Some(a), Some(b)) => matches!(
+                    (op.as_str(), number_order(a, b)),
                     ("gt", Some(std::cmp::Ordering::Greater))
-                    | ("lt", Some(std::cmp::Ordering::Less)) => true,
-                    ("gte", Some(std::cmp::Ordering::Greater | std::cmp::Ordering::Equal))
-                    | ("lte", Some(std::cmp::Ordering::Less | std::cmp::Ordering::Equal)) => true,
-                    _ => false,
-                },
+                        | ("lt", Some(std::cmp::Ordering::Less))
+                        | (
+                            "gte",
+                            Some(std::cmp::Ordering::Greater | std::cmp::Ordering::Equal)
+                        )
+                        | (
+                            "lte",
+                            Some(std::cmp::Ordering::Less | std::cmp::Ordering::Equal)
+                        )
+                ),
                 _ => false,
             },
         })

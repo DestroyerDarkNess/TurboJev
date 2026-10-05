@@ -94,6 +94,12 @@ fn write_output(value: String, out: *mut *mut c_char) -> i32 {
     TJ_OK
 }
 
+/// Open an engine from a JSON configuration.
+///
+/// # Safety
+/// `options_json` must point to a readable NUL-terminated UTF-8 string and
+/// `out_engine` to an aligned, writable pointer slot. Keep that slot disjoint
+/// from the input. Close a successfully returned handle once on this thread.
 #[no_mangle]
 pub unsafe extern "C" fn tj_engine_open_json(
     options_json: *const c_char,
@@ -128,6 +134,13 @@ pub unsafe extern "C" fn tj_engine_open_json(
     }
 }
 
+/// Evaluate a typed decision request.
+///
+/// # Safety
+/// `engine` must be a live handle returned by `tj_engine_open_json`, used only
+/// on its creating thread without concurrent access. `request_json` must be a
+/// readable NUL-terminated UTF-8 string; `out_json` must be an aligned, writable
+/// pointer slot disjoint from inputs. Free returned strings with `tj_string_free`.
 #[no_mangle]
 pub unsafe extern "C" fn tj_engine_evaluate_json(
     engine: *mut tj_engine,
@@ -154,6 +167,12 @@ pub unsafe extern "C" fn tj_engine_evaluate_json(
     }
 }
 
+/// Evaluate through a named compatibility profile.
+///
+/// # Safety
+/// The engine and output slot must satisfy `tj_engine_evaluate_json`'s safety
+/// contract. Both `profile` and `request_json` must point to readable
+/// NUL-terminated UTF-8 strings throughout this call.
 #[no_mangle]
 pub unsafe extern "C" fn tj_engine_evaluate_compatible_json(
     engine: *mut tj_engine,
@@ -185,6 +204,12 @@ pub unsafe extern "C" fn tj_engine_evaluate_compatible_json(
 }
 
 /// Generate typed JSON Schema fields through the same thread-affine session.
+/// Generate dependency-aware typed fields.
+///
+/// # Safety
+/// The handle, request string and output slot must satisfy
+/// `tj_engine_evaluate_json`'s safety contract, including thread affinity,
+/// exclusive access and string ownership.
 #[no_mangle]
 pub unsafe extern "C" fn tj_engine_generate_json(
     engine: *mut tj_engine,
@@ -211,6 +236,12 @@ pub unsafe extern "C" fn tj_engine_generate_json(
     }
 }
 
+/// Return engine information as an owned JSON string.
+///
+/// # Safety
+/// `engine` must be a live handle accessed exclusively on its creating thread.
+/// `out_json` must point to an aligned, writable pointer slot disjoint from the
+/// engine. Free a returned string exactly once with `tj_string_free`.
 #[no_mangle]
 pub unsafe extern "C" fn tj_engine_info_json(
     engine: *mut tj_engine,
@@ -231,6 +262,12 @@ pub unsafe extern "C" fn tj_engine_info_json(
     }
 }
 
+/// Close an engine and consume its handle.
+///
+/// # Safety
+/// `engine` must be null or a live handle returned by `tj_engine_open_json`.
+/// Close it exclusively on its creating thread, exactly once; never use the
+/// handle after a successful close.
 #[no_mangle]
 pub unsafe extern "C" fn tj_engine_close(engine: *mut tj_engine) -> i32 {
     match catch_unwind(AssertUnwindSafe(|| {
@@ -254,6 +291,11 @@ pub unsafe extern "C" fn tj_engine_close(engine: *mut tj_engine) -> i32 {
     }
 }
 
+/// Release an owned string returned by this library.
+///
+/// # Safety
+/// `value` must be null or an unmodified string pointer returned by TurboJev.
+/// Free it exactly once, without concurrent readers; never use it afterward.
 #[no_mangle]
 pub unsafe extern "C" fn tj_string_free(value: *mut c_char) {
     if !value.is_null() {

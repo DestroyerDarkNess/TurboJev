@@ -1,0 +1,34 @@
+{
+  "config": {
+    "model": "C:\\Users\\Administrator\\.cache\\turbojev\\Qwen3.5-2B-Q4_K_M.gguf",
+    "mmproj": "C:\\Users\\Administrator\\.cache\\turbojev\\Qwen3.5-2B-mmproj-F16.gguf",
+    "device": "gpu",
+    "nCtx": 8192,
+    "nSeqMax": 1,
+    "nThreads": 4,
+    "nThreadsBatch": 4
+  },
+  "fields": [
+    "first_item"
+  ],
+  "subset": true,
+  "response": {
+    "result": {
+      "first_item": "ICE BLACKCOFFE"
+    },
+    "thinking": {},
+    "thinking_effort": {},
+    "skipped": [],
+    "usage": {
+      "decisions": 1,
+      "generated_tokens": 14
+    }
+  },
+  "expected": {
+    "first_item": "ICE BLACKCOFFE"
+  },
+  "matches": {
+    "first_item": true
+  },
+  "seconds": 114.02322969999977
+}

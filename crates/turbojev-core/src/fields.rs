@@ -143,7 +143,7 @@ impl Generation {
                 .entry(field.name.clone())
                 .or_default();
             if !text.is_empty() {
-                text.push_str("\n");
+                text.push('\n');
             }
             text.push_str(&output.thinking);
         }

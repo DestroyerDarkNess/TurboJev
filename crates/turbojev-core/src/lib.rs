@@ -21,6 +21,10 @@ use turbojev_schema::{
 /// Stable native core contract identifier.
 pub const CORE_CONTRACT: &str = "turbojev.core.v4";
 
+type IndexedScores = HashMap<String, Vec<f32>>;
+type BatchScores = (BackendOutput, IndexedScores, ExecutionPlan);
+type CyclicScores = (BackendOutput, IndexedScores, ExecutionPlan, usize);
+
 /// Dependency-aware typed-field generation shared by synchronous and async hosts.
 pub mod fields;
 
@@ -141,10 +145,7 @@ where
         Ok(response)
     }
 
-    fn score_batch(
-        &self,
-        batch: &DecisionBatch,
-    ) -> Result<(BackendOutput, HashMap<String, Vec<f32>>, ExecutionPlan), Error> {
+    fn score_batch(&self, batch: &DecisionBatch) -> Result<BatchScores, Error> {
         let capabilities = self.backend.capabilities();
         let resource_hints = self.backend.resource_hints();
         let plan = self
@@ -166,15 +167,7 @@ where
         &self,
         request: &EvaluationRequest,
         batch: &DecisionBatch,
-    ) -> Result<
-        (
-            BackendOutput,
-            HashMap<String, Vec<f32>>,
-            ExecutionPlan,
-            usize,
-        ),
-        Error,
-    > {
+    ) -> Result<CyclicScores, Error> {
         let choice_ids: HashSet<&str> = request
             .questions
             .iter()
@@ -1235,20 +1228,19 @@ mod tests {
     }
     #[test]
     fn generated_usage_is_reported_and_accumulated_across_rotations() {
-        struct ReasoningCounter(turbojev_backend_mock::FixtureBackend);
-        impl turbojev_backend::ScoringBackend for ReasoningCounter {
+        struct ReasoningCounter(FixtureBackend);
+        impl ScoringBackend for ReasoningCounter {
             fn name(&self) -> &'static str {
                 "reasoning-counter-fixture"
             }
             fn capabilities(&self) -> turbojev_backend::BackendCapabilities {
-                turbojev_backend::ScoringBackend::capabilities(&self.0)
+                ScoringBackend::capabilities(&self.0)
             }
             fn score(
                 &self,
-                batch: &turbojev_backend::DecisionBatch,
-                plan: turbojev_backend::ExecutionPlan,
-            ) -> Result<turbojev_backend::BackendOutput, turbojev_backend::BackendError>
-            {
+                batch: &DecisionBatch,
+                plan: ExecutionPlan,
+            ) -> Result<BackendOutput, BackendError> {
                 let mut output = self.0.score(batch, plan)?;
                 output.metrics.generated_tokens = Some(3);
                 Ok(output)
@@ -1256,7 +1248,7 @@ mod tests {
         }
         let request: EvaluationRequest = serde_json::from_str(r#"{"state":"facts","questions":{"move":{"type":"choice","instructions":"Choose","criteria":{"up":"Up","right":"Right"}}}}"#).unwrap();
         for (robustness, expected) in [(OrderRobustness::None, 3), (OrderRobustness::Cyclic, 6)] {
-            let backend = turbojev_backend_mock::FixtureBackend::builder()
+            let backend = FixtureBackend::builder()
                 .with_logits("move", vec![0.0, 1.0])
                 .build();
             let response = TurboJevEngine::new(ReasoningCounter(backend))

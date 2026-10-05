@@ -39,10 +39,21 @@ not execute x86 or ARM64 binaries on an x64 host.
 
 ## Retry after a failure
 
-Select only the failed registry. Existing crate versions and Python wheels are
-skipped; NuGet uses `--skip-duplicate`. npm rejects an existing version, so check
-which packages were successfully uploaded before retrying. A failed registry
+Select only the failed registry. Existing crate versions, npm versions and Python
+wheels are skipped; NuGet uses `--skip-duplicate`. A failed registry
 does not prevent the `all` option from attempting the remaining registries.
 
 Compilation alone is not a successful publication. Check the final registry
 response and confirm that the expected version and platform assets are visible.
+
+```powershell
+python scripts/verify-published-release.py
+python scripts/verify-published-release.py --registry npm --version 0.30.0
+```
+
+The verifier uses public registry endpoints without credentials. It checks all
+eight npm packages, the complete published Cargo dependency closure, all three
+Windows Python wheel architectures, and NuGet's published checksum. When local
+release artifacts are present, it also compares wheel hashes and checks the
+NuGet package's native assets for x86, x64 and ARM64. Its JSON report is saved
+under `artifacts/`; missing or unavailable packages make it fail.

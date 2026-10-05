@@ -1071,7 +1071,7 @@ mod tests {
         }
     }
 
-    fn block_on<F: std::future::Future>(future: F) -> F::Output {
+    fn block_on<F: Future>(future: F) -> F::Output {
         use std::sync::Arc;
         use std::task::{Context, Poll, Wake, Waker};
 
@@ -1120,7 +1120,7 @@ mod tests {
             prefix_reuse: PrefixReuse::Shared,
             scheduling: TaskScheduling::Parallel,
             parallel_task_limit: 2,
-            projection: turbojev_backend::CandidateProjection::CandidatesOnly,
+            projection: CandidateProjection::CandidatesOnly,
         };
         let output = backend.score(&batch, plan).unwrap();
         assert_eq!(output.scores.len(), 2);
@@ -1194,7 +1194,7 @@ mod tests {
             prefix_reuse: PrefixReuse::Shared,
             scheduling: TaskScheduling::Parallel,
             parallel_task_limit: 2,
-            projection: turbojev_backend::CandidateProjection::CandidatesOnly,
+            projection: CandidateProjection::CandidatesOnly,
         };
         let output = block_on(AsyncScoringBackend::score_async(&backend, &batch, plan)).unwrap();
         assert_eq!(output.model.as_deref(), Some("async-open-model-test"));

@@ -658,7 +658,7 @@ mod tests {
             state: serde_json::Value::Null,
             common_prefix: vec![1, 2],
             tasks: vec![RuntimeTask {
-                messages: turbojev_prompt::RenderedMessages::default(),
+                messages: RenderedMessages::default(),
                 id: "route".to_owned(),
                 prompt_suffix: vec![3],
                 candidates: vec![

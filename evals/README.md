@@ -13,4 +13,9 @@ Use `--suite numeric --thinking true --thinking-budget 512` to compare bounded r
 
 For pre-release development only, `--native-library PATH --library-dir DIR` selects a built C ABI library. The manifest labels this source as unpublished and records its hash. Normal runs import the registry wheel; no source checkout is used as the Python package.
 
-Dataset provenance and licenses are recorded in `data/provenance.json` and adjacent LICENSE files. TypeLLM's published results, remote GPU environments and private model-server configuration are not TurboJev results and are not copied. Receipt extraction and permutation examples live in the separate TurboJev.Demos repository. The unit-test coverage map is in `docs/TYPED_FIELDS.md`.
+Dataset provenance and licenses are recorded in `data/PROVENANCE.json` and adjacent LICENSE files. TypeLLM's published results, remote GPU environments and private model-server configuration are not TurboJev results and are not copied. Receipt extraction and permutation examples live in the separate TurboJev.Demos repository. The unit-test coverage map is in `docs/TYPED_FIELDS.md`.
+
+The [0.30.0 development report](reports/0.30.0-development/README.md) contains
+the complete 359-case baseline and real native/WASM field probes. It labels the
+unpublished build and measurement limitations explicitly; it is not evidence
+that every registry package or hardware target has been exercised.
