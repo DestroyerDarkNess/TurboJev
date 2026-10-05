@@ -1,0 +1,32 @@
+{
+  "source": {
+    "kind": "registry-wheel",
+    "version": "0.30.1"
+  },
+  "model": {
+    "path": "C:\\Users\\Administrator\\.cache\\turbojev\\Qwen3-0.6B-Q4_K_M.gguf",
+    "sha256": "9acfc1e001311f34b4252001b626f2e466d592a42065f66571bff3790d4e1b14"
+  },
+  "config": {
+    "model": "C:\\Users\\Administrator\\.cache\\turbojev\\Qwen3-0.6B-Q4_K_M.gguf",
+    "device": "gpu",
+    "nCtx": 8192,
+    "nSeqMax": 1,
+    "nThreads": 4,
+    "nThreadsBatch": 4,
+    "thinking": false,
+    "maxThinkingTokens": 512
+  },
+  "platform": "Windows-11-10.0.26100-SP0",
+  "machine": "AMD64",
+  "python": "3.12.7",
+  "datasets": {
+    "data\\numeric\\cases.jsonl": "f9b9ec36208e198315a3a92088416acb6a0a69ad0e926d1990e8fb7de18cf204"
+  },
+  "subset": true,
+  "offset": 0,
+  "limit_per_suite": 8,
+  "thinking": "false",
+  "max_tokens": 64,
+  "started_utc": "2026-10-05T21:01:46Z"
+}

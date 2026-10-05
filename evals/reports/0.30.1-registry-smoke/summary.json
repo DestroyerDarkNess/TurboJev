@@ -1,0 +1,45 @@
+{
+  "overall": {
+    "attempted": 8,
+    "completed": 8,
+    "errors": 0,
+    "correct": 8,
+    "accuracy": 1.0,
+    "latency_seconds": {
+      "mean": 1.3567505500000152,
+      "p50": 1.2525653500006229,
+      "p95": 2.0694120999996812
+    }
+  },
+  "suites": {
+    "numeric": {
+      "attempted": 8,
+      "completed": 8,
+      "errors": 0,
+      "correct": 8,
+      "accuracy": 1.0,
+      "latency_seconds": {
+        "mean": 1.3567505500000152,
+        "p50": 1.2525653500006229,
+        "p95": 2.0694120999996812
+      }
+    }
+  },
+  "categories": {
+    "integer_extraction": {
+      "attempted": 8,
+      "completed": 8,
+      "errors": 0,
+      "correct": 8,
+      "accuracy": 1.0,
+      "latency_seconds": {
+        "mean": 1.3567505500000152,
+        "p50": 1.2525653500006229,
+        "p95": 2.0694120999996812
+      }
+    }
+  },
+  "inference_seconds": 10.854004400000122,
+  "current_segment_seconds": 13.201731199998903,
+  "subset": true
+}

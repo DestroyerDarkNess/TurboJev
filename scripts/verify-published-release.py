@@ -61,16 +61,30 @@ def verify_nuget(version):
     published = fetch(base, raw=True)
     expected = base64.b64encode(hashlib.sha512(published).digest()).decode()
     local = ROOT / f"artifacts/nuget/TurboJev.{version}.nupkg"
-    if local.exists():
-        actual = base64.b64encode(hashlib.sha512(local.read_bytes()).digest()).decode()
-        assert actual == expected, "Local and published NuGet packages differ"
     with zipfile.ZipFile(io.BytesIO(published)) as archive:
         names = set(archive.namelist())
+        assert len(names) == len(archive.namelist()), "Duplicate public NuGet archive entries"
+        if local.exists():
+            # nuget.org adds its repository signature to the ZIP. Compare the
+            # complete unsigned payload, not container bytes changed by signing.
+            with zipfile.ZipFile(local) as original:
+                original_names = set(original.namelist())
+                payload = names - {".signature.p7s"}
+                assert payload == original_names - {".signature.p7s"}, "NuGet payload entries differ"
+                for name in payload:
+                    assert archive.read(name) == original.read(name), f"NuGet payload differs: {name}"
+        native_hashes = {
+            name: hashlib.sha256(archive.read(name)).hexdigest()
+            for name in names if name.startswith("runtimes/") and name.endswith(".dll")
+        }
     assets = ["win-x86", "win-x64", "win-arm64"]
     for rid in assets:
         for library in ("turbojev_capi.dll", "turbojev_llama_shim.dll", "mtmd.dll", "llama.dll"):
             assert f"runtimes/{rid}/native/{library}" in names, (rid, library)
-    return {"name": "TurboJev", "version": version, "sha512": expected, "verified_native_assets": assets}
+    return {"name": "TurboJev", "version": version, "sha512": expected,
+            "repository_signature_present": ".signature.p7s" in names,
+            "payload_matches_local": True if local.exists() else None,
+            "native_sha256": native_hashes, "verified_native_assets": assets}
 
 
 def main():
