@@ -21,7 +21,29 @@ use turbojev_schema::{
 /// Stable native core contract identifier.
 pub const CORE_CONTRACT: &str = "turbojev.core.v4";
 
-type IndexedScores = HashMap<String, Vec<f32>>;
+enum CandidateScores {
+    Logits(Vec<f32>),
+    // Already calibrated once per layout. Never apply temperature a second time.
+    Probabilities(Vec<f64>),
+}
+
+impl CandidateScores {
+    fn len(&self) -> usize {
+        match self {
+            Self::Logits(values) => values.len(),
+            Self::Probabilities(values) => values.len(),
+        }
+    }
+
+    fn probabilities<C: Calibrator>(&self, calibrator: &C) -> Result<Vec<f64>, CalibrationError> {
+        match self {
+            Self::Logits(values) => calibrator.probabilities(values),
+            Self::Probabilities(values) => Ok(values.clone()),
+        }
+    }
+}
+
+type IndexedScores = HashMap<String, CandidateScores>;
 type BatchScores = (BackendOutput, IndexedScores, ExecutionPlan);
 type CyclicScores = (BackendOutput, IndexedScores, ExecutionPlan, usize);
 
@@ -34,6 +56,8 @@ pub mod fields;
 /// candidate order, maps scores back to stable keys, and averages raw logits;
 /// it costs one model evaluation per candidate. Ordered score levels and
 /// `noul` remain single-pass because their order has semantic meaning.
+/// `Balanced` uses canonical Williams layouts and averages per-layout
+/// probabilities. It costs K evaluations for even K, 2K for odd K.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum OrderRobustness {
     /// Score the caller's supplied order once.
@@ -41,6 +65,8 @@ pub enum OrderRobustness {
     None,
     /// Average every cyclic rotation for each unordered choice question.
     Cyclic,
+    /// Average probabilities over canonical, position- and neighbour-balanced layouts.
+    Balanced,
 }
 
 impl OrderRobustness {
@@ -50,6 +76,84 @@ impl OrderRobustness {
         match self {
             Self::None => "none",
             Self::Cyclic => "cyclic",
+            Self::Balanced => "balanced",
+        }
+    }
+}
+
+fn choice_orderings(
+    task: &DecisionTask,
+    policy: OrderRobustness,
+) -> Result<Vec<Vec<usize>>, Error> {
+    let count = task.candidates.len();
+    if policy == OrderRobustness::Balanced {
+        let values = task
+            .candidates
+            .iter()
+            .map(|c| serde_json::json!(c.key))
+            .collect::<Vec<_>>();
+        fields::orderings(&values, &serde_json::json!("auto"), 0)
+            .map_err(|e| Error::Internal(e.to_string()))
+    } else {
+        Ok((0..count)
+            .map(|offset| (0..count).map(|i| (i + offset) % count).collect())
+            .collect())
+    }
+}
+
+struct ChoiceAggregate {
+    logits: Vec<f32>,
+    probabilities: Vec<f64>,
+    policy: OrderRobustness,
+}
+
+impl ChoiceAggregate {
+    fn new(count: usize, policy: OrderRobustness) -> Self {
+        Self {
+            logits: vec![0.0; count],
+            probabilities: vec![0.0; count],
+            policy,
+        }
+    }
+
+    fn add<C: Calibrator>(
+        &mut self,
+        order: &[usize],
+        logits: &[f32],
+        calibrator: &C,
+        question: &str,
+    ) -> Result<(), Error> {
+        if self.policy == OrderRobustness::Balanced {
+            let probabilities = calibrator.probabilities(logits)?;
+            if probabilities.len() != order.len() {
+                return Err(Error::CandidateCountMismatch {
+                    question: question.into(),
+                    expected: order.len(),
+                    actual: probabilities.len(),
+                });
+            }
+            for (position, &original) in order.iter().enumerate() {
+                self.probabilities[original] += probabilities[position];
+            }
+        } else {
+            for (position, &original) in order.iter().enumerate() {
+                self.logits[original] += logits[position];
+            }
+        }
+        Ok(())
+    }
+
+    fn finish(mut self, count: usize) -> CandidateScores {
+        if self.policy == OrderRobustness::Balanced {
+            for value in &mut self.probabilities {
+                *value /= count as f64;
+            }
+            CandidateScores::Probabilities(self.probabilities)
+        } else {
+            for value in &mut self.logits {
+                *value /= count as f32;
+            }
+            CandidateScores::Logits(self.logits)
         }
     }
 }
@@ -129,7 +233,9 @@ where
                 let (output, scores, plan) = self.score_batch(&batch)?;
                 (output, scores, plan, 0)
             }
-            OrderRobustness::Cyclic => self.score_cyclic_choices(&request, &batch)?,
+            OrderRobustness::Cyclic | OrderRobustness::Balanced => {
+                self.score_cyclic_choices(&request, &batch)?
+            }
         };
         let mut response = build_evaluation_response(
             &request,
@@ -227,10 +333,11 @@ where
             .filter(|task| choice_ids.contains(task.id.as_str()))
         {
             let count = task.candidates.len();
-            let mut total = vec![0.0f32; count];
-            for rotation in 0..count {
+            let orders = choice_orderings(task, self.order_robustness)?;
+            let mut total = ChoiceAggregate::new(count, self.order_robustness);
+            for order in &orders {
                 let mut rotated = task.clone();
-                rotated.candidates.rotate_left(rotation);
+                rotated.candidates = order.iter().map(|&i| task.candidates[i].clone()).collect();
                 let rotated_batch = DecisionBatch {
                     state: batch.state.clone(),
                     tasks: vec![rotated],
@@ -255,15 +362,15 @@ where
                         actual: logits.len(),
                     });
                 }
-                for (position, value) in logits.iter().enumerate() {
-                    total[(position + rotation) % count] += *value;
-                }
+                let CandidateScores::Logits(logits) = logits else {
+                    return Err(Error::Internal(
+                        "backend returned pre-aggregated probabilities".into(),
+                    ));
+                };
+                total.add(order, logits, &self.calibrator, &task.id)?;
                 evaluations += 1;
             }
-            for value in &mut total {
-                *value /= count as f32;
-            }
-            indexed.insert(task.id.clone(), total);
+            indexed.insert(task.id.clone(), total.finish(orders.len()));
         }
         Ok((
             BackendOutput {
@@ -489,7 +596,9 @@ where
                 let (output, scores, plan) = self.score_batch(&batch).await?;
                 (output, scores, plan, 0)
             }
-            OrderRobustness::Cyclic => self.score_cyclic_choices(&request, &batch).await?,
+            OrderRobustness::Cyclic | OrderRobustness::Balanced => {
+                self.score_cyclic_choices(&request, &batch).await?
+            }
         };
         let mut response = build_evaluation_response(
             &request,
@@ -509,15 +618,7 @@ where
         &self,
         request: &EvaluationRequest,
         batch: &DecisionBatch,
-    ) -> Result<
-        (
-            BackendOutput,
-            HashMap<String, Vec<f32>>,
-            ExecutionPlan,
-            usize,
-        ),
-        Error,
-    > {
+    ) -> Result<(BackendOutput, IndexedScores, ExecutionPlan, usize), Error> {
         let choice_ids: HashSet<&str> = request
             .questions
             .iter()
@@ -577,10 +678,11 @@ where
             .filter(|task| choice_ids.contains(task.id.as_str()))
         {
             let count = task.candidates.len();
-            let mut total = vec![0.0f32; count];
-            for rotation in 0..count {
+            let orders = choice_orderings(task, self.order_robustness)?;
+            let mut total = ChoiceAggregate::new(count, self.order_robustness);
+            for order in &orders {
                 let mut rotated = task.clone();
-                rotated.candidates.rotate_left(rotation);
+                rotated.candidates = order.iter().map(|&i| task.candidates[i].clone()).collect();
                 let rotated_batch = DecisionBatch {
                     state: batch.state.clone(),
                     tasks: vec![rotated],
@@ -605,15 +707,15 @@ where
                         actual: logits.len(),
                     });
                 }
-                for (position, value) in logits.iter().enumerate() {
-                    total[(position + rotation) % count] += *value;
-                }
+                let CandidateScores::Logits(logits) = logits else {
+                    return Err(Error::Internal(
+                        "backend returned pre-aggregated probabilities".into(),
+                    ));
+                };
+                total.add(order, logits, &self.calibrator, &task.id)?;
                 evaluations += 1;
             }
-            for value in &mut total {
-                *value /= count as f32;
-            }
-            indexed.insert(task.id.clone(), total);
+            indexed.insert(task.id.clone(), total.finish(orders.len()));
         }
         Ok((
             BackendOutput {
@@ -636,7 +738,7 @@ where
     async fn score_batch(
         &self,
         batch: &DecisionBatch,
-    ) -> Result<(BackendOutput, HashMap<String, Vec<f32>>, ExecutionPlan), Error> {
+    ) -> Result<(BackendOutput, IndexedScores, ExecutionPlan), Error> {
         let capabilities = self.backend.capabilities();
         let resource_hints = self.backend.resource_hints();
         let plan = self
@@ -659,7 +761,7 @@ fn build_evaluation_response<C: Calibrator>(
     request: &EvaluationRequest,
     batch: &DecisionBatch,
     backend_output: BackendOutput,
-    indexed_scores: &HashMap<String, Vec<f32>>,
+    indexed_scores: &IndexedScores,
     plan: ExecutionPlan,
     backend_name: &str,
     calibrator: &C,
@@ -683,7 +785,7 @@ fn build_evaluation_response<C: Calibrator>(
             });
         }
 
-        let probabilities = calibrator.probabilities(logits)?;
+        let probabilities = logits.probabilities(calibrator)?;
         let answer = build_answer(question, task, &probabilities)?;
         answers.insert(question_id.clone(), answer);
     }
@@ -786,7 +888,7 @@ fn candidates_for(question: &Question) -> Vec<Candidate> {
 fn index_backend_scores(
     batch: &DecisionBatch,
     scores: &[TaskScores],
-) -> Result<HashMap<String, Vec<f32>>, Error> {
+) -> Result<IndexedScores, Error> {
     if scores.len() != batch.tasks.len() {
         return Err(Error::BackendTaskCountMismatch {
             expected: batch.tasks.len(),
@@ -797,7 +899,10 @@ fn index_backend_scores(
     let mut indexed = HashMap::with_capacity(scores.len());
     for score in scores {
         if indexed
-            .insert(score.id.clone(), score.logits.clone())
+            .insert(
+                score.id.clone(),
+                CandidateScores::Logits(score.logits.clone()),
+            )
             .is_some()
         {
             return Err(Error::DuplicateBackendScores(score.id.clone()));
@@ -831,6 +936,7 @@ fn build_answer(
 
     match question {
         Question::Choice { .. } => {
+            let winner = choice_argmax(task, probabilities);
             let distribution = task
                 .candidates
                 .iter()
@@ -887,6 +993,22 @@ fn argmax(values: &[f64]) -> Option<usize> {
     }
 
     Some(best_index)
+}
+
+// Exact ties only: never trade a higher probability for a preferred key.
+fn choice_argmax(task: &DecisionTask, probabilities: &[f64]) -> usize {
+    (0..probabilities.len())
+        .reduce(|best, i| {
+            if probabilities[i] > probabilities[best]
+                || (probabilities[i] == probabilities[best]
+                    && task.candidates[i].key < task.candidates[best].key)
+            {
+                i
+            } else {
+                best
+            }
+        })
+        .expect("validated choices have at least two candidates")
 }
 
 /// Core engine error.

@@ -44,7 +44,8 @@ export interface WebLoadOptions {
     model: string;
     runtimeModuleUrl: string;
     wasmModuleUrl: string;
-    runtimeOptions?: unknown;
+    runtimeOptions?: unknown; /** Defaults to none; balanced costs K layouts (2K for odd K). */
+    orderRobustness?: "none" | "cyclic" | "balanced"; /** Legacy alias; orderRobustness takes precedence. */
     cyclicOrderRobustness?: boolean;
     prompt?: {
         profile?: string;

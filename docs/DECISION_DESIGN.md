@@ -72,7 +72,11 @@ wall case still fails with Qwen3-0.6B Q4_K_M. See the complete
 
 Permute candidates to detect positional bias. Optional
 `orderRobustness: "cyclic"` adds model evaluations and can reduce order bias,
-but does not guarantee correct reasoning. Record its cost and configuration.
+but does not guarantee correct reasoning. `orderRobustness: "balanced"` uses
+canonical layouts and averages probabilities; it is independent of the caller's
+listing under deterministic scoring. It costs K passes for even K, 2K for odd K.
+Neither policy permutes score scales. Exact choice ties use the smallest semantic
+key; a higher probability always wins. Record the cost and configuration.
 
 Use the exact model, quantization, runtime, and prompt used in deployment.
 Report failures as well as successes, and separate model decisions from any

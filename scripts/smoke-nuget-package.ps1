@@ -39,7 +39,17 @@ using var generated = JsonDocument.Parse(await engine.GenerateJsonAsync("""
 if (!generated.RootElement.GetProperty("result").GetProperty("count").TryGetInt64(out _)) throw new Exception("Missing generated integer");
 if (generated.RootElement.GetProperty("result").GetProperty("seen").ValueKind is not (JsonValueKind.True or JsonValueKind.False)) throw new Exception("Missing dependent boolean");
 if (generated.RootElement.GetProperty("usage").GetProperty("generated_tokens").GetInt32()==0) throw new Exception("No actual generation was performed");
-Console.WriteLine("Built NuGet package real-model evaluate/generate smoke test passed.");
+await using var balanced = await TurboJevEngine.LoadAsync(new {
+    model = "fixture://balanced-package-gate", execution = new { orderRobustness = "balanced" },
+    fixtureLogits = new { route = new[] { 0.0, 0.0, 0.0 } }
+});
+using var corrected = JsonDocument.Parse(await balanced.EvaluateJsonAsync("""
+{"state":"facts","questions":{"route":{"type":"choice","instructions":"Choose","criteria":{"z":"Z","a":"A","b":"B"}}}}
+"""));
+if (corrected.RootElement.GetProperty("answers").GetProperty("route").GetProperty("choice").GetString() != "a") throw new Exception("Exact tie did not use semantic keys");
+if (corrected.RootElement.GetProperty("_turbojev").GetProperty("order_robustness").GetString() != "balanced") throw new Exception("Balanced policy was ignored");
+if (corrected.RootElement.GetProperty("_turbojev").GetProperty("order_evaluations").GetInt32() != 6) throw new Exception("Unexpected balanced pass count");
+Console.WriteLine("Built NuGet package real-model evaluate/generate and balanced contract smoke tests passed.");
 '@
 Set-Content -LiteralPath $Project -Value $csproj -NoNewline
 Set-Content -LiteralPath $Program -Value $source -NoNewline

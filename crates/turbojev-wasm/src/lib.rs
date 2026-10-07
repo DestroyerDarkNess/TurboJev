@@ -529,6 +529,7 @@ impl WasmEngine {
         descriptor_json: &str,
         prompt_profile_json: Option<String>,
         cyclic_order_robustness: Option<bool>,
+        order_robustness: Option<String>,
     ) -> Result<WasmEngine, JsValue> {
         let descriptor: RuntimeDescriptor =
             serde_json::from_str(descriptor_json).map_err(js_json)?;
@@ -540,10 +541,17 @@ impl WasmEngine {
         {
             return Err(JsValue::from_str("invalid runtime modalities"));
         }
-        let order_robustness = if cyclic_order_robustness.unwrap_or(false) {
-            OrderRobustness::Cyclic
-        } else {
-            OrderRobustness::None
+        let order_robustness = match order_robustness.as_deref() {
+            Some("balanced") => OrderRobustness::Balanced,
+            Some("cyclic") => OrderRobustness::Cyclic,
+            Some("none") => OrderRobustness::None,
+            None if cyclic_order_robustness.unwrap_or(false) => OrderRobustness::Cyclic,
+            None => OrderRobustness::None,
+            Some(_) => {
+                return Err(JsValue::from_str(
+                    "orderRobustness must be none, cyclic, or balanced",
+                ))
+            }
         };
         if descriptor.scoring_mode == ScoringMode::Decisions {
             if !Reflect::get(&runtime, &JsValue::from_str("scoreDecisionBatch"))?.is_function() {

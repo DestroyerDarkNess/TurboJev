@@ -1,6 +1,6 @@
 {
   "name": "@turbojev/runtime-llamacpp-wasm",
-  "version": "0.30.1",
+  "version": "0.31.0",
   "description": "Browser-side llama.cpp WASM decision runtime for TurboJev",
   "license": "Apache-2.0",
   "repository": {

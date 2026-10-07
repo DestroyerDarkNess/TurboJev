@@ -16,7 +16,7 @@ export interface LoadOptions {
   device?: "cpu" | "gpu";
   worker?: { program: string; args?: string[]; timeoutSeconds?: number };
   cacheDir?: string;
-  execution?: { policy?: PlanningPolicy; orderRobustness?: "none" | "cyclic"; maxParallelTasks?: number; memoryBudgetBytes?: number; llamacppMultiRootFused?: boolean };
+  execution?: { policy?: PlanningPolicy; orderRobustness?: "none" | "cyclic" | "balanced"; maxParallelTasks?: number; memoryBudgetBytes?: number; llamacppMultiRootFused?: boolean };
   prompt?: { profile?: string; systemInstruction?: string; bestMatchInstruction?: string };
   nCtx?: number; nBatch?: number; nSeqMax?: number; nGpuLayers?: number; nThreads?: number; nThreadsBatch?: number;
   fixtureLogits?: Record<string, number[]>;

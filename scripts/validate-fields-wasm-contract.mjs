@@ -42,4 +42,15 @@ const before = calls;
 await assert.rejects(engine.generate_json(JSON.stringify({ context: '', questions: { bad: { type: 'integer', minimum: 0 } } })));
 assert.equal(calls, before);
 engine.free();
+const balanced = new core.WasmEngine(runtime, JSON.stringify(descriptor), undefined, false, 'balanced');
+const evaluation = JSON.parse(await balanced.evaluate_json(JSON.stringify({ state: 'facts', questions: {
+  route: { type: 'choice', instructions: 'Which option?', criteria: { z: 'Z', a: 'A', b: 'B' } },
+  severity: { type: 'score', instructions: 'Severity?', criteria: ['Low', 'Medium', 'High'] },
+} })));
+assert.equal(evaluation.answers.route.choice, 'a');
+assert.equal(evaluation.answers.severity.score, 1);
+assert.equal(evaluation._turbojev.order_robustness, 'balanced');
+assert.equal(evaluation._turbojev.order_evaluations, 7);
+balanced.free();
+assert.throws(() => new core.WasmEngine(runtime, JSON.stringify(descriptor), undefined, false, 'invalid'));
 console.log('Published WASM contract: typed values, null, dependencies, skipped fields, probabilities and pre-inference rejection passed.');

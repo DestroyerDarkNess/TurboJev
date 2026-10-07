@@ -10,7 +10,7 @@ export interface BrowserDecisionRuntime {
   inferField?(taskJson:string):Promise<string>|string;
   close():Promise<void>|void;
 }
-export interface WebLoadOptions { model:string; runtimeModuleUrl:string; wasmModuleUrl:string; runtimeOptions?:unknown; cyclicOrderRobustness?:boolean; prompt?:{profile?:string;systemInstruction?:string;bestMatchInstruction?:string}; workerUrl?:string; }
+export interface WebLoadOptions { model:string; runtimeModuleUrl:string; wasmModuleUrl:string; runtimeOptions?:unknown; /** Defaults to none; balanced costs K layouts (2K for odd K). */ orderRobustness?:"none"|"cyclic"|"balanced"; /** Legacy alias; orderRobustness takes precedence. */ cyclicOrderRobustness?:boolean; prompt?:{profile?:string;systemInstruction?:string;bestMatchInstruction?:string}; workerUrl?:string; }
 export class TurboJevWeb {
   #worker:Worker; #id=1; #pending=new Map<number,{resolve:(v:any)=>void,reject:(e:any)=>void}>(); #closed=false;
   private constructor(worker:Worker){this.#worker=worker;worker.onmessage=({data})=>{const p=this.#pending.get(data.id);if(!p)return;this.#pending.delete(data.id);data.ok?p.resolve(data.value):p.reject(new Error(data.error));};worker.onerror=e=>{for(const p of this.#pending.values())p.reject(e);this.#pending.clear();};}

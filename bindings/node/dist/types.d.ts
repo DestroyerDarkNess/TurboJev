@@ -33,7 +33,7 @@ export interface LoadOptions {
     cacheDir?: string;
     execution?: {
         policy?: PlanningPolicy;
-        orderRobustness?: "none" | "cyclic";
+        orderRobustness?: "none" | "cyclic" | "balanced";
         maxParallelTasks?: number;
         memoryBudgetBytes?: number;
         llamacppMultiRootFused?: boolean;

@@ -8,8 +8,7 @@ with TurboJev.load('fixture://package-smoke') as engine:
 
 with TurboJev(NativeEngine.load_json(json.dumps({
     'model': 'fixture://package-smoke',
-    # Fixture logits are positional; disable the production default's cyclic
-    # order-robustness passes so this smoke test checks the supplied scores.
+    # Keep the supplied positional logits in single-pass mode.
     'execution': {'orderRobustness': 'none'},
     'fixtureLogits': {'route': [0.0, 3.0]},
 }))) as engine:
@@ -17,4 +16,9 @@ with TurboJev(NativeEngine.load_json(json.dumps({
         'route': {'type': 'choice', 'instructions': 'Choose a route.', 'criteria': {'a': 'A', 'b': 'B'}}
     }})
     assert response['answers']['route']['choice'] == 'b', response
-print('Native Python package smoke test passed.')
+with TurboJev.load('fixture://balanced-package-smoke', execution={'orderRobustness': 'balanced'}, fixtureLogits={'route': [0.0, 0.0, 0.0]}) as engine:
+    result = engine.evaluate({'state': 'facts', 'questions': {'route': {'type': 'choice', 'instructions': 'Choose', 'criteria': {'z': 'Z', 'a': 'A', 'b': 'B'}}}})
+    assert result['answers']['route']['choice'] == 'a', result
+    assert result['_turbojev']['order_robustness'] == 'balanced', result
+    assert result['_turbojev']['order_evaluations'] == 6, result
+print('Native Python package smoke test passed, including balanced ordering.')

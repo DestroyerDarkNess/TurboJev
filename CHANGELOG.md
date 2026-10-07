@@ -1,6 +1,9 @@
 # Changelog
 
-## Unreleased
+## 0.31.0
+
+- Add opt-in `orderRobustness: "balanced"` to native and browser `evaluate`: canonical Williams layouts retain the full option set, calibrate each layout once and average probabilities by semantic key. Single-pass `none` remains the default; existing cyclic logit averaging is retained. Ordered scores and nouls stay single-pass.
+- Resolve exact choice/enum probability ties by stable semantic key/value rather than caller position. Unequal probabilities are never treated as ties. Preserve the browser's legacy cyclic boolean and expose the new string policy.
 
 - Preserve ordered score scales during training-data materialization while retaining independent output-code augmentation and source-weight conservation. Choice and boolean augmentation are unchanged.
 - Document the source audit of alternative Jev implementations, the distinction between unordered choices and ordered scores, and the limits of cyclic versus canonical balanced permutation policies. Add regression checks for score training scales and canonical enum layouts.

@@ -188,6 +188,26 @@ fn auto_layouts_are_independent_of_the_callers_enum_order() {
 }
 
 #[test]
+fn enum_exact_ties_are_stable_but_near_ties_keep_the_highest_probability() {
+    for values in [json!(["z", "a"]), json!(["a", "z"])] {
+        let backend = turbojev_backend_mock::FixtureBackend::builder()
+            .with_logits("x", vec![0.0, 0.0])
+            .build();
+        let result = TurboJevEngine::new(backend)
+            .generate(request(json!({"x":{"type":"string","enum":values}})))
+            .unwrap();
+        assert_eq!(result.result["x"], "a");
+    }
+    let backend = turbojev_backend_mock::FixtureBackend::builder()
+        .with_logits("x", vec![1e-7, 0.0])
+        .build();
+    let result = TurboJevEngine::new(backend)
+        .generate(request(json!({"x":{"type":"string","enum":["z","a"]}})))
+        .unwrap();
+    assert_eq!(result.result["x"], "z");
+}
+
+#[test]
 fn invalid_complete_schema_performs_zero_model_calls() {
     let engine = TurboJevEngine::new(Model::default());
     assert!(engine

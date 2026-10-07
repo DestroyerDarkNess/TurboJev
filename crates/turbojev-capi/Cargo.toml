@@ -16,7 +16,7 @@ default = []
 llamacpp = ["turbojev-host-native/llamacpp"]
 
 [dependencies]
-turbojev-host-native = { version = "=0.30.1", path = "../turbojev-host-native" }
+turbojev-host-native = { version = "=0.31.0", path = "../turbojev-host-native" }
 
 [lints.rust]
 rust_2018_idioms = { level = "deny", priority = -1 }

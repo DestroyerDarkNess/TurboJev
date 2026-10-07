@@ -33,5 +33,12 @@ try {
 }
 await engine.close();
 await assert.rejects(engine.info());
+const balanced = await TurboJev.load({model:'fixture://balanced-package-gate',nativePath,execution:{orderRobustness:'balanced'},fixtureLogits:{route:[0,0,0]}});
+try {
+  const response = await balanced.evaluate({state:'facts',questions:{route:{type:'choice',instructions:'Choose',criteria:{z:'Z',a:'A',b:'B'}}}});
+  assert.equal(response.answers.route.choice,'a');
+  assert.equal(response._turbojev.order_robustness,'balanced');
+  assert.equal(response._turbojev.order_evaluations,6);
+} finally { await balanced.close(); }
 console.log(JSON.stringify({passed: true, checks: ["failed_load_cleanup", "file_url_model",
   "unicode", "three_concurrent_calls", "single_sequence_multiple_questions", "invalid_options", "recovery", "generate_integer_dependency", "reject_unsupported_schema", "close_twice", "use_after_close"]}));

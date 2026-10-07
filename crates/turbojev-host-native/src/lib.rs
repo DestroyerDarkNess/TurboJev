@@ -49,6 +49,7 @@ pub enum HostOrderRobustness {
     #[default]
     None,
     Cyclic,
+    Balanced,
 }
 
 impl From<HostOrderRobustness> for OrderRobustness {
@@ -56,6 +57,7 @@ impl From<HostOrderRobustness> for OrderRobustness {
         match value {
             HostOrderRobustness::None => OrderRobustness::None,
             HostOrderRobustness::Cyclic => OrderRobustness::Cyclic,
+            HostOrderRobustness::Balanced => OrderRobustness::Balanced,
         }
     }
 }
@@ -76,7 +78,7 @@ impl From<HostPlanningPolicy> for PlanningPolicy {
 pub struct HostExecutionOptions {
     #[serde(default)]
     pub policy: HostPlanningPolicy,
-    /// Opt-in exact cyclic averaging for unordered choice candidates.
+    /// Opt-in cyclic logit or canonical balanced probability averaging for choices.
     #[serde(default)]
     pub order_robustness: HostOrderRobustness,
     #[serde(default)]

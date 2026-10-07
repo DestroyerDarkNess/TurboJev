@@ -116,6 +116,24 @@ TurboJev is useful for classification, routing, typed gates, and bounded rubric 
 
 ## Troubleshooting
 
+### Candidate ordering in evaluate (0.31.0)
+
+Native loads accept `execution={"orderRobustness":"balanced"}`; browser loads
+accept `orderRobustness: "balanced"`. Rust uses `OrderRobustness::Balanced`.
+The default is still `none`, one pass. Balanced mode builds canonical Williams
+layouts from stable candidate keys, keeps the whole set visible, calibrates each
+layout once and averages aligned probabilities. It costs K passes for even K,
+2K for odd K, with at most 32 candidates. `cyclic` retains cyclic raw-logit
+averaging. Both leave ordered `score` scales and nouls untouched. Exact choice
+ties use lexicographic semantic keys; enum ties use their JSON value encoding.
+Unequal probabilities are never treated as ties. Robust layouts cannot guarantee
+correct model reasoning or calibrated confidence. Integer permutation sampling
+in `generate` still includes the original listing; use `auto` for canonical
+balanced layouts. Fit calibration against the actual production policy.
+
+Score training data retains the original scale and only varies output codes;
+regenerate previously materialized score data before additional fine-tuning.
+
 1. Reproduce with the same request, model file, quantization, runtime, and device.
 2. Separate model-load errors from evaluation errors; preserve the complete native/runtime error and check model architecture, tokenizer/template compatibility, file path, and platform assets.
 3. Inspect candidate descriptions, candidate order, and the returned distribution. A high score on one candidate is not a guarantee of a correct semantic answer.

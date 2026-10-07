@@ -120,17 +120,19 @@ answer, zero-generation usage, execution path, and calibration provenance.
 ### Stable option ordering when order is irrelevant
 
 Many models favor the first or last presented option. For unordered `choice`
-questions, enable cyclic order robustness:
+questions, opt into balanced order robustness:
 
 ```json
 {
   "model": "./model.gguf",
-  "execution": { "orderRobustness": "cyclic" }
+  "execution": { "orderRobustness": "balanced" }
 }
 ```
 
-TurboJev evaluates each cyclic option order, maps scores back to the original
-keys, averages the raw logits, and then calibrates the result. The response
+TurboJev evaluates canonical layouts that balance option positions and neighbours,
+calibrates each layout once, and averages probabilities by original key. With K
+choices this costs K evaluations for even K, or 2K for odd K. `none` remains the
+single-pass default; `cyclic` retains its original cyclic logit averaging. The response
 records both the active policy and the actual number of model evaluations.
 The feature applies to choice questions in `evaluate`; it deliberately leaves
 ordered scores and boolean decisions unchanged. Read the [full contract and

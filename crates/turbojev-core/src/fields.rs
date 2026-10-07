@@ -195,7 +195,18 @@ impl Generation {
             for probability in &mut self.sums {
                 *probability /= self.orders.len() as f64;
             }
-            let winner = argmax(&self.sums);
+            let tie_keys: Vec<_> = values.iter().map(Value::to_string).collect();
+            let winner = (0..values.len())
+                .reduce(|best, i| {
+                    if self.sums[i] > self.sums[best]
+                        || (self.sums[i] == self.sums[best] && tie_keys[i] < tie_keys[best])
+                    {
+                        i
+                    } else {
+                        best
+                    }
+                })
+                .expect("validated finite fields are nonempty");
             let value = values[winner].clone();
             self.result.insert(field.name.clone(), value.clone());
             if field.return_probabilities {

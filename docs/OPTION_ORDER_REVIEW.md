@@ -64,19 +64,25 @@ The training patch cannot change existing published binaries or model weights.
 Regenerate affected score training datasets before further fine-tuning. It is
 not evidence that a previously observed model-accuracy issue is now solved.
 
-## Recommended implementation work
+## Implemented in 0.31.0
+
+`evaluate` now accepts opt-in `balanced` in native and browser hosts. It reuses
+the canonical Williams design, calibrates each layout once, averages keyed
+probabilities and leaves scores/nouls unchanged. Exact choice ties use semantic
+keys; finite generated enum ties use JSON value encodings. Higher probabilities
+always win, without an epsilon tie window. Tests cover all 24 input orders of a
+four-way set-interaction fixture, sync/async parity and non-unit calibration.
+This is structural/numerical evidence, not a real-model accuracy guarantee.
+
+## Further implementation work
 
 1. Keep task semantics explicit through training, prompt rendering and aggregation:
    unordered choice, boolean, ordered score. Expose an ordered-scale indicator to
    renderers rather than inferring the type from candidate keys. Keep all
    competing options, or all rubric levels, visible.
-2. Add an opt-in canonical balanced probability-mean policy to `evaluate`, reusing
-   generation's shared ordering machinery. Preserve existing single-pass and
-   cyclic modes and defaults. Do not silently increase inference work.
-3. Define a stable semantic-key tie policy for robust choice modes. Canonical
-   prompts alone do not prevent a first-in-caller-order argmax from selecting
-   different labels when probabilities tie. Distinguish numerical tolerances
-   from an actual tie and from stochastic/runtime variation.
+2. Measure the new opt-in balanced policy with real models and production-like
+   option sets. Preserve explicit mode selection and account for every prefill;
+   batching one request is not equivalent to performing one model evaluation.
 4. Consider per-model/per-question label-prior correction only after evaluation.
    Do not make batch-prior subtraction unconditional: skewed real traffic can
    make that correction harmful. Temperature calibration cannot change argmax.
