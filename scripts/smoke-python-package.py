@@ -16,7 +16,11 @@ with TurboJev(NativeEngine.load_json(json.dumps({
         'route': {'type': 'choice', 'instructions': 'Choose a route.', 'criteria': {'a': 'A', 'b': 'B'}}
     }})
     assert response['answers']['route']['choice'] == 'b', response
-with TurboJev.load('fixture://balanced-package-smoke', execution={'orderRobustness': 'balanced'}, fixtureLogits={'route': [0.0, 0.0, 0.0]}) as engine:
+with TurboJev(NativeEngine.load_json(json.dumps({
+    'model': 'fixture://balanced-package-smoke',
+    'execution': {'orderRobustness': 'balanced'},
+    'fixtureLogits': {'route': [0.0, 0.0, 0.0]},
+}))) as engine:
     result = engine.evaluate({'state': 'facts', 'questions': {'route': {'type': 'choice', 'instructions': 'Choose', 'criteria': {'z': 'Z', 'a': 'A', 'b': 'B'}}}})
     assert result['answers']['route']['choice'] == 'a', result
     assert result['_turbojev']['order_robustness'] == 'balanced', result
