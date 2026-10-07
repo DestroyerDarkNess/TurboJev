@@ -41,3 +41,12 @@ Package publication runs real GGUF evaluate/generate gates on Windows x64.
 Windows x86 and ARM64 payloads are cross-compiled and inspected; this does not
 constitute executing them on matching hardware. Cargo publishes portable
 source. This release does not supply Linux/macOS native binary packages.
+
+## Published packages
+
+[Registry verification](published-registries.json) passed for all 37 records:
+eight npm packages, the PyPI project with three Windows wheels, NuGet with all
+three Windows native RIDs, and 27 Cargo crates. Verification uses public registry
+APIs without credentials. PyPI wheel hashes match the built files; NuGet's signed
+archive contains the complete unsigned local payload, including llama.cpp/mtmd
+libraries. The Node, Python and NuGet publication gates all passed.

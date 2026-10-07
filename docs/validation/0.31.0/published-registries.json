@@ -1,0 +1,423 @@
+{
+  "version": "0.31.0",
+  "checked_utc": "2026-10-07T23:32:49Z",
+  "records": [
+    {
+      "registry": "npm",
+      "name": "@turbojev/wasm",
+      "ok": true,
+      "evidence": {
+        "name": "@turbojev/wasm",
+        "version": "0.31.0",
+        "integrity": "sha512-4lSn3sHNiBWH2RreTIP2D5twY4wjmrTnAIsLrmCh84XaQufB6T/pR8jQq6ZErJHTxOFxaePYs6IN1mC4UZpe8w=="
+      }
+    },
+    {
+      "registry": "npm",
+      "name": "@turbojev/web",
+      "ok": true,
+      "evidence": {
+        "name": "@turbojev/web",
+        "version": "0.31.0",
+        "integrity": "sha512-SyOmY3nhTVA6OnupGTbk7YwL520K23ILIxHfSd2RFbK3DeoQu9KRLe3k+FMzVuKi3QnCHJprIrtSkznNWG+JXA=="
+      }
+    },
+    {
+      "registry": "npm",
+      "name": "@turbojev/runtime-transformersjs",
+      "ok": true,
+      "evidence": {
+        "name": "@turbojev/runtime-transformersjs",
+        "version": "0.31.0",
+        "integrity": "sha512-DMXdin+BhnYpD4I3U957MiaXLy3JHlNQm+8vjVORJyQQvWJ/9LE/L0PFzkvGelulVAYhPzD9uMj1TJdKByowqw=="
+      }
+    },
+    {
+      "registry": "npm",
+      "name": "@turbojev/runtime-llamacpp-wasm",
+      "ok": true,
+      "evidence": {
+        "name": "@turbojev/runtime-llamacpp-wasm",
+        "version": "0.31.0",
+        "integrity": "sha512-eUkW1ZigWXX9XeVXUHUbvHhnVXggN2ImOZrZ0mPi1AHckQ1fO59repRQmiDevtjkd3Ni8gc5RIsALUh+RhuZ7A=="
+      }
+    },
+    {
+      "registry": "npm",
+      "name": "@turbojev/node",
+      "ok": true,
+      "evidence": {
+        "name": "@turbojev/node",
+        "version": "0.31.0",
+        "integrity": "sha512-mgSI552vqrK5gc98fEZYY1fhkfX0cXSOhN6q01xSxTnbILP3LXw6AlmWNjLXoMMwajfu8gnqeNkJ61BkbFPDMw=="
+      }
+    },
+    {
+      "registry": "npm",
+      "name": "@turbojev/node-win32-ia32",
+      "ok": true,
+      "evidence": {
+        "name": "@turbojev/node-win32-ia32",
+        "version": "0.31.0",
+        "integrity": "sha512-DJE9pxGc1kU4EqYuNLNf/Ky44O/Ttovesx2X5WZFyNxGmq5ZVBhdcHZdfynA9cK0JwLrMk/i9+l+Yr2s5RIbvQ=="
+      }
+    },
+    {
+      "registry": "npm",
+      "name": "@turbojev/node-win32-x64",
+      "ok": true,
+      "evidence": {
+        "name": "@turbojev/node-win32-x64",
+        "version": "0.31.0",
+        "integrity": "sha512-qD+44hhpH+6Ylz7l0aI2bO+fk3MAuOss5a3/bYUcObq8wKCspLjK5UjRT2ulkhyaMgAKxKeJH4XEOJ36P4qkBA=="
+      }
+    },
+    {
+      "registry": "npm",
+      "name": "@turbojev/node-win32-arm64",
+      "ok": true,
+      "evidence": {
+        "name": "@turbojev/node-win32-arm64",
+        "version": "0.31.0",
+        "integrity": "sha512-+ALyJhq64hCLFK4680nD9RXaivPtgUB7buF4z8Ph4CcekY58CzMtQew7cqC8Oti1C0j9pejfXjw2AFxWKkplkQ=="
+      }
+    },
+    {
+      "registry": "python",
+      "name": "turbojev",
+      "ok": true,
+      "evidence": {
+        "name": "turbojev",
+        "version": "0.31.0",
+        "wheels": [
+          {
+            "filename": "turbojev-0.31.0-cp39-abi3-win32.whl",
+            "sha256": "a3e226d5f2b4c8aa04051bd578840e7ec6b99524bfba9a0e21953ed4cda5724e"
+          },
+          {
+            "filename": "turbojev-0.31.0-cp39-abi3-win_amd64.whl",
+            "sha256": "497f92fe8eebc50d3145b4bc184ffc172b38ea724c69f3a8e1803312474f1d44"
+          },
+          {
+            "filename": "turbojev-0.31.0-cp39-abi3-win_arm64.whl",
+            "sha256": "345c54385fb1acb92850474a5e179b9297975dda7a9bb90eef7f0e7fe5273cb8"
+          }
+        ]
+      }
+    },
+    {
+      "registry": "nuget",
+      "name": "TurboJev",
+      "ok": true,
+      "evidence": {
+        "name": "TurboJev",
+        "version": "0.31.0",
+        "sha512": "oBzBGymIcFSWBvgJe2VJXdXotK6EfVIWdtDjYkSoKSfgQ+mUvfAEah+9/vbWflMslk2JEWzQCG4N4LeXWRYyAw==",
+        "repository_signature_present": true,
+        "payload_matches_local": true,
+        "native_sha256": {
+          "runtimes/win-arm64/native/turbojev_capi.dll": "526177c7bbc2adf4ab258670d7eb5f63505fb84ab2dce7fb7cb8de8a141ac70b",
+          "runtimes/win-arm64/native/ggml-base.dll": "2498f3c5f6e8e6c1e9c1fc34142e485086fd02ce06edc31e89274b17ac5da778",
+          "runtimes/win-arm64/native/llama-common.dll": "1b1a03a54a492efa401dda187ee11c7e0e5f976b5dce2830ae4bcc8a8afb3d3f",
+          "runtimes/win-x64/native/ggml.dll": "33139127f4baacee7fc0f99832f7f394a61318f88ef1581dcaf962cb52fbbdcf",
+          "runtimes/win-x64/native/ggml-base.dll": "17c9df95b6722c279db3970dab927e1139cf167ac0d7869efa3979825152a842",
+          "runtimes/win-x86/native/ggml-cpu.dll": "a59c0fd8a3e97a6e8f79a3a74e6be353e8fb6e8840640369a6b690c9b53af3df",
+          "runtimes/win-x86/native/turbojev_capi.dll": "2b75f1c628c80ef4b31645f1fac5bd417c4b38e12e7f0070e651dc25361b33ef",
+          "runtimes/win-x86/native/turbojev_llama_shim.dll": "4c33fb52a12e9d9f51d986f078cac888f134ea74b00e0ab543b588e931e24d89",
+          "runtimes/win-x86/native/ggml-base.dll": "216b6bfc9770823e921ec7b685a82fc912b53cb26110d67fad0a0518f86b4c2a",
+          "runtimes/win-arm64/native/turbojev_llama_shim.dll": "44cd981b698a03bdd34030a202697ff636d32ea9777372db2c7e4af9eda54348",
+          "runtimes/win-x86/native/llama.dll": "8c07f77470818d45f2afe3c809ccfd72db095a37bf32d5295c0f775b02fb372e",
+          "runtimes/win-x64/native/ggml-vulkan.dll": "baf23c493c34275eb49b0aef76f10f250a3596234fde85906989e0822ce452a5",
+          "runtimes/win-x64/native/llama.dll": "a311d54a4371ae713b1f7a04123805d63f7b16ddd833b649cb7a9a23fda329b1",
+          "runtimes/win-arm64/native/ggml.dll": "6721ce02ea77e9d3276033943de74508d756d54d9762b0a25f7c84f37a2fcf96",
+          "runtimes/win-x64/native/turbojev_capi.dll": "98fa7a1893baf1fab5fc1164b1da842603f067448199c3a3959e577718e70d21",
+          "runtimes/win-x86/native/ggml.dll": "5fe65e088c816314c4a8ce4e2b7ce2e1285107205f11971876cb9f17fc14d67a",
+          "runtimes/win-x64/native/llama-common.dll": "40af9a6ddde7d819579a4fdb2b33d95fc5347333076d05330e4dff067561856d",
+          "runtimes/win-arm64/native/ggml-cpu.dll": "9c1242406789914ba37a76e072d702bae9b008a0ffae12863c2816d4c4331e20",
+          "runtimes/win-x64/native/turbojev_llama_shim.dll": "f87269b8e590f880252fbeb8d2e89f5eb489655991527cf6d9a71c8886945bda",
+          "runtimes/win-x64/native/mtmd.dll": "3e8a2cb0cd9d6f50f56d73237fd1f547864473cf428f2de601761048e2e31002",
+          "runtimes/win-x86/native/llama-common.dll": "e08647c2742e5faafe7a20d43771fc6e56138ca81d15412b7341bd4b973b7282",
+          "runtimes/win-x64/native/ggml-cpu.dll": "71c9207ac83d65e39ee13d288928d544e428d5b98b3fbfd9cca42f0027665cab",
+          "runtimes/win-arm64/native/mtmd.dll": "54416b80069e72d4ce17535cd105b4437e7c787548581dd8f5ab0d6bb2abfd18",
+          "runtimes/win-x86/native/mtmd.dll": "893ccffd0656dde20e95c7ba8daf8efa7736d28712c8114b9da706ef9f3f6472",
+          "runtimes/win-arm64/native/llama.dll": "1f53a6c5eaa3741bbdc8e6dfab36f609bde7b8e96ebf7c6f5f142edb553be467"
+        },
+        "verified_native_assets": [
+          "win-x86",
+          "win-x64",
+          "win-arm64"
+        ]
+      }
+    },
+    {
+      "registry": "cargo",
+      "name": "turbojev",
+      "ok": true,
+      "evidence": {
+        "name": "turbojev",
+        "version": "0.31.0",
+        "checksum": "98726e15459c3cfc8972683c87761257d1522dc6857bb60ba6e96d4a989f978c"
+      }
+    },
+    {
+      "registry": "cargo",
+      "name": "turbojev-backend",
+      "ok": true,
+      "evidence": {
+        "name": "turbojev-backend",
+        "version": "0.31.0",
+        "checksum": "92ea294dd1eb4046fb6371861452bbbf0bedd9d98e577e604a65edd3d9975d36"
+      }
+    },
+    {
+      "registry": "cargo",
+      "name": "turbojev-backend-custom",
+      "ok": true,
+      "evidence": {
+        "name": "turbojev-backend-custom",
+        "version": "0.31.0",
+        "checksum": "57c53b779422475c8596ea03f70e05e02c2d2d4f1b3645be8c5bb2f3db73ef1f"
+      }
+    },
+    {
+      "registry": "cargo",
+      "name": "turbojev-backend-mock",
+      "ok": true,
+      "evidence": {
+        "name": "turbojev-backend-mock",
+        "version": "0.31.0",
+        "checksum": "c36e2b0aa595b259c82a378814ebc09bd60a01360461e28c3c23890ea3c77ba9"
+      }
+    },
+    {
+      "registry": "cargo",
+      "name": "turbojev-benchmark",
+      "ok": true,
+      "evidence": {
+        "name": "turbojev-benchmark",
+        "version": "0.31.0",
+        "checksum": "0151169ef8c177402b6a27a50088b16a0208bb883d4064d4ad94c82a180055bd"
+      }
+    },
+    {
+      "registry": "cargo",
+      "name": "turbojev-calibration",
+      "ok": true,
+      "evidence": {
+        "name": "turbojev-calibration",
+        "version": "0.31.0",
+        "checksum": "1f51c72045eab0f076c43cd6258dd658ed26f4c1c40394b0fbbbfba19ec3fe72"
+      }
+    },
+    {
+      "registry": "cargo",
+      "name": "turbojev-compat",
+      "ok": true,
+      "evidence": {
+        "name": "turbojev-compat",
+        "version": "0.31.0",
+        "checksum": "8c85692ea03acd93441af1f5ae81f3974224884233d6ddaabfdadf162c51f988"
+      }
+    },
+    {
+      "registry": "cargo",
+      "name": "turbojev-conformance",
+      "ok": true,
+      "evidence": {
+        "name": "turbojev-conformance",
+        "version": "0.31.0",
+        "checksum": "e372ee6b199ea09c6c9cf05c13e9f6257ff184d7247d664ac16fb6e08e064ea5"
+      }
+    },
+    {
+      "registry": "cargo",
+      "name": "turbojev-core",
+      "ok": true,
+      "evidence": {
+        "name": "turbojev-core",
+        "version": "0.31.0",
+        "checksum": "19ba4a7d578df21379cb900e6d60cd1b14fae8f1dea603edc911633959aa0ca3"
+      }
+    },
+    {
+      "registry": "cargo",
+      "name": "turbojev-engine",
+      "ok": true,
+      "evidence": {
+        "name": "turbojev-engine",
+        "version": "0.31.0",
+        "checksum": "1a9174a69fe712284c5025aed5dbbf99636c56d07e6f9614084a4c40db05895c"
+      }
+    },
+    {
+      "registry": "cargo",
+      "name": "turbojev-host-native",
+      "ok": true,
+      "evidence": {
+        "name": "turbojev-host-native",
+        "version": "0.31.0",
+        "checksum": "7efd7728ea478d85e85804fbf868124a9b8d3be6710687815d0458ad59794416"
+      }
+    },
+    {
+      "registry": "cargo",
+      "name": "turbojev-model",
+      "ok": true,
+      "evidence": {
+        "name": "turbojev-model",
+        "version": "0.31.0",
+        "checksum": "6d12c10913ea7e1a9d3185c47a15d27f6f3c738664a1876c895be83e2068d780"
+      }
+    },
+    {
+      "registry": "cargo",
+      "name": "turbojev-projection",
+      "ok": true,
+      "evidence": {
+        "name": "turbojev-projection",
+        "version": "0.31.0",
+        "checksum": "ad0c0d3f4949f4b436168b6eeac89110d2836d8005e7c64fdb118723c30218ae"
+      }
+    },
+    {
+      "registry": "cargo",
+      "name": "turbojev-prompt",
+      "ok": true,
+      "evidence": {
+        "name": "turbojev-prompt",
+        "version": "0.31.0",
+        "checksum": "40389e9c09f70bf47b682843548501cf83d316d3f13d7342ca92e7ea069813c5"
+      }
+    },
+    {
+      "registry": "cargo",
+      "name": "turbojev-runtime",
+      "ok": true,
+      "evidence": {
+        "name": "turbojev-runtime",
+        "version": "0.31.0",
+        "checksum": "908a435e63714742fe1c7dab9a6060b4e300f1f649bf2dd9b9d42b7f322b4a6c"
+      }
+    },
+    {
+      "registry": "cargo",
+      "name": "turbojev-runtime-conformance",
+      "ok": true,
+      "evidence": {
+        "name": "turbojev-runtime-conformance",
+        "version": "0.31.0",
+        "checksum": "0d15d47213c1e13f63851fa86c62a004a1147acd97012b6498b9eb2994507887"
+      }
+    },
+    {
+      "registry": "cargo",
+      "name": "turbojev-runtime-llamacpp",
+      "ok": true,
+      "evidence": {
+        "name": "turbojev-runtime-llamacpp",
+        "version": "0.31.0",
+        "checksum": "c2b3257c2dbcd0ebf61a902519a09182a224adb1d024cd69a2864a0232075a01"
+      }
+    },
+    {
+      "registry": "cargo",
+      "name": "turbojev-runtime-projection",
+      "ok": true,
+      "evidence": {
+        "name": "turbojev-runtime-projection",
+        "version": "0.31.0",
+        "checksum": "6a3dd4648fb25470a751c019c3bd9369cf4322b561514a0c26a7fa4cd0c32ada"
+      }
+    },
+    {
+      "registry": "cargo",
+      "name": "turbojev-runtime-qualification",
+      "ok": true,
+      "evidence": {
+        "name": "turbojev-runtime-qualification",
+        "version": "0.31.0",
+        "checksum": "64706a3e0272395dfc681d323df76c683f66da85c389333300724ce3488aa286"
+      }
+    },
+    {
+      "registry": "cargo",
+      "name": "turbojev-schema",
+      "ok": true,
+      "evidence": {
+        "name": "turbojev-schema",
+        "version": "0.31.0",
+        "checksum": "7520204ccf39ca3f8c240b1b771ab3ce4aaf3b30c0bbd59d2d8290e8b8cff59b"
+      }
+    },
+    {
+      "registry": "cargo",
+      "name": "turbojev-sequence",
+      "ok": true,
+      "evidence": {
+        "name": "turbojev-sequence",
+        "version": "0.31.0",
+        "checksum": "10ea6a3299734c227cac0ef28be0320093bca8f8f1c797ac2c3a8e566e427ffd"
+      }
+    },
+    {
+      "registry": "cargo",
+      "name": "turbojev-specialized",
+      "ok": true,
+      "evidence": {
+        "name": "turbojev-specialized",
+        "version": "0.31.0",
+        "checksum": "38aa7e96d66dd4660b9cb3e7ac9f3a7ae6c84a18ad194c16373aa1ee480fff21"
+      }
+    },
+    {
+      "registry": "cargo",
+      "name": "turbojev-specialized-artifact",
+      "ok": true,
+      "evidence": {
+        "name": "turbojev-specialized-artifact",
+        "version": "0.31.0",
+        "checksum": "53aefb8c5d3d86a965dc06ce3d3fa530e56579ffdd1d8db4457d7d121f5ace87"
+      }
+    },
+    {
+      "registry": "cargo",
+      "name": "turbojev-specialized-eval",
+      "ok": true,
+      "evidence": {
+        "name": "turbojev-specialized-eval",
+        "version": "0.31.0",
+        "checksum": "f4322d44e3c81d3c9b15cb14856ab9753a4b4d6a5282c278fd84484002bf1e86"
+      }
+    },
+    {
+      "registry": "cargo",
+      "name": "turbojev-tokenizer",
+      "ok": true,
+      "evidence": {
+        "name": "turbojev-tokenizer",
+        "version": "0.31.0",
+        "checksum": "6b0d56ad645e954c0b0d21452a75c7da6dc33868b41922295411b883136b25c8"
+      }
+    },
+    {
+      "registry": "cargo",
+      "name": "turbojev-training-data",
+      "ok": true,
+      "evidence": {
+        "name": "turbojev-training-data",
+        "version": "0.31.0",
+        "checksum": "64a0b7eca93561204855b97129b22fffc00a6bf9920d6ec39ed763d77ed82b81"
+      }
+    },
+    {
+      "registry": "cargo",
+      "name": "turbojev-wire",
+      "ok": true,
+      "evidence": {
+        "name": "turbojev-wire",
+        "version": "0.31.0",
+        "checksum": "8436acd953ef5c3e1381adb28ca93303529cca8ae9af7ffd1807a43abe5a7338"
+      }
+    }
+  ]
+}
