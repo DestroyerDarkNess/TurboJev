@@ -9,7 +9,7 @@ The portable crate `turbojev-specialized` contains only versioned contracts and 
 ```text
 semantic training examples
         │
-        ├── candidate-order permutations
+        ├── candidate-order permutations (unordered choices; score scales retained)
         ├── candidate-code permutations
         ├── multilingual variants
         ├── contrastive pairs

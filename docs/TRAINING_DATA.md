@@ -29,7 +29,7 @@ The materialized record stores the semantic `PromptDocument`, `target_key`, `tar
 
 ## Deterministic debiasing
 
-For every source decision the materializer independently expands:
+For unordered choice decisions the materializer independently expands:
 
 ```text
 semantic candidate order
@@ -40,6 +40,15 @@ candidate-code assignment
 Both use the recipe seed and stable scope identifiers. The identity permutation is always retained.
 Requested permutation counts are capped by the actual permutation space (`n!`), so two-candidate
 boolean decisions produce exactly two distinct order variants rather than duplicate rows.
+
+Ordered `score` decisions retain exactly one semantic order: the caller's scale,
+from level 0 upward. They still expand candidate-code assignments, with each
+target code mapped back to its original level. Do not train score examples to
+discard rubric ordering. Existing materialized score datasets produced with
+multiple order variants should be regenerated before further training; this
+change does not alter already published model weights or inference binaries.
+See [the option-order source audit](OPTION_ORDER_REVIEW.md) for the distinction
+between unordered choice distributions, ordered score scales and output codes.
 
 Augmentation does not silently multiply sample importance. If a decision with source weight `w`
 produces `k` records, each receives `w/k`; the sum remains `w`.

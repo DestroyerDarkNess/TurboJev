@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Preserve ordered score scales during training-data materialization while retaining independent output-code augmentation and source-weight conservation. Choice and boolean augmentation are unchanged.
+- Document the source audit of alternative Jev implementations, the distinction between unordered choices and ordered scores, and the limits of cyclic versus canonical balanced permutation policies. Add regression checks for score training scales and canonical enum layouts.
+
 ## 0.30.1
 
 - Negotiate shared-prefix scoring only when the loaded llama.cpp context has at least two sequences. A context configured with `nSeqMax=1` now evaluates multiple questions through the independent reference path instead of decoding an invalid sequence ID.

@@ -483,12 +483,18 @@ pub fn materialize_training_dataset<P: CandidateCodeProvider>(
             let target_key = target.semantic_key();
 
             let order_scope = format!("{}/{}/order", example.id, task.id);
-            let order_variants = deterministic_permutations(
-                task.candidates.len(),
-                recipe.debiasing.candidate_order_permutations as usize,
-                recipe.debiasing.seed,
-                &order_scope,
-            );
+            let order_variants = if matches!(target, TrainingTarget::Score(_)) {
+                // Level order defines the rubric. Keep the scale as in inference;
+                // output-code assignment is still augmented independently below.
+                vec![(0..task.candidates.len()).collect()]
+            } else {
+                deterministic_permutations(
+                    task.candidates.len(),
+                    recipe.debiasing.candidate_order_permutations as usize,
+                    recipe.debiasing.seed,
+                    &order_scope,
+                )
+            };
 
             for (order_variant, order) in order_variants.iter().enumerate() {
                 let ordered_task = reorder_task(task, order);
@@ -964,5 +970,63 @@ mod tests {
         let variants = deterministic_permutations(2, 99, 42, "boolean");
         assert_eq!(variants.len(), 2);
         assert_ne!(variants[0], variants[1]);
+    }
+
+    #[test]
+    fn score_augmentation_keeps_the_scale_but_debiases_output_codes() {
+        let mut source = dataset();
+        source.examples[0].request.questions.insert(
+            "severity".into(),
+            Question::Score {
+                instructions: "How severe is the issue?".into(),
+                criteria: vec!["Cosmetic".into(), "Degraded".into(), "Blocked".into()],
+            },
+        );
+        source.examples[0]
+            .targets
+            .insert("severity".into(), TrainingTarget::Score(1));
+        let output =
+            materialize_training_dataset(&source, &recipe(), &FixtureCodes, "score-scale").unwrap();
+        let score_records: Vec<_> = output
+            .records
+            .iter()
+            .filter(|record| record.question_id == "severity")
+            .collect();
+        assert_eq!(score_records.len(), 4); // Code variants only; one semantic order.
+        let expected = [("0", "Cosmetic"), ("1", "Degraded"), ("2", "Blocked")];
+        for record in &score_records {
+            let options: Vec<_> = record
+                .document
+                .options
+                .iter()
+                .map(|option| (option.key.as_str(), option.description.as_str()))
+                .collect();
+            assert_eq!(options, expected);
+            assert_eq!(record.target_key, "1");
+            assert_eq!(record.target_index, 1);
+            assert_eq!(record.target_code, record.document.options[1].code);
+            assert_eq!(record.augmentation.order_variant, 0);
+            assert_eq!(record.augmentation.order_variants, 1);
+        }
+        let codes: HashSet<_> = score_records
+            .iter()
+            .map(|record| &record.target_code)
+            .collect();
+        assert!(codes.len() > 1);
+        assert!(
+            (score_records
+                .iter()
+                .map(|record| record.weight)
+                .sum::<f64>()
+                - 1.0)
+                .abs()
+                < 1e-9
+        );
+        assert!(output
+            .records
+            .iter()
+            .filter(|record| record.question_id == "route")
+            .all(|record| record.augmentation.order_variants == 4));
+        output.validate().unwrap();
     }
 }

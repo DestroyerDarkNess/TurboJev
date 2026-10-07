@@ -160,6 +160,34 @@ fn sampling_is_unique_reproducible_and_not_factorial_allocation() {
 }
 
 #[test]
+fn auto_layouts_are_independent_of_the_callers_enum_order() {
+    for n in 2..10 {
+        let values: Vec<_> = (0..n).map(|i| json!(format!("option-{i}"))).collect();
+        let layouts = |values: &[Value]| {
+            orderings(values, &json!("auto"), 42)
+                .unwrap()
+                .into_iter()
+                .map(|row| {
+                    row.into_iter()
+                        .map(|i| values[i].clone())
+                        .collect::<Vec<_>>()
+                })
+                .collect::<Vec<_>>()
+        };
+        let mut reordered = values.clone();
+        reordered.reverse();
+        assert_eq!(layouts(&values), layouts(&reordered));
+        reordered.rotate_left(1);
+        assert_eq!(layouts(&values), layouts(&reordered));
+        // Explicit single-pass mode must still honor the caller's listing.
+        assert_eq!(
+            orderings(&reordered, &json!(1), 42).unwrap(),
+            vec![(0..n).collect::<Vec<_>>()]
+        );
+    }
+}
+
+#[test]
 fn invalid_complete_schema_performs_zero_model_calls() {
     let engine = TurboJevEngine::new(Model::default());
     assert!(engine
