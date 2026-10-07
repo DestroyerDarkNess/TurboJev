@@ -1,0 +1,864 @@
+{
+  "version": "0.31.0",
+  "model": "C:/Users/Administrator/.cache/turbojev/Qwen3-0.6B-Q4_K_M.gguf",
+  "model_sha256": "9acfc1e001311f34b4252001b626f2e466d592a42065f66571bff3790d4e1b14",
+  "native_sha256": "227aa3e7bfc047b014b013e395fcfccc786a4ddcc326b728442c2213a2435db5",
+  "device": "cpu",
+  "thinking": false,
+  "n_threads": 4,
+  "results": [
+    {
+      "policy": "none",
+      "state": "My package arrived broken. Please send a replacement.",
+      "expected": "shipping",
+      "runs": [
+        {
+          "order": [
+            "billing",
+            "shipping",
+            "technical",
+            "other"
+          ],
+          "seconds": 22.165718199999997,
+          "response": {
+            "model": "qwen3 0.6B Q4_K - Medium",
+            "answers": {
+              "team": {
+                "type": "choice",
+                "choice": "shipping",
+                "confidence": 0.9999565973165806,
+                "probabilities": {
+                  "billing": 1.1015245291564133e-8,
+                  "shipping": 0.9999565973165806,
+                  "technical": 0.000004411581209348586,
+                  "other": 0.00003898008696492408
+                }
+              }
+            },
+            "usage": {
+              "decisions": 1,
+              "input_tokens": 114,
+              "generated_tokens": 0
+            },
+            "_turbojev": {
+              "backend": "llamacpp",
+              "calibration": "softmax",
+              "calibrated": false,
+              "confidence_method": "selected-candidate-probability",
+              "contract": "turbojev.core.v4",
+              "order_robustness": "none",
+              "order_evaluations": 0,
+              "execution": {
+                "prefix_reuse": "none",
+                "scheduling": "serial",
+                "parallel_task_limit": 1,
+                "projection": "full-vocabulary"
+              }
+            }
+          }
+        },
+        {
+          "order": [
+            "other",
+            "technical",
+            "shipping",
+            "billing"
+          ],
+          "seconds": 6.840735099999998,
+          "response": {
+            "model": "qwen3 0.6B Q4_K - Medium",
+            "answers": {
+              "team": {
+                "type": "choice",
+                "choice": "shipping",
+                "confidence": 0.9982726168212467,
+                "probabilities": {
+                  "other": 9.536821087902087e-8,
+                  "technical": 0.000995073610991947,
+                  "shipping": 0.9982726168212467,
+                  "billing": 0.0007322141995504299
+                }
+              }
+            },
+            "usage": {
+              "decisions": 1,
+              "input_tokens": 114,
+              "generated_tokens": 0
+            },
+            "_turbojev": {
+              "backend": "llamacpp",
+              "calibration": "softmax",
+              "calibrated": false,
+              "confidence_method": "selected-candidate-probability",
+              "contract": "turbojev.core.v4",
+              "order_robustness": "none",
+              "order_evaluations": 0,
+              "execution": {
+                "prefix_reuse": "none",
+                "scheduling": "serial",
+                "parallel_task_limit": 1,
+                "projection": "full-vocabulary"
+              }
+            }
+          }
+        },
+        {
+          "order": [
+            "technical",
+            "billing",
+            "other",
+            "shipping"
+          ],
+          "seconds": 4.783910499999998,
+          "response": {
+            "model": "qwen3 0.6B Q4_K - Medium",
+            "answers": {
+              "team": {
+                "type": "choice",
+                "choice": "shipping",
+                "confidence": 0.8626793610513167,
+                "probabilities": {
+                  "technical": 0.0004280057839955677,
+                  "billing": 0.00009147179106681525,
+                  "other": 0.13680116137362094,
+                  "shipping": 0.8626793610513167
+                }
+              }
+            },
+            "usage": {
+              "decisions": 1,
+              "input_tokens": 114,
+              "generated_tokens": 0
+            },
+            "_turbojev": {
+              "backend": "llamacpp",
+              "calibration": "softmax",
+              "calibrated": false,
+              "confidence_method": "selected-candidate-probability",
+              "contract": "turbojev.core.v4",
+              "order_robustness": "none",
+              "order_evaluations": 0,
+              "execution": {
+                "prefix_reuse": "none",
+                "scheduling": "serial",
+                "parallel_task_limit": 1,
+                "projection": "full-vocabulary"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "policy": "none",
+      "state": "I was charged twice. Please refund the duplicate payment.",
+      "expected": "billing",
+      "runs": [
+        {
+          "order": [
+            "billing",
+            "shipping",
+            "technical",
+            "other"
+          ],
+          "seconds": 10.310461600000002,
+          "response": {
+            "model": "qwen3 0.6B Q4_K - Medium",
+            "answers": {
+              "team": {
+                "type": "choice",
+                "choice": "billing",
+                "confidence": 0.9999868216562611,
+                "probabilities": {
+                  "billing": 0.9999868216562611,
+                  "shipping": 0.000001660351811485775,
+                  "technical": 8.309303044939445e-9,
+                  "other": 0.000011509682624422213
+                }
+              }
+            },
+            "usage": {
+              "decisions": 1,
+              "input_tokens": 115,
+              "generated_tokens": 0
+            },
+            "_turbojev": {
+              "backend": "llamacpp",
+              "calibration": "softmax",
+              "calibrated": false,
+              "confidence_method": "selected-candidate-probability",
+              "contract": "turbojev.core.v4",
+              "order_robustness": "none",
+              "order_evaluations": 0,
+              "execution": {
+                "prefix_reuse": "none",
+                "scheduling": "serial",
+                "parallel_task_limit": 1,
+                "projection": "full-vocabulary"
+              }
+            }
+          }
+        },
+        {
+          "order": [
+            "other",
+            "technical",
+            "shipping",
+            "billing"
+          ],
+          "seconds": 29.9329205,
+          "response": {
+            "model": "qwen3 0.6B Q4_K - Medium",
+            "answers": {
+              "team": {
+                "type": "choice",
+                "choice": "billing",
+                "confidence": 0.9999236427313037,
+                "probabilities": {
+                  "other": 9.938906142702299e-8,
+                  "technical": 0.00007609425869286041,
+                  "shipping": 1.63620941837626e-7,
+                  "billing": 0.9999236427313037
+                }
+              }
+            },
+            "usage": {
+              "decisions": 1,
+              "input_tokens": 115,
+              "generated_tokens": 0
+            },
+            "_turbojev": {
+              "backend": "llamacpp",
+              "calibration": "softmax",
+              "calibrated": false,
+              "confidence_method": "selected-candidate-probability",
+              "contract": "turbojev.core.v4",
+              "order_robustness": "none",
+              "order_evaluations": 0,
+              "execution": {
+                "prefix_reuse": "none",
+                "scheduling": "serial",
+                "parallel_task_limit": 1,
+                "projection": "full-vocabulary"
+              }
+            }
+          }
+        },
+        {
+          "order": [
+            "technical",
+            "billing",
+            "other",
+            "shipping"
+          ],
+          "seconds": 41.81536,
+          "response": {
+            "model": "qwen3 0.6B Q4_K - Medium",
+            "answers": {
+              "team": {
+                "type": "choice",
+                "choice": "billing",
+                "confidence": 0.9999717781631586,
+                "probabilities": {
+                  "technical": 2.6018746465266206e-8,
+                  "billing": 0.9999717781631586,
+                  "other": 2.8865584847788097e-7,
+                  "shipping": 0.000027907162246406315
+                }
+              }
+            },
+            "usage": {
+              "decisions": 1,
+              "input_tokens": 115,
+              "generated_tokens": 0
+            },
+            "_turbojev": {
+              "backend": "llamacpp",
+              "calibration": "softmax",
+              "calibrated": false,
+              "confidence_method": "selected-candidate-probability",
+              "contract": "turbojev.core.v4",
+              "order_robustness": "none",
+              "order_evaluations": 0,
+              "execution": {
+                "prefix_reuse": "none",
+                "scheduling": "serial",
+                "parallel_task_limit": 1,
+                "projection": "full-vocabulary"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "policy": "none",
+      "state": "The app crashes whenever I try to sign in.",
+      "expected": "technical",
+      "runs": [
+        {
+          "order": [
+            "billing",
+            "shipping",
+            "technical",
+            "other"
+          ],
+          "seconds": 30.128338400000008,
+          "response": {
+            "model": "qwen3 0.6B Q4_K - Medium",
+            "answers": {
+              "team": {
+                "type": "choice",
+                "choice": "technical",
+                "confidence": 0.9999989470961833,
+                "probabilities": {
+                  "billing": 8.836646807204331e-9,
+                  "shipping": 1.4508077962989564e-8,
+                  "technical": 0.9999989470961833,
+                  "other": 0.0000010295590920108686
+                }
+              }
+            },
+            "usage": {
+              "decisions": 1,
+              "input_tokens": 114,
+              "generated_tokens": 0
+            },
+            "_turbojev": {
+              "backend": "llamacpp",
+              "calibration": "softmax",
+              "calibrated": false,
+              "confidence_method": "selected-candidate-probability",
+              "contract": "turbojev.core.v4",
+              "order_robustness": "none",
+              "order_evaluations": 0,
+              "execution": {
+                "prefix_reuse": "none",
+                "scheduling": "serial",
+                "parallel_task_limit": 1,
+                "projection": "full-vocabulary"
+              }
+            }
+          }
+        },
+        {
+          "order": [
+            "other",
+            "technical",
+            "shipping",
+            "billing"
+          ],
+          "seconds": 31.02919280000002,
+          "response": {
+            "model": "qwen3 0.6B Q4_K - Medium",
+            "answers": {
+              "team": {
+                "type": "choice",
+                "choice": "technical",
+                "confidence": 0.9999949869203096,
+                "probabilities": {
+                  "other": 1.1183543923096112e-9,
+                  "technical": 0.9999949869203096,
+                  "shipping": 7.249214682607394e-7,
+                  "billing": 0.000004287039867737731
+                }
+              }
+            },
+            "usage": {
+              "decisions": 1,
+              "input_tokens": 114,
+              "generated_tokens": 0
+            },
+            "_turbojev": {
+              "backend": "llamacpp",
+              "calibration": "softmax",
+              "calibrated": false,
+              "confidence_method": "selected-candidate-probability",
+              "contract": "turbojev.core.v4",
+              "order_robustness": "none",
+              "order_evaluations": 0,
+              "execution": {
+                "prefix_reuse": "none",
+                "scheduling": "serial",
+                "parallel_task_limit": 1,
+                "projection": "full-vocabulary"
+              }
+            }
+          }
+        },
+        {
+          "order": [
+            "technical",
+            "billing",
+            "other",
+            "shipping"
+          ],
+          "seconds": 25.198127999999997,
+          "response": {
+            "model": "qwen3 0.6B Q4_K - Medium",
+            "answers": {
+              "team": {
+                "type": "choice",
+                "choice": "technical",
+                "confidence": 0.9999977321283089,
+                "probabilities": {
+                  "technical": 0.9999977321283089,
+                  "billing": 2.1216807945928998e-7,
+                  "other": 6.866834864081351e-9,
+                  "shipping": 0.0000020488367767048692
+                }
+              }
+            },
+            "usage": {
+              "decisions": 1,
+              "input_tokens": 114,
+              "generated_tokens": 0
+            },
+            "_turbojev": {
+              "backend": "llamacpp",
+              "calibration": "softmax",
+              "calibrated": false,
+              "confidence_method": "selected-candidate-probability",
+              "contract": "turbojev.core.v4",
+              "order_robustness": "none",
+              "order_evaluations": 0,
+              "execution": {
+                "prefix_reuse": "none",
+                "scheduling": "serial",
+                "parallel_task_limit": 1,
+                "projection": "full-vocabulary"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "policy": "balanced",
+      "state": "My package arrived broken. Please send a replacement.",
+      "expected": "shipping",
+      "runs": [
+        {
+          "order": [
+            "billing",
+            "shipping",
+            "technical",
+            "other"
+          ],
+          "seconds": 17.166726399999984,
+          "response": {
+            "model": "qwen3 0.6B Q4_K - Medium",
+            "answers": {
+              "team": {
+                "type": "choice",
+                "choice": "shipping",
+                "confidence": 0.9967545328192355,
+                "probabilities": {
+                  "billing": 0.000006999814746612833,
+                  "shipping": 0.9967545328192355,
+                  "technical": 0.00020102056232829466,
+                  "other": 0.003037446803689654
+                }
+              }
+            },
+            "usage": {
+              "decisions": 1,
+              "input_tokens": 456,
+              "generated_tokens": 0
+            },
+            "_turbojev": {
+              "backend": "llamacpp",
+              "calibration": "softmax",
+              "calibrated": false,
+              "confidence_method": "selected-candidate-probability",
+              "contract": "turbojev.core.v4",
+              "order_robustness": "balanced",
+              "order_evaluations": 4,
+              "execution": {
+                "prefix_reuse": "none",
+                "scheduling": "serial",
+                "parallel_task_limit": 1,
+                "projection": "full-vocabulary"
+              }
+            }
+          }
+        },
+        {
+          "order": [
+            "other",
+            "technical",
+            "shipping",
+            "billing"
+          ],
+          "seconds": 19.9501318,
+          "response": {
+            "model": "qwen3 0.6B Q4_K - Medium",
+            "answers": {
+              "team": {
+                "type": "choice",
+                "choice": "shipping",
+                "confidence": 0.9967545328192355,
+                "probabilities": {
+                  "other": 0.003037446803689654,
+                  "technical": 0.00020102056232829466,
+                  "shipping": 0.9967545328192355,
+                  "billing": 0.000006999814746612833
+                }
+              }
+            },
+            "usage": {
+              "decisions": 1,
+              "input_tokens": 456,
+              "generated_tokens": 0
+            },
+            "_turbojev": {
+              "backend": "llamacpp",
+              "calibration": "softmax",
+              "calibrated": false,
+              "confidence_method": "selected-candidate-probability",
+              "contract": "turbojev.core.v4",
+              "order_robustness": "balanced",
+              "order_evaluations": 4,
+              "execution": {
+                "prefix_reuse": "none",
+                "scheduling": "serial",
+                "parallel_task_limit": 1,
+                "projection": "full-vocabulary"
+              }
+            }
+          }
+        },
+        {
+          "order": [
+            "technical",
+            "billing",
+            "other",
+            "shipping"
+          ],
+          "seconds": 48.15554859999998,
+          "response": {
+            "model": "qwen3 0.6B Q4_K - Medium",
+            "answers": {
+              "team": {
+                "type": "choice",
+                "choice": "shipping",
+                "confidence": 0.9967545328192355,
+                "probabilities": {
+                  "technical": 0.00020102056232829466,
+                  "billing": 0.000006999814746612833,
+                  "other": 0.003037446803689654,
+                  "shipping": 0.9967545328192355
+                }
+              }
+            },
+            "usage": {
+              "decisions": 1,
+              "input_tokens": 456,
+              "generated_tokens": 0
+            },
+            "_turbojev": {
+              "backend": "llamacpp",
+              "calibration": "softmax",
+              "calibrated": false,
+              "confidence_method": "selected-candidate-probability",
+              "contract": "turbojev.core.v4",
+              "order_robustness": "balanced",
+              "order_evaluations": 4,
+              "execution": {
+                "prefix_reuse": "none",
+                "scheduling": "serial",
+                "parallel_task_limit": 1,
+                "projection": "full-vocabulary"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "policy": "balanced",
+      "state": "I was charged twice. Please refund the duplicate payment.",
+      "expected": "billing",
+      "runs": [
+        {
+          "order": [
+            "billing",
+            "shipping",
+            "technical",
+            "other"
+          ],
+          "seconds": 37.131767700000026,
+          "response": {
+            "model": "qwen3 0.6B Q4_K - Medium",
+            "answers": {
+              "team": {
+                "type": "choice",
+                "choice": "billing",
+                "confidence": 0.9999441970712857,
+                "probabilities": {
+                  "billing": 0.9999441970712857,
+                  "shipping": 0.0000033572888398103093,
+                  "technical": 0.000010729227702061797,
+                  "other": 0.00004171641217254669
+                }
+              }
+            },
+            "usage": {
+              "decisions": 1,
+              "input_tokens": 460,
+              "generated_tokens": 0
+            },
+            "_turbojev": {
+              "backend": "llamacpp",
+              "calibration": "softmax",
+              "calibrated": false,
+              "confidence_method": "selected-candidate-probability",
+              "contract": "turbojev.core.v4",
+              "order_robustness": "balanced",
+              "order_evaluations": 4,
+              "execution": {
+                "prefix_reuse": "none",
+                "scheduling": "serial",
+                "parallel_task_limit": 1,
+                "projection": "full-vocabulary"
+              }
+            }
+          }
+        },
+        {
+          "order": [
+            "other",
+            "technical",
+            "shipping",
+            "billing"
+          ],
+          "seconds": 21.830522799999976,
+          "response": {
+            "model": "qwen3 0.6B Q4_K - Medium",
+            "answers": {
+              "team": {
+                "type": "choice",
+                "choice": "billing",
+                "confidence": 0.9999441970712857,
+                "probabilities": {
+                  "other": 0.00004171641217254669,
+                  "technical": 0.000010729227702061797,
+                  "shipping": 0.0000033572888398103093,
+                  "billing": 0.9999441970712857
+                }
+              }
+            },
+            "usage": {
+              "decisions": 1,
+              "input_tokens": 460,
+              "generated_tokens": 0
+            },
+            "_turbojev": {
+              "backend": "llamacpp",
+              "calibration": "softmax",
+              "calibrated": false,
+              "confidence_method": "selected-candidate-probability",
+              "contract": "turbojev.core.v4",
+              "order_robustness": "balanced",
+              "order_evaluations": 4,
+              "execution": {
+                "prefix_reuse": "none",
+                "scheduling": "serial",
+                "parallel_task_limit": 1,
+                "projection": "full-vocabulary"
+              }
+            }
+          }
+        },
+        {
+          "order": [
+            "technical",
+            "billing",
+            "other",
+            "shipping"
+          ],
+          "seconds": 8.692399800000015,
+          "response": {
+            "model": "qwen3 0.6B Q4_K - Medium",
+            "answers": {
+              "team": {
+                "type": "choice",
+                "choice": "billing",
+                "confidence": 0.9999441970712857,
+                "probabilities": {
+                  "technical": 0.000010729227702061797,
+                  "billing": 0.9999441970712857,
+                  "other": 0.00004171641217254669,
+                  "shipping": 0.0000033572888398103093
+                }
+              }
+            },
+            "usage": {
+              "decisions": 1,
+              "input_tokens": 460,
+              "generated_tokens": 0
+            },
+            "_turbojev": {
+              "backend": "llamacpp",
+              "calibration": "softmax",
+              "calibrated": false,
+              "confidence_method": "selected-candidate-probability",
+              "contract": "turbojev.core.v4",
+              "order_robustness": "balanced",
+              "order_evaluations": 4,
+              "execution": {
+                "prefix_reuse": "none",
+                "scheduling": "serial",
+                "parallel_task_limit": 1,
+                "projection": "full-vocabulary"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "policy": "balanced",
+      "state": "The app crashes whenever I try to sign in.",
+      "expected": "technical",
+      "runs": [
+        {
+          "order": [
+            "billing",
+            "shipping",
+            "technical",
+            "other"
+          ],
+          "seconds": 12.325076499999966,
+          "response": {
+            "model": "qwen3 0.6B Q4_K - Medium",
+            "answers": {
+              "team": {
+                "type": "choice",
+                "choice": "technical",
+                "confidence": 0.9999971012194935,
+                "probabilities": {
+                  "billing": 0.0000016150252990972734,
+                  "shipping": 2.3897879664132365e-7,
+                  "technical": 0.9999971012194935,
+                  "other": 0.0000010447764107737632
+                }
+              }
+            },
+            "usage": {
+              "decisions": 1,
+              "input_tokens": 456,
+              "generated_tokens": 0
+            },
+            "_turbojev": {
+              "backend": "llamacpp",
+              "calibration": "softmax",
+              "calibrated": false,
+              "confidence_method": "selected-candidate-probability",
+              "contract": "turbojev.core.v4",
+              "order_robustness": "balanced",
+              "order_evaluations": 4,
+              "execution": {
+                "prefix_reuse": "none",
+                "scheduling": "serial",
+                "parallel_task_limit": 1,
+                "projection": "full-vocabulary"
+              }
+            }
+          }
+        },
+        {
+          "order": [
+            "other",
+            "technical",
+            "shipping",
+            "billing"
+          ],
+          "seconds": 15.118125300000015,
+          "response": {
+            "model": "qwen3 0.6B Q4_K - Medium",
+            "answers": {
+              "team": {
+                "type": "choice",
+                "choice": "technical",
+                "confidence": 0.9999971012194935,
+                "probabilities": {
+                  "other": 0.0000010447764107737632,
+                  "technical": 0.9999971012194935,
+                  "shipping": 2.3897879664132365e-7,
+                  "billing": 0.0000016150252990972734
+                }
+              }
+            },
+            "usage": {
+              "decisions": 1,
+              "input_tokens": 456,
+              "generated_tokens": 0
+            },
+            "_turbojev": {
+              "backend": "llamacpp",
+              "calibration": "softmax",
+              "calibrated": false,
+              "confidence_method": "selected-candidate-probability",
+              "contract": "turbojev.core.v4",
+              "order_robustness": "balanced",
+              "order_evaluations": 4,
+              "execution": {
+                "prefix_reuse": "none",
+                "scheduling": "serial",
+                "parallel_task_limit": 1,
+                "projection": "full-vocabulary"
+              }
+            }
+          }
+        },
+        {
+          "order": [
+            "technical",
+            "billing",
+            "other",
+            "shipping"
+          ],
+          "seconds": 13.884146399999969,
+          "response": {
+            "model": "qwen3 0.6B Q4_K - Medium",
+            "answers": {
+              "team": {
+                "type": "choice",
+                "choice": "technical",
+                "confidence": 0.9999971012194935,
+                "probabilities": {
+                  "technical": 0.9999971012194935,
+                  "billing": 0.0000016150252990972734,
+                  "other": 0.0000010447764107737632,
+                  "shipping": 2.3897879664132365e-7
+                }
+              }
+            },
+            "usage": {
+              "decisions": 1,
+              "input_tokens": 456,
+              "generated_tokens": 0
+            },
+            "_turbojev": {
+              "backend": "llamacpp",
+              "calibration": "softmax",
+              "calibrated": false,
+              "confidence_method": "selected-candidate-probability",
+              "contract": "turbojev.core.v4",
+              "order_robustness": "balanced",
+              "order_evaluations": 4,
+              "execution": {
+                "prefix_reuse": "none",
+                "scheduling": "serial",
+                "parallel_task_limit": 1,
+                "projection": "full-vocabulary"
+              }
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "timing_note": "Publication compilation may overlap; these are observed latencies, not an isolated speed benchmark."
+}
