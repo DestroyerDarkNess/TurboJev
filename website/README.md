@@ -1,6 +1,6 @@
 # TurboJev website
 
-A static landing page, local inference playground, and 13 documentation pages. Serve `website/` with any static HTTP server. No application server or API key is needed.
+A static landing page, local inference playground, and 16 documentation pages. Serve `website/` with any static HTTP server. No application server or API key is needed.
 
 ```powershell
 py website/serve.py
@@ -39,7 +39,7 @@ Text: Qwen2.5 0.5B and Qwen3 0.6B use Transformers.js/ONNX. Text presets send a 
 
 Images: CLIP B/32 and B/16 score image–text similarity. LFM2-VL 450M GGUF uses llama.cpp with its matching vision projector.
 
-Audio: CLAP classifies sounds from a mono 48 kHz clip, limited to 10 seconds. LFM2 Audio 1.5B Q8_0 uses a matching GGUF projector and a spoken-command example. The download is about 1.58 GB; CPU inference can take minutes. Cyclic order correction is optional and enabled for this example. The adapter reserves preprocessing workers to prevent a pthread wait. Browser scoring is still experimental; standalone Node/WASM qualification is recorded separately.
+Audio: CLAP classifies sounds from a mono 48 kHz clip, limited to 10 seconds. LFM2 Audio 1.5B Q8_0 uses a matching GGUF projector and a spoken-command example. The download is about 1.58 GB; CPU inference can take minutes. Order correction is optional and disabled by default; select none, cyclic or balanced before loading. The adapter reserves preprocessing workers to prevent a pthread wait. Browser scoring is still experimental; standalone Node/WASM qualification is recorded separately.
 
 Video: the host samples four frames from clips up to 60 seconds. CLIP averages frame similarity logits; llama.cpp sends ordered, timestamped images to the LFM2-VL projector. Frame ingestion does not qualify temporal understanding; the audio track is not analyzed.
 
@@ -48,3 +48,11 @@ All media files are limited to 24 MB. Uploaded media stays in the browser. Model
 ## Dependencies
 
 Transformers.js 4.3.0 and ONNX Runtime Web use the versions locked in the browser sample. Prism 1.30.0 is bundled locally with its MIT license. Third-party notices are in `vendor/licenses/`.
+
+## Current API documentation
+
+The site documents the published 0.31.0 contract. `evaluate` uses choice/noul/ordered score questions; `generate` uses scalar schemas, nullable fields, finite enum distributions, dependencies, conditions and bounded generation. Each language page includes both operation paths. The typed-fields page lists token limits, permutation budgets and runtime-specific thinking support.
+
+Option ordering has its own page and playground selector: `none` is the single-pass default; `cyclic` averages logits over K rotations; `balanced` averages probabilities over canonical Williams layouts (K for even K, 2K for odd K). These apply only to choices, never to an ordered score scale. The selector's cost note updates when the number of answers changes. Changing a loaded policy requires unloading the model first.
+
+The decision-design guide distinguishes model decisions from application constraints and perception assistance. Current native package binaries are Windows x86/x64/ARM64; WASM and portable Rust source do not imply native binary availability on every OS.

@@ -24,7 +24,7 @@ aggregation serves token and decision runtimes.
 In `cyclic` mode, a choice with `K` candidates evaluates all `K` cyclic rotations.
 Each returned logit row is mapped back to the caller's original candidate keys;
 the raw logits are averaged, then the configured calibrator computes the final
-probabilities. The response records:
+probabilities.
 
 In `balanced` mode, canonical Williams layouts balance positions and immediate
 neighbours: K evaluations for even K, 2K for odd K. Each layout is calibrated
@@ -32,7 +32,8 @@ once, then probabilities are averaged by original semantic key. The same set
 produces the same layouts after arbitrary reorderings under deterministic
 scoring. Cyclic rotations retain neighbour relationships from the caller's
 listing and do not provide this general property. Neither mode guarantees
-correct reasoning or calibrated confidence.
+correct reasoning or calibrated confidence. Corrected responses record the policy
+and number of backend calls:
 
 ```json
 "_turbojev": {
@@ -44,12 +45,14 @@ correct reasoning or calibrated confidence.
 `order_evaluations` is the actual number of backend calls used for correction;
 other question types in the same request add their normal call. `noul` and
 `score` are not rotated because their candidate order carries meaning. This
-uses one backend evaluation per candidate in each choice, so a four-option
-choice costs four evaluations in either mode. Balanced with three choices costs
+uses K backend evaluations for cyclic choices and K/2K for even/odd balanced
+choices, so a four-option choice costs four evaluations in either mode. Balanced with three choices costs
 six evaluations. The default `none` policy scores a choice in one backend call;
 its zero `order_evaluations` means no correction passes, not zero inference.
 
-The policy is bounded to 32 candidates per `choice`, is also respected by the
+The corrected core policy is bounded to 32 candidates per `choice`; a selected
+runtime can impose a smaller limit (browser finite scoring supports up to 24).
+The policy is also respected by the
 native evaluation path, and deliberately disables cross-request fused
 execution for that session. It is an explicit robustness-cost tradeoff, not a
 claim of calibrated confidence. Fit or select a calibration profile for the

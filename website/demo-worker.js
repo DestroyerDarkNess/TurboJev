@@ -14,7 +14,7 @@ self.onmessage = async ({ data: { id, op, args } }) => {
       const descriptor = await runtime.initialize({ ...args, progressCallback: (progress) => postMessage({ progress }) });
       const wasm = await import(`./vendor/wasm/turbojev_wasm.js?v=${manifest.wasm}`);
       await wasm.default({ module_or_path: new URL(`./vendor/wasm/turbojev_wasm_bg.wasm?v=${manifest.wasm}`, import.meta.url) });
-      engine = new wasm.WasmEngine(runtime, JSON.stringify(descriptor), undefined, args.cyclicOrderRobustness === true);
+      engine = new wasm.WasmEngine(runtime, JSON.stringify(descriptor), undefined, false, args.orderRobustness ?? 'none');
       value = descriptor;
     } else if (!engine) throw new Error('Load a model first.');
     else if (op === 'evaluate') {

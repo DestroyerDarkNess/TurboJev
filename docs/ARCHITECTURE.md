@@ -37,6 +37,26 @@ allowed candidate outputs, and return those scores through TurboJev's SPI.
 
 There is no arrow from the portable core to an operating-system or GPU runtime.
 
+## Typed scalar workflows
+
+`generate` adds a separate request/response contract beside `evaluate`.
+`GenerateRequest` accepts context plus a field map or an object schema containing
+scalar properties. The schema crate validates types, nullable values, dependencies,
+conditions and workload limits before inference. The core executes fields in
+dependency order, omits skipped fields and restores caller order in the result.
+The runtime's `infer_field` / `inferField` hook supplies actual bounded values,
+reasoning and token counts. Finite enums score the full set of options; open
+strings and numbers use bounded generation and are validated before returning.
+
+Unordered option policies are distinct from ordinal score semantics.
+`evaluate` offers none, cyclic and balanced choice ordering; balanced layouts
+calibrate each candidate distribution and then average aligned probabilities.
+Ordered scores keep their original scale and remain in the ordinary batch.
+`generate` finite enums use per-field permutation budgets instead of the engine
+policy. Neither correction changes the selected CPU/GPU device or guarantees
+model reasoning accuracy. See [typed fields](TYPED_FIELDS.md) and
+[option ordering](ORDER_ROBUSTNESS.md) for configuration and costs.
+
 ## Decision pipeline
 
 ```text

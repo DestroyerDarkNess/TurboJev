@@ -201,6 +201,10 @@ fusion merely because a runtime can batch tokens.
 
 ## Documentation
 
+- [Language guides and API reference](website/docs/quickstart.html)
+- [Typed fields, dependencies and conditions](docs/TYPED_FIELDS.md)
+- [Self-contained TurboJev skill](.agents/skills/turbojev/SKILL.md)
+- [Decision design](docs/DECISION_DESIGN.md)
 - [Architecture](docs/ARCHITECTURE.md)
 - [Samples and build commands](samples/README.md)
 - [Multimodal input contract](docs/MULTIMODAL.md)

@@ -220,11 +220,11 @@ export function turbojev_wasm_contract() {
 }
 
 function __wbg_adapter_22(arg0, arg1, arg2) {
-    wasm.closure74_externref_shim(arg0, arg1, arg2);
+    wasm.closure77_externref_shim(arg0, arg1, arg2);
 }
 
 function __wbg_adapter_42(arg0, arg1, arg2, arg3) {
-    wasm.closure265_externref_shim(arg0, arg1, arg2, arg3);
+    wasm.closure272_externref_shim(arg0, arg1, arg2, arg3);
 }
 
 const WasmEngineFinalization = (typeof FinalizationRegistry === 'undefined')
@@ -251,13 +251,16 @@ export class WasmEngine {
      * @param {string} descriptor_json
      * @param {string | null} [prompt_profile_json]
      * @param {boolean | null} [cyclic_order_robustness]
+     * @param {string | null} [order_robustness]
      */
-    constructor(runtime, descriptor_json, prompt_profile_json, cyclic_order_robustness) {
+    constructor(runtime, descriptor_json, prompt_profile_json, cyclic_order_robustness, order_robustness) {
         const ptr0 = passStringToWasm0(descriptor_json, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
         const len0 = WASM_VECTOR_LEN;
         var ptr1 = isLikeNone(prompt_profile_json) ? 0 : passStringToWasm0(prompt_profile_json, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
         var len1 = WASM_VECTOR_LEN;
-        const ret = wasm.wasmengine_new(runtime, ptr0, len0, ptr1, len1, isLikeNone(cyclic_order_robustness) ? 0xFFFFFF : cyclic_order_robustness ? 1 : 0);
+        var ptr2 = isLikeNone(order_robustness) ? 0 : passStringToWasm0(order_robustness, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        var len2 = WASM_VECTOR_LEN;
+        const ret = wasm.wasmengine_new(runtime, ptr0, len0, ptr1, len1, isLikeNone(cyclic_order_robustness) ? 0xFFFFFF : cyclic_order_robustness ? 1 : 0, ptr2, len2);
         if (ret[2]) {
             throw takeFromExternrefTable0(ret[1]);
         }
@@ -426,8 +429,8 @@ function __wbg_get_imports() {
         const ret = false;
         return ret;
     };
-    imports.wbg.__wbindgen_closure_wrapper364 = function(arg0, arg1, arg2) {
-        const ret = makeMutClosure(arg0, arg1, 75, __wbg_adapter_22);
+    imports.wbg.__wbindgen_closure_wrapper368 = function(arg0, arg1, arg2) {
+        const ret = makeMutClosure(arg0, arg1, 78, __wbg_adapter_22);
         return ret;
     };
     imports.wbg.__wbindgen_debug_string = function(arg0, arg1) {

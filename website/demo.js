@@ -23,7 +23,7 @@ const modePresets = () => mode==='audio'&&model()?.family==='audio-llm'
 const status = (message,kind='') => { $('demo-status').textContent=message; $('demo-status').dataset.kind=kind; };
 function controls() {
  $('demo-load').disabled=busy||ready||model()?.disabled===true; $('demo-run').disabled=busy||!ready;
- $('demo-unload').disabled=busy||!worker; $('demo-model').disabled=busy||ready; $('demo-device').disabled=busy||ready;$('demo-cyclic').disabled=busy||ready;
+ $('demo-unload').disabled=busy||!worker; $('demo-model').disabled=busy||ready; $('demo-device').disabled=busy||ready;$('demo-order').disabled=busy||ready;
  $('demo-runtime').disabled=busy||ready;
  $('demo-cancel').hidden=!busy; $('demo-preset').disabled=busy; $('demo-file').disabled=busy; $('example-media').disabled=busy;
  $('demo-state').disabled=busy; $('demo-instruction').disabled=busy; $('demo-options').disabled=busy;
@@ -53,11 +53,17 @@ function configure() {
  const backend=$('demo-runtime').value;
  $('demo-model').replaceChildren(...catalog.filter(m=>m.modes.includes(mode)&&(backend==='llamacpp'?m.backend==='llamacpp':m.backend!=='llamacpp')).map(m=>{const option=new Option(m.name,m.id);option.disabled=m.disabled===true;return option;}));
  $('demo-preset').replaceChildren(...modePresets().map((p,i)=>new Option(p[0],i)));
- const text=mode==='text';$('demo-cyclic').closest('label').hidden=!text&&backend!=='llamacpp';if(!text)$('demo-cyclic').checked=mode==='audio'&&backend==='llamacpp';$('demo-state').hidden=!text&&!promptAware();$('state-label').hidden=!text&&!promptAware();$('demo-instruction').hidden=!text;$('instruction-label').hidden=!text;$('media-panel').hidden=text;
+ const text=mode==='text';$('demo-state').hidden=!text&&!promptAware();$('state-label').hidden=!text&&!promptAware();$('demo-instruction').hidden=!text;$('instruction-label').hidden=!text;$('media-panel').hidden=text;
  $('demo-file').accept=mode+'/*';$('upload-title').textContent=`Choose ${mode==='image'?'an image':mode==='audio'?'an audio clip':'a video'}`;
  $('example-media').hidden=mode==='video'||model().family==='asr';$('example-media').textContent=mode==='audio'?(backend==='llamacpp'?'Use spoken command sample ↗':'Use dog barking sample ↗'):'Use tiger photo ↗';
- $('mode-note').textContent=text?(backend==='llamacpp'?'llama.cpp scores a constrained answer token in one inference pass per decision. CPU runs in WASM; GPU uses WebGPU when selected.': 'The model scores the candidate answers without generating a response.'):mode==='video'?(backend==='llamacpp'?'Four timestamped frames are sent to the loaded vision projector as ordered images. Temporal reasoning depends on the model. Maximum clip length: 60 seconds.':'Four evenly spaced frames are averaged. Audio and motion are not analyzed. Maximum clip length: 60 seconds.'):mode==='audio'?(backend==='llamacpp'?'The audio projector receives the clip before the question. Order correction is enabled for this example and makes one inference pass per answer. You can disable it before loading. Maximum length: 10 seconds.':'Audio is mixed to mono at 48 kHz. Maximum length: 10 seconds.'):(backend==='llamacpp'?'The GGUF model and matching vision projector process the image in the browser through llama.cpp mtmd.':'Compare an image with the descriptions above. This model does not follow arbitrary instructions.');
- resetMedia();preset();describe();controls();
+ $('mode-note').textContent=text?(backend==='llamacpp'?'llama.cpp scores a constrained answer token in one inference pass per decision. CPU runs in WASM; GPU uses WebGPU when selected.': 'The model scores the candidate answers without generating a response.'):mode==='video'?(backend==='llamacpp'?'Four timestamped frames are sent to the loaded vision projector as ordered images. Temporal reasoning depends on the model. Maximum clip length: 60 seconds.':'Four evenly spaced frames are averaged. Audio and motion are not analyzed. Maximum clip length: 60 seconds.'):mode==='audio'?(backend==='llamacpp'?'The audio projector receives the clip before the question. Order correction is optional; choose a policy before loading. Maximum length: 10 seconds.':'Audio is mixed to mono at 48 kHz. Maximum length: 10 seconds.'):(backend==='llamacpp'?'The GGUF model and matching vision projector process the image in the browser through llama.cpp mtmd.':'Compare an image with the descriptions above. This model does not follow arbitrary instructions.');
+ resetMedia();preset();describe();controls();orderingNote();
+}
+function orderingNote(){
+ const count=$('demo-options').value.split('\n').map(x=>x.trim()).filter(Boolean).length;
+ const policy=$('demo-order').value;
+ const passes=policy==='none'?1:policy==='balanced'&&count%2?2*count:count;
+ $('ordering-note').textContent=policy==='none'?'Option ordering: one pass per decision.':`Option ordering: ${passes} model evaluations for ${count} answers. ${policy==='balanced'?'Canonical layouts average probabilities.':'Rotations average logits.'} This adds latency and does not guarantee correctness.`;
 }
 function describe(){
  $('model-description').textContent=model().note;$('model-link').href='https://huggingface.co/'+model().id;
@@ -68,7 +74,8 @@ function describe(){
  $('example-media').hidden=mode==='video'||model().family==='asr';
 }
 document.querySelectorAll('[data-mode]').forEach(b=>b.addEventListener('click',()=>{mode=b.dataset.mode;document.querySelectorAll('[data-mode]').forEach(x=>x.setAttribute('aria-selected',String(x===b)));configure();status('Choose a model to begin.');}));
-$('demo-model').addEventListener('change',describe);$('demo-preset').addEventListener('change',preset);
+$('demo-model').addEventListener('change',describe);$('demo-preset').addEventListener('change',()=>{preset();orderingNote();});
+$('demo-order').addEventListener('change',orderingNote);$('demo-options').addEventListener('input',orderingNote);
 $('demo-runtime').addEventListener('change',()=>{configure();status('Choose a model to begin.');});
 $('demo-load').addEventListener('click',async()=>{
  if($('demo-device').value==='webgpu'&&!navigator.gpu){status('WebGPU is unavailable. Select CPU to continue.','error');return;}
@@ -79,13 +86,13 @@ $('demo-load').addEventListener('click',async()=>{
  worker=new Worker(workerURL,{type:'module'});
  worker.onmessage=({data})=>{if(data.progress){progress(data.progress);return;}const p=pending.get(data.id);if(!p)return;pending.delete(data.id);data.error?p.reject(new Error(data.error)):p.resolve(data.value);};
  worker.onerror=e=>{for(const p of pending.values())p.reject(new Error(e.message||'Worker failed'));pending.clear();};
-  try{await call('load',{model:model().id,modelUrl:model().modelUrl,mmprojUrl:model().mmprojUrl,modelLabel:model().name,backend:model().backend||'transformers',modality:mode,jinja:model().jinja,chatTemplate:model().chatTemplate,nThreads:model().nThreads,dtype:model().dtype,family:model().family,device:$('demo-device').value,cyclicOrderRobustness:$('demo-cyclic').checked});if(turn!==lifecycle)return;ready=true;$('download-progress').value=100;$('download-file').textContent='Model ready';$('download-percent').textContent='';status('Ready. Edit the input and evaluate.','ready');}
+  try{await call('load',{model:model().id,modelUrl:model().modelUrl,mmprojUrl:model().mmprojUrl,modelLabel:model().name,backend:model().backend||'transformers',modality:mode,jinja:model().jinja,chatTemplate:model().chatTemplate,nThreads:model().nThreads,dtype:model().dtype,family:model().family,device:$('demo-device').value,orderRobustness:$('demo-order').value});if(turn!==lifecycle)return;ready=true;$('download-progress').value=100;$('download-file').textContent='Model ready';$('download-percent').textContent='';status('Ready. Edit the input and evaluate.','ready');}
  catch(e){if(turn===lifecycle){stop();status(e.message,'error');$('download-panel').hidden=true;}}
  finally{if(turn===lifecycle){clearInterval(timer);busy=false;controls();}}
 });
 $('demo-cancel').addEventListener('click',()=>{lifecycle++;stop();$('download-panel').hidden=true;status('Cancelled. You can load the model again.');});
 $('demo-unload').addEventListener('click',()=>{lifecycle++;stop();$('download-panel').hidden=true;clearResult();status('Model unloaded. Choose another model or input type.');});
-$('demo-reset').addEventListener('click',()=>{preset();resetMedia();document.querySelector('.action-menu').open=false;});
+$('demo-reset').addEventListener('click',()=>{preset();resetMedia();orderingNote();document.querySelector('.action-menu').open=false;});
 $('demo-copy').addEventListener('click',async()=>{if(!result){status('Run an evaluation before copying.');return;}try{await navigator.clipboard.writeText(JSON.stringify(result,null,2));status('Result JSON copied.');}catch{status('Clipboard unavailable. Select the JSON output to copy it.','error');}document.querySelector('.action-menu').open=false;});
 document.querySelectorAll('[data-output]').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('[data-output]').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));$('result-json').hidden=b.dataset.output!=='json';$('result-scores').hidden=b.dataset.output!=='scores';}));
 function acceptFile(blob){if(blob.size>24*1024*1024)throw new Error('Please choose a file smaller than 24 MB.');if(blob.type&&!blob.type.startsWith(mode+'/'))throw new Error(`Choose a ${mode} file.`);resetMedia();file=blob;previewURL=URL.createObjectURL(blob);const el=document.createElement(mode==='image'?'img':mode);el.src=previewURL;if(mode==='image')el.alt='Selected image';else el.controls=true;$('media-preview').append(el);clearResult();status('Media selected. Load the model if needed, then evaluate.');}

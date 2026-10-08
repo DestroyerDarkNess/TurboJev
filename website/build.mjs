@@ -5,6 +5,10 @@ import { createHash } from 'node:crypto';
 const require = createRequire(new URL('../samples/TurboJev-js-native/package.json', import.meta.url));
 const { build } = require('esbuild');
 const root = fileURLToPath(new URL('.', import.meta.url));
+await build({ entryPoints: [fileURLToPath(new URL('../bindings/web/src/index.ts', import.meta.url))],
+  outfile: root + 'vendor/web/dist/index.js', bundle: true, format: 'esm',
+  platform: 'browser', target: 'es2022', minify: true });
+await copyFile(fileURLToPath(new URL('../bindings/web/worker.js', import.meta.url)), root + 'vendor/web/worker.js');
 await build({ entryPoints: [root + 'src/runtime.ts'], outfile: root + 'vendor/studio-runtime.js',
   bundle: true, format: 'esm', platform: 'browser', target: 'es2022', minify: true,
   nodePaths: [fileURLToPath(new URL('../samples/TurboJev-js-native/node_modules', import.meta.url))],
@@ -22,7 +26,7 @@ await writeFile(root + 'index.html',landing);
 const source = await readFile(root + 'src/docs-content.html', 'utf8');
 const pages = [ ['quickstart','Quickstart'], ['architecture','Architecture'], ['api','Core API'], ['fields','Typed fields'],
   ['rust','Rust'], ['node','Node / TypeScript'], ['python','Python'], ['c','C ABI'], ['dotnet','.NET / C#'],
-  ['browser','Browser / WASM'], ['mobile','Android + Swift'], ['multimodal','Multimodal'], ['examples','Examples'], ['publishing','Publishing'] ];
+  ['browser','Browser / WASM'], ['mobile','Android + Swift'], ['ordering','Option ordering'], ['decisions','Decision design'], ['multimodal','Multimodal'], ['examples','Examples'], ['publishing','Publishing'] ];
 const esc = s => s.replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('"','&quot;');
 const search = [];
 await mkdir(root + 'docs', { recursive: true });
@@ -33,10 +37,10 @@ for (const [i,[slug,title]] of pages.entries()) {
   content = content.replace(/<h[23]>(.*?)<\/h[23]>/, `<h1>${title}</h1>`);
   content = content.replace(/<div class="code-block">([\s\S]*?)<pre><code>/g, (match,toolbar) => {
     const label = toolbar.toLowerCase();
-    const lang = label.includes('.py') ? 'python' : label.includes('.toml') ? 'toml' : label.includes('.rs') ? 'rust' : label.includes('.cs') ? 'csharp' : label.includes('kotlin') ? 'kotlin' : label.includes('swift') ? 'swift' : label.includes('canonical') || label.includes('evidence') ? 'json' : label.includes('.ts') ? 'typescript' : label.includes('.js') ? 'javascript' : label.includes('.c') ? 'c' : label.includes('powershell') || label.includes('release menu') ? 'powershell' : 'bash';
+    const lang = label.includes('.py') ? 'python' : label.includes('.toml') ? 'toml' : label.includes('.rs') ? 'rust' : label.includes('.cs') ? 'csharp' : label.includes('kotlin') ? 'kotlin' : label.includes('swift') ? 'swift' : label.includes('canonical') || label.includes('evidence') || label.includes('json') ? 'json' : label.includes('.ts') ? 'typescript' : label.includes('.js') ? 'javascript' : label.includes('.c') ? 'c' : label.includes('powershell') || label.includes('release menu') ? 'powershell' : 'bash';
     return `<div class="code-block">${toolbar}<pre class="language-${lang}"><code class="language-${lang}">`;
   });
-  const plain = content.replace(/<[^>]*>/g,' ').replace(/\s+/g,' ').trim();
+  const plain = content.replace(/<[^>]*>/g,' ').replace(/&(?:amp|lt|gt|quot|#x27|#39);/g, entity => ({'&amp;':'&','&lt;':'<','&gt;':'>','&quot;':'"','&#x27;':"'",'&#39;':"'"}[entity])).replace(/\s+/g,' ').trim();
   search.push({title,slug,text:plain});
   const nav = pages.map(([s,t],j) => `${j===0?'<p>Get started</p>':j===4?'<p>Languages</p>':j===11?'<p>Guides</p>':''}<a ${s===slug?'aria-current="page"':''} href="${s}.html">${t}</a>`).join('');
   const prev = pages[i-1], next = pages[i+1];
@@ -45,4 +49,4 @@ for (const [i,[slug,title]] of pages.entries()) {
 }
 await writeFile(root + 'docs/search.json',JSON.stringify(search));
 await writeFile(root + 'docs.html',`<!doctype html><html lang="en"><head><meta charset="utf-8"><title>TurboJev documentation</title><meta name="viewport" content="width=device-width,initial-scale=1"><script>const pages=${JSON.stringify(pages.map(p=>p[0]))};const slug=location.hash.slice(1);location.replace('docs/'+(pages.includes(slug)?slug:'quickstart')+'.html');</script></head><body><a href="docs/quickstart.html">Open documentation</a></body></html>`);
-console.log('Built browser runtime and 14 documentation pages.');
+console.log(`Built browser runtime and ${pages.length} documentation pages.`);

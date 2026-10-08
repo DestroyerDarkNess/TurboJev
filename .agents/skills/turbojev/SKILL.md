@@ -5,7 +5,9 @@ description: Use when installing, integrating, designing decisions for, or troub
 
 # TurboJev
 
-Help build applications with TurboJev's typed decision API. Use the repository's current source and docs as the authority: package versions, platform assets, and runtime capabilities change. Do not repeat old README version numbers or claim validation that has not been run.
+Help build applications with TurboJev's typed decision and scalar workflow APIs. This guide describes release 0.31.0: `evaluate`, `generate`, balanced choice ordering, field dependencies, conditional omission, probability wrappers and bounded reasoning. Use the repository's current source and docs as the authority: package versions, platform assets, and runtime capabilities change. Do not repeat old README version numbers or claim validation that has not been run.
+
+This skill is self-contained: installation, contracts, options and limitations are included below. No external Markdown is required to follow it.
 
 ## First establish the integration
 
@@ -13,7 +15,7 @@ Identify the host language, target OS/architecture, model format, and intended i
 
 ## Install by language
 
-Check the current package registry, release assets, target OS, and CPU architecture before promising availability. These packages expose TurboJev's typed-decision API; they do not all include the same model runtime.
+Published native 0.31.0 packages cover Windows x86/x64/ARM64. Browser WASM is architecture independent; Rust source can target other platforms with a compatible toolchain. This is not evidence of native Linux/macOS packages or testing on every architecture. Check release assets before promising other availability. These packages expose TurboJev's typed-decision API; they do not all include the same model runtime.
 
 | Host | Install | What it provides |
 |---|---|---|
@@ -22,11 +24,19 @@ Check the current package registry, release assets, target OS, and CPU architect
 | Python | `python -m pip install turbojev` | Context-managed native binding. |
 | C# / .NET | `dotnet add package TurboJev` | .NET binding over the stable C ABI. |
 | C | Build native artifacts, include `bindings/c/include/turbojev.h`, and link the matching C ABI library. | Stable UTF-8 JSON ABI. |
-| Browser JavaScript / TypeScript | `npm install @turbojev/web` | Browser host, worker, and WASM integration. |
+| Browser JavaScript / TypeScript | `npm install @turbojev/web @turbojev/wasm @turbojev/runtime-llamacpp-wasm` | Browser host, worker, and WASM integration. |
 | Android / Kotlin | Include the Android binding source/module and package matching native libraries. | JNI wrapper over the C ABI. |
 | Swift / iOS / macOS | Add the local Swift package at `bindings/swift` and package the matching C ABI library. | Swift wrapper over the C ABI. |
 
-For native samples, build artifacts for the same architecture as the host compiler/interpreter. The samples builder takes one architecture per run (for example, `--arch x64`); it does not mean “all architectures.” C consumers can start with `cargo build -p turbojev-capi --release`; build/link the llama.cpp shim only when GGUF inference is needed.
+For native samples, build artifacts for the same architecture as the host compiler/interpreter. The samples builder takes one architecture per run (for example, `--arch x64`); it does not mean “all architectures.” C consumers can start with `cargo build -p turbojev-capi --release`; enable the `llamacpp` feature for a real GGUF C ABI build (`cargo build -p turbojev-capi --release --features llamacpp`). A fixture-only library cannot load a real model.
+
+## Choose the operation
+
+- `evaluate`: `state` plus typed `choice`, `noul` and ordered `score` questions; read `response.answers`.
+- `generate`: `context` plus scalar `questions` or an object `schema`; read `response.result`, `skipped` and `usage`. Finite enums score candidates; open strings/numbers generate bounded tokens.
+- `evaluateCompatible`: an explicit compatibility profile and evaluation request.
+
+A numeric enum is unordered; an ordered score is the expected zero-based index of the original criteria list. Do not interchange these contracts.
 
 ## Request and decision model
 
@@ -71,33 +81,10 @@ Do not confuse removing positional bias with solving model reasoning. In a real 
 - Ask for one bounded decision at a time. Do not expect a small checkpoint to plan a long sequence of actions just because the API accepts a complex state.
 - Give candidates meaningful keys and descriptions that expose the distinction being scored. Opaque keys such as `A/B/C` add a mapping the model must infer.
 - Production applications may constrain available actions in host code, but disclose that assistance. A demo claiming model-controlled actions must execute the returned choice directly; do not replace it with a heuristic, probability fallback, tie-break, or forced action and count it as a model decision.
-- Test for order sensitivity by permuting candidates. A model that repeatedly chooses the first candidate is order-biased, even when one fixed ordering appears accurate. `orderRobustness: "cyclic"` evaluates multiple rotations, costs additional model evaluations, and is not a guarantee of correctness. Keep single-pass mode by default unless reproducible tests justify the added latency.
+- Test for order sensitivity by permuting candidates. A model that repeatedly chooses the first candidate is order-biased, even when one fixed ordering appears accurate. `orderRobustness: "balanced"` uses canonical layouts and averages probabilities; `cyclic` uses rotations and averages logits. Both cost real model evaluations and neither guarantees correctness. Keep single-pass mode by default unless reproducible tests justify the added latency.
 - Validate with the exact model, quantization, runtime, and prompt path intended for deployment. Use reproducible cases and a simple reference policy where possible; report both decision quality and latency.
 
-For model-controlled Snake, provide board facts (head, body, food, current direction, bounds, and coordinate convention) and ask for one actual direction: up, down, left, or right. Do not precompute food distances or closer/farther categories, choose a direction in the host, or skip evaluation. Apply the model choice unchanged; game physics reports collisions as failures. Log the complete request, response, selected action, applied action, and outcome. Earlier progress-category Snake results measured an assisted policy and do not establish model-controlled navigation. Test multiple starting states and candidate orders; a successful game is not evidence of general reliability.
-
-For a deliberately simpler application, an explicit sensor representation may
-derive relative food direction and immediate collision facts from game physics.
-Disclose this as perception assistance and distinguish it from raw-coordinate
-reasoning. Keep all four directions available and apply the returned direction
-unchanged. Do not search for a path or map a model-selected progress category
-to a host-selected move. With PyPI 0.29.2 and Qwen3-0.6B Q4_K_M, the sensor demo
-completed three 40-turn games (seeds 0/1/2), eating 3/4/3 food with no collision
-or replaced action. Six states under four rotations passed 18/24; the raw wall
-state remained 0/4. These small results do not guarantee order independence,
-optimal navigation or reliability on longer games.
-
-A matched Windows x64 comparison using PyPI 0.29.2 and Qwen3-0.6B Q4_K_M
-checked TurboJev against direct llama.cpp candidate logits and greedy JSON
-generation both with and without the assistant prefill. All four paths selected
-the same option in 36/36 cases, with exactly equal conditional probabilities
-for direct logits and TurboJev (maximum absolute difference 0.0). Four raw wall
-states under four rotations passed only 1/16; the corresponding sensor inputs
-passed 13/16; a color control passed 4/4. All generations completed valid JSON
-within 32 tokens, with thinking disabled. These results exclude an observed
-scoring/mapping discrepancy in that sample; they do not prove the model cannot
-solve the task with other prompts or inference modes, or qualify other runtimes.
-Do not describe the remaining accuracy/order issue as solved by sensor games.
+For model-controlled games, disclose whether the state is raw coordinates or derived sensor observations. Sensor facts can simplify perception without choosing the action. Keep the returned choice separate from host legality policy; never substitute a path, heuristic move or forced action and count it as an AI decision. Log the complete request, response, selected/applied action and outcome. Small successful games do not establish general navigation reliability.
 
 ## Choose the right runtime
 
@@ -112,11 +99,9 @@ Browser runtime choices are separate integrations: Transformers.js for supported
 
 TurboJev's media envelope only standardizes how evidence enters `evaluate`; it does not include a vision/audio model, processor, or inference runtime. Verify that both the selected checkpoint and adapter support the modality and task. A GGUF filename alone does not guarantee compatibility.
 
-TurboJev is useful for classification, routing, typed gates, and bounded rubric scoring when an application needs a structured choice from an open-weight model. It is not a general text generator, chat replacement, route planner, or promise that every model/runtime combination works.
+TurboJev supports routing, typed gates, ordered rubric scoring, scalar extraction and conditional field workflows. Open scalar generation is supported by `generate`; this does not promise unrestricted chat, path planning or correctness for every model/runtime combination.
 
-## Troubleshooting
-
-### Candidate ordering in evaluate (0.31.0)
+## Candidate ordering in evaluate
 
 Native loads accept `execution={"orderRobustness":"balanced"}`; browser loads
 accept `orderRobustness: "balanced"`. Rust uses `OrderRobustness::Balanced`.
@@ -134,10 +119,32 @@ balanced layouts. Fit calibration against the actual production policy.
 Score training data retains the original scale and only varies output codes;
 regenerate previously materialized score data before additional fine-tuning.
 
+### Host configuration
+
+```python
+with TurboJev.load("model.gguf", execution={"orderRobustness": "balanced"}) as jev:
+    response = jev.evaluate(request)
+```
+
+```typescript
+const jev = await TurboJev.load({model: "model.gguf", execution: {orderRobustness: "balanced"}});
+// Browser: TurboJevWeb.load({...options, orderRobustness: "balanced"})
+```
+
+```csharp
+await using var jev = await TurboJevEngine.LoadAsync(new {
+    model = "model.gguf", execution = new { orderRobustness = "balanced" }
+});
+```
+
+Rust uses `engine.with_order_robustness(turbojev::OrderRobustness::Balanced)`. C, Android and Swift use native load JSON: `{"model":"model.gguf","execution":{"orderRobustness":"balanced"}}`. Browser `orderRobustness` overrides the legacy `cyclicOrderRobustness` flag. The corrected core limit is 32 choices; browser finite scoring has a runtime limit of 24. Four balanced choices cost four layouts; three cost six. Fit calibration to the selected aggregation policy. In default mode `order_evaluations` remains legacy zero, not a count of actual calls.
+
+## Troubleshooting
+
 1. Reproduce with the same request, model file, quantization, runtime, and device.
 2. Separate model-load errors from evaluation errors; preserve the complete native/runtime error and check model architecture, tokenizer/template compatibility, file path, and platform assets.
 3. Inspect candidate descriptions, candidate order, and the returned distribution. A high score on one candidate is not a guarantee of a correct semantic answer.
-4. Compare one-pass and cyclic order scoring only when order bias is suspected, and include the extra latency in the result.
+4. Compare none, cyclic and balanced order scoring only when order bias is suspected, and include the extra latency in the result.
 5. Change the smallest responsible layer: request design for ambiguous context, host code for legality, runtime adapter for execution support, or TurboJev core only for a demonstrated shared semantic defect.
 
 Do not claim all models are supported merely because they use GGUF, or all hardware/architectures are available because a language binding exists. State the tested model, runtime, platform, and limitations.
@@ -153,45 +160,23 @@ Node uses `TurboJev.load({model, thinking: true, maxThinkingTokens: 512})`;
 `TurboJevEngine.LoadAsync` and evaluates with `EvaluateJsonAsync`.
 C, Android and Swift pass the same load JSON. Rust uses
 `FfiLlamaCpp::open(model, config)?.with_thinking(true, 512)` with suitable context
-and sequence capacity. These APIs are introduced in release 0.29.2;
-do not assume the installed registry version already supports them.
+and sequence capacity. These options are available in the current release; verify the installed version when troubleshooting older applications.
 
 The native adapter uses the actual model Jinja reasoning template and its
 closing delimiters, then verifies candidate tokens after the literal JSON
 answer prefill. It does not invent a thought or choose a direction in the host.
 `usage.generated_tokens` counts actual model generation, summed across questions
-and cyclic evaluations; direct scoring stays zero. Shared/parallel/fused scoring
+and corrected order evaluations; direct scoring stays zero. Shared/parallel/fused scoring
 is disabled for thinking, and the native host limits the context to at most four
 sequences. Increase `nCtx` or reduce `nSeqMax` to make room for longer prompts and
 thoughts. `THINKING_UNSUPPORTED`, `THINKING_CONTEXT_LIMIT` and
 `THINKING_BUDGET_EXHAUSTED` are real failures; do not hide them or fabricate an
 answer. Current media, worker and browser adapters reject this mode explicitly.
-Native shim ABI 10 is required in 0.30.1; rebuild native dependents together.
+The current native shim ABI is 10; rebuild native dependents together.
 
-Real Windows CPU results: Qwen3-0.6B Q4/Q8 passed 20/20 simpler rotated decisions
-but failed 0/4 on the raw-coordinate Snake wall state. Qwen3.5-0.8B,
-Qwen3.5-2B and LFM2-350M Q4_K_M each passed those 20 simpler decisions and only
-1/4 wall rotations. A literal ASCII grid gave Qwen3.5-2B 2/4; its seed-0 game
-still ate no food and hit a wall after six decisions. A relative-position and
-neighbor-observation experiment also failed and was removed from the demo.
-No representation above is a qualified Snake solution. In a real completed
-thinking test, Qwen0.6B chose red after 123 generated tokens. Qwen3.5-2B did
-not finish Snake reasoning within 512 tokens. Thinking has measurable cost and
-is not an automatic correction for insufficient planning or instruction following.
+Measured reasoning is not a guarantee of task quality. The recorded small-model probes include raw-coordinate Snake failures and unfinished reasoning at a 512-token budget. A trained decision head, adapted weights or a benchmark-specific checkpoint is a different model; loading a generic base checkpoint does not reproduce its reported results. Keep measured evidence separate from capability claims.
 
-Valen-Preview-0923 combines Qwen3.5-2B with a trained candidate decision head,
-language-model LoRA and adapted visual components. After general training it
-was trained on 30,000 Sokoban records for three epochs. Its data generator uses
-optimal-action labels offline; its model evaluation receives pixels/rules and
-executes the predicted action without a host solver or legal-action mask.
-The model card reports 87.60% single-step Sokoban accuracy and 38/100 complete
-games on an outcome-conditioned set, not universally correct navigation. Those
-figures are not a controlled Snake comparison; we reviewed its code and card
-but did not run its checkpoint locally. Copying a random, untrained scoring head
-would not reproduce its learned policy. Its checkpoint is not a drop-in GGUF.
-
-
-## JSON-typed fields in 0.30.1
+## JSON-typed fields and workflows
 
 `generate` adds JSON-typed fields to TurboJev's portable core. `evaluate` remains the direct `choice`, `noul` and ordered `score` API. Finite fields score model candidates; unrestricted strings and numbers generate a bounded value. Extraction therefore generates tokens and can take longer than a single candidate decision.
 
@@ -259,7 +244,7 @@ Tests support equality, list membership, and objects with `in`, `not_in`, `ne`, 
 
 The result wrapper contains `value`, `confidence`, `probabilities` and `distribution`. `distribution` is an array of `{value, probability}` retaining actual JSON types. Map keys normally use string values or JSON spellings for other scalars. In nullable string enums, the literal string `"null"` uses the quoted map key `"\"null\""` to distinguish it from actual null's `"null"` key. Prefer the typed array if keys matter.
 
-Each ordering receives a real model evaluation. Scores are normalized separately, remapped to original values, then **probabilities** are averaged. `auto` uses canonical ordering and a Williams design: N evaluations for an even N, 2N for an odd N greater than one. Integer budgets sample distinct orderings reproducibly using request `seed`; the identity is included. `all` visits every permutation. A hard cap of 720 prevents accidental factorial workloads. A six-sided die with `all` costs 720 evaluations; opt in deliberately. Averaging may reduce position bias but does not guarantee correct reasoning or calibrated confidence. This policy is separate from `evaluate`'s older opt-in cyclic logit averaging.
+Each ordering receives a real model evaluation. Scores are normalized separately, remapped to original values, then **probabilities** are averaged. `auto` uses canonical ordering and a Williams design: N evaluations for an even N, 2N for an odd N greater than one. Integer budgets sample distinct orderings reproducibly using request `seed`; the identity is included. `all` visits every permutation. A hard cap of 720 prevents accidental factorial workloads. A six-sided die with `all` costs 720 evaluations; opt in deliberately. Averaging may reduce position bias but does not guarantee correct reasoning or calibrated confidence. This policy is separate from `evaluate`'s load-time `none`/`cyclic`/`balanced` policy. Positive integer budgets include the caller listing and are not generally order invariant. Use `auto` for canonical balanced layouts. Numeric enums are unordered, unlike ordinal `score`. Exact enum ties compare JSON value encodings.
 
 ### Thinking and runtime capabilities
 
@@ -300,3 +285,19 @@ prefill per question. It does not switch an explicit CPU/GPU device selection.
 
 
 Wllama 3.8.1 exposes top-N vocabulary scores and its Jinja autoparser does not apply custom GBNF on this path. The adapter resolves letter labels through the loaded model tokenizer using textual logit-bias keys, applies the same additive offset to every permitted label, and requests post-sampling probabilities with truncation disabled. A common offset preserves candidate log-odds and the conditional distribution; it does not favor the first option or select a winner. This uses one model call for 2–24 candidates. Missing or invalid scores are errors, never invented probabilities. The browser adapter does not claim a selective output head.
+
+## Samples, demos and verification
+
+Repository samples may build local artifacts; standalone demos install published packages or CDN assets. Each Python demo must own its code and data and must not import or launch another demo. Prefer meaningful task examples: routing with `evaluate`, invoice fields with `generate`, enum distributions, and image receipt extraction with the matching projector.
+
+Before shipping an integration, check lifecycle closure, valid/invalid requests, omitted versus null fields, actual device selection and model/runtime failures. For suspected position bias, compare keyed distributions under reordered candidates. Record model/quantization/runtime/platform and decision latency separately from downloads and loading. Contract/fixture tests verify wire semantics, not model intelligence.
+
+Run relevant commands from the repository root when developing TurboJev itself:
+
+```powershell
+cargo test -p turbojev-core -p turbojev-schema --locked
+py evals/run.py --help
+node scripts/validate-real-option-order.mjs C:/models/model.gguf
+```
+
+The recorded 0.31.0 Windows x64 Qwen3-0.6B Q4_K_M CPU probe passed 18/18 routing decisions across three cases, three orders and none/balanced modes. Balanced keyed drift was zero in that sample; none reached 13.7 percentage points. These are limited routing results, not a general accuracy, Snake or speed guarantee.

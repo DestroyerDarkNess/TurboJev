@@ -68,7 +68,7 @@ Tests support equality, list membership, and objects with `in`, `not_in`, `ne`, 
 
 The result wrapper contains `value`, `confidence`, `probabilities` and `distribution`. `distribution` is an array of `{value, probability}` retaining actual JSON types. Map keys normally use string values or JSON spellings for other scalars. In nullable string enums, the literal string `"null"` uses the quoted map key `"\"null\""` to distinguish it from actual null's `"null"` key. Prefer the typed array if keys matter.
 
-Each ordering receives a real model evaluation. Scores are normalized separately, remapped to original values, then **probabilities** are averaged. `auto` uses canonical ordering and a Williams design: N evaluations for an even N, 2N for an odd N greater than one. Integer budgets sample distinct orderings reproducibly using request `seed`; the identity is included. `all` visits every permutation. A hard cap of 720 prevents accidental factorial workloads. A six-sided die with `all` costs 720 evaluations; opt in deliberately. Averaging may reduce position bias but does not guarantee correct reasoning or calibrated confidence. This policy is separate from `evaluate`'s older opt-in cyclic logit averaging.
+Each ordering receives a real model evaluation. Scores are normalized separately, remapped to original values, then **probabilities** are averaged. `auto` uses canonical ordering and a Williams design: N evaluations for an even N, 2N for an odd N greater than one. Integer budgets sample distinct orderings reproducibly using request `seed`; the identity is included. `all` visits every permutation. A hard cap of 720 prevents accidental factorial workloads. A six-sided die with `all` costs 720 evaluations; opt in deliberately. Averaging may reduce position bias but does not guarantee correct reasoning or calibrated confidence. This policy is separate from `evaluate`'s load-time `none`, `cyclic` and `balanced` policies. Positive integer budgets include the caller listing and are not generally order invariant. Use `auto` for canonical balanced layouts. Numeric enums are unordered, unlike ordinal `score`. Exact enum ties compare JSON value encodings. See [option ordering](ORDER_ROBUSTNESS.md).
 
 ## Thinking and runtime capabilities
 
@@ -119,3 +119,11 @@ not the selected CPU/GPU device or the meaning of the answers.
 | Batching, concurrency, prefill, serving protocols | Existing TurboJev worker/affinity and runtime tests remain; TypeLLM's SGLang-specific batching, remote-server and logprob-transport tests are not claimed as implemented here |
 
 Run `cargo test --workspace --locked` and the browser runtime tests. `evals/run.py` records real numeric and JevBench model quality, errors, provenance and latency. TypeLLM's numeric cases and the three example ports have attribution and licenses; its published model results are not reused as TurboJev evidence.
+
+## Language examples and migration
+
+The website language guides include `evaluate` and `generate` examples for Rust, Node/TypeScript, Python, C, .NET, browser/WASM, Android and Swift. Their source is maintained in `website/src/docs-content.html` and generated into separate pages by `node website/build.mjs`.
+
+When migrating an application, keep the two response contracts distinct: `evaluate` returns `answers`; `generate` returns `result`, `skipped` and `usage`. A skipped conditional field is absent, while a nullable field can contain actual JSON null. Use a stable semantic key for each choice, and preserve the original criterion order for a score. The load-time `execution.orderRobustness` option changes `evaluate` choices only; generated enums use their own per-field `permutations`.
+
+Native published packages currently include Windows x86/x64/ARM64 assets. Mobile bindings and other native operating systems require a compatible source build. Samples use checkout artifacts; the separate TurboJev.Demos repository uses public packages/CDNs and self-contained Python folders.
