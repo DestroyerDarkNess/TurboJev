@@ -1,1 +1,34 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><title>TurboJev documentation</title><meta name="viewport" content="width=device-width,initial-scale=1"><script>const pages=["quickstart","architecture","api","fields","rust","node","python","c","dotnet","browser","mobile","ordering","decisions","multimodal","examples","publishing"];const slug=location.hash.slice(1);location.replace('docs/'+(pages.includes(slug)?slug:'quickstart')+'.html');</script></head><body><a href="docs/quickstart.html">Open documentation</a></body></html>
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>TurboJev documentation</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <script>
+      const pages = [
+        "quickstart",
+        "architecture",
+        "api",
+        "fields",
+        "rust",
+        "node",
+        "python",
+        "c",
+        "dotnet",
+        "browser",
+        "mobile",
+        "ordering",
+        "decisions",
+        "multimodal",
+        "examples",
+        "publishing",
+      ];
+      const slug = location.hash.slice(1);
+      const page = pages.includes(slug) ? slug : "quickstart";
+      location.replace("docs/" + page + ".html");
+    </script>
+  </head>
+  <body>
+    <a href="docs/quickstart.html">Open documentation</a>
+  </body>
+</html>

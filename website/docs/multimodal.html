@@ -1,13 +1,175 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Multimodal — TurboJev</title><meta name="description" content="Multimodal documentation for TurboJev."><link rel="icon" href="../favicon.svg"><link rel="stylesheet" href="../styles.css?v=e4211fe53a88"></head><body class="docs-page"><a class="skip-link" href="#article">Skip to content</a><header class="site-header"><a class="brand" href="../index.html">turbo<span>jev</span><b aria-hidden="true">↗</b></a><span class="header-divider">/</span><a href="quickstart.html">Documentation</a><button class="search-trigger" type="button">Search documentation <kbd>Ctrl K</kbd></button><a class="github-link" href="https://github.com/DestroyerDarkNess/TurboJev">GitHub ↗</a><button class="menu-toggle" aria-label="Toggle documentation navigation" aria-expanded="false">☰</button></header><div class="docs-layout"><aside class="docs-sidebar"><nav class="docs-nav" aria-label="Documentation"><p>Get started</p><a  href="quickstart.html">Quickstart</a><a  href="architecture.html">Architecture</a><a  href="api.html">Core API</a><a  href="fields.html">Typed fields</a><p>Languages</p><a  href="rust.html">Rust</a><a  href="node.html">Node / TypeScript</a><a  href="python.html">Python</a><a  href="c.html">C ABI</a><a  href="dotnet.html">.NET / C#</a><a  href="browser.html">Browser / WASM</a><a  href="mobile.html">Android + Swift</a><p>Guides</p><a  href="ordering.html">Option ordering</a><a  href="decisions.html">Decision design</a><a aria-current="page" href="multimodal.html">Multimodal</a><a  href="examples.html">Examples</a><a  href="publishing.html">Publishing</a></nav></aside><main id="article" class="docs-content"><div class="breadcrumbs">Docs <span>/</span> Multimodal</div><section id="multimodal" class="doc-section searchable"><div class="doc-section-body"><h1>Multimodal</h1><p>Native llama.cpp and browser llama.cpp/WASM support the portable media envelope when the loaded model, matching projector and runtime build implement that modality. A text GGUF alone does not supply vision or audio.</p><h3>Load a paired GGUF model and projector</h3><div class="code-block"><div class="code-toolbar"><span>media.py</span><button class="copy-button" type="button">Copy</button></div><pre class="language-python"><code class="language-python">import base64
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Multimodal — TurboJev</title>
+    <meta name="description" content="Multimodal documentation for TurboJev." />
+    <link rel="icon" href="../favicon.svg" />
+    <link rel="stylesheet" href="../styles.css?v=8f2aa745090b" />
+  </head>
+  <body class="docs-page">
+    <a class="skip-link" href="#article">Skip to content</a>
+    <header class="site-header">
+      <a class="brand" href="../index.html"> turbo<span>jev</span><b aria-hidden="true">↗</b> </a>
+      <span class="header-divider">/</span>
+      <a href="quickstart.html">Documentation</a>
+      <button class="search-trigger" type="button">Search documentation <kbd>Ctrl K</kbd></button>
+      <a class="github-link" href="https://github.com/DestroyerDarkNess/TurboJev">GitHub ↗</a>
+      <button
+        class="menu-toggle"
+        aria-label="Toggle documentation navigation"
+        aria-expanded="false"
+      >
+        ☰
+      </button>
+    </header>
+    <div class="docs-layout">
+      <aside class="docs-sidebar">
+        <nav class="docs-nav" aria-label="Documentation">
+          <p>Get started</p>
+          <a href="quickstart.html">Quickstart</a>
+          <a href="architecture.html">Architecture</a>
+          <a href="api.html">Core API</a>
+          <a href="fields.html">Typed fields</a>
+          <p>Languages</p>
+          <a href="rust.html">Rust</a>
+          <a href="node.html">Node / TypeScript</a>
+          <a href="python.html">Python</a>
+          <a href="c.html">C ABI</a>
+          <a href="dotnet.html">.NET / C#</a>
+          <a href="browser.html">Browser / WASM</a>
+          <a href="mobile.html">Android + Swift</a>
+          <p>Guides</p>
+          <a href="ordering.html">Option ordering</a>
+          <a href="decisions.html">Decision design</a>
+          <a aria-current="page" href="multimodal.html">Multimodal</a>
+          <a href="examples.html">Examples</a>
+          <a href="publishing.html">Publishing</a>
+        </nav>
+      </aside>
+      <main id="article" class="docs-content">
+        <div class="breadcrumbs">Docs <span>/</span> Multimodal</div>
+        <section id="multimodal" class="doc-section searchable">
+          <div class="doc-section-body">
+            <h1>Multimodal</h1>
+            <p>
+              Native llama.cpp and browser llama.cpp/WASM support the portable media envelope when
+              the loaded model, matching projector and runtime build implement that modality. A text
+              GGUF alone does not supply vision or audio.
+            </p>
+            <h3>Load a paired GGUF model and projector</h3>
+            <div class="code-block">
+              <div class="code-toolbar">
+                <span>media.py</span><button class="copy-button" type="button">Copy</button>
+              </div>
+              <pre class="language-python"><code class="language-python">import base64
 from pathlib import Path
 from turbojev import TurboJev
 
-with TurboJev.load(&quot;./vision-model.gguf&quot;, mmproj=&quot;./matching-mmproj.gguf&quot;,
-                   device=&quot;cpu&quot;, n_ctx=8192, n_seq_max=1) as jev:
-    response = jev.evaluate({
-        &quot;state&quot;: {&quot;contract&quot;: &quot;turbojev.media.v1&quot;, &quot;modality&quot;: &quot;image&quot;,
-                  &quot;base64&quot;: base64.b64encode(Path(&quot;photo.jpg&quot;).read_bytes()).decode(&quot;ascii&quot;)},
-        &quot;questions&quot;: {&quot;scene&quot;: {&quot;type&quot;: &quot;choice&quot;, &quot;instructions&quot;: &quot;What animal is shown?&quot;,
-                                &quot;criteria&quot;: {&quot;cat&quot;: &quot;A cat&quot;, &quot;dog&quot;: &quot;A dog&quot;}}},
-    })
-    print(response[&quot;answers&quot;][&quot;scene&quot;])</code></pre></div><h3>Evidence formats</h3><div class="table-wrap"><table><thead><tr><th>Input</th><th>Envelope</th><th>Runtime requirement</th></tr></thead><tbody><tr><td>Image</td><td><code>modality: "image", base64</code></td><td>Vision encoder and matching projector</td></tr><tr><td>Audio</td><td><code>modality: "audio", base64</code></td><td>Supported audio model/projector and audio decoding</td></tr><tr><td>Video frames</td><td><code>modality: "video", frames: [{timestamp_ms, base64}]</code></td><td>Vision runtime; host decodes frames in timestamp order</td></tr></tbody></table></div><p>Optional <code>text</code> provides context alongside media. Video containers must be decoded by the host; TurboJev does not invoke ffmpeg/ffprobe executables. Ordered frames do not prove motion understanding and do not include the audio track.</p><h3>Typed extraction</h3><p>For <code>generate</code>, place the same envelope in <code>context</code> and define scalar fields, such as a receipt total and currency. The response uses <code>result</code>, not <code>answers</code>. Field workflows preserve media bytes while adding dependency answers. Set <code>thinking: false</code>; native media reasoning and browser reasoning return an explicit unsupported error.</p><h3>Model quality and browser limits</h3><p>The playground offers CLIP/CLAP similarity and LFM2 vision/audio GGUF paths. Similarity models do not follow arbitrary instructions. Browser audio GGUF remains experimental: the recorded Node/WASM adapter probe is not equivalent to qualification in every browser. Downloads, memory and preprocessing can dominate latency. See <a href="browser.html">browser models and limits</a>.</p></div></section><nav class="page-turn" aria-label="Adjacent pages"><a href="decisions.html"><small>Previous</small>← Decision design</a><a href="examples.html"><small>Next</small>Examples →</a></nav><div class="article-footer"><a href="https://github.com/DestroyerDarkNess/TurboJev/tree/main/website/src">Edit this page ↗</a><a href="../index.html#playground">Open playground →</a></div></main><aside class="on-this-page"><p>On this page</p><nav id="page-outline"></nav></aside></div><dialog id="search-dialog"><form method="dialog"><label for="docs-search">Search documentation</label><button aria-label="Close search">Esc</button></form><input type="search" id="docs-search" placeholder="Search APIs, languages, examples…" autocomplete="off"><div id="search-results" aria-live="polite"></div></dialog><script src="../vendor/prism/prism.js" defer></script><script src="../app.js?v=e4211fe53a88" defer></script></body></html>
+with TurboJev.load(
+    "./vision-model.gguf", mmproj="./matching-mmproj.gguf", device="cpu", n_ctx=8192, n_seq_max=1
+) as jev:
+    response = jev.evaluate(
+        {
+            "state": {
+                "contract": "turbojev.media.v1",
+                "modality": "image",
+                "base64": base64.b64encode(Path("photo.jpg").read_bytes()).decode("ascii"),
+            },
+            "questions": {
+                "scene": {
+                    "type": "choice",
+                    "instructions": "What animal is shown?",
+                    "criteria": {"cat": "A cat", "dog": "A dog"},
+                }
+            },
+        }
+    )
+    print(response["answers"]["scene"])</code></pre>
+            </div>
+            <h3>Evidence formats</h3>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Input</th>
+                    <th>Envelope</th>
+                    <th>Runtime requirement</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>Image</td>
+                    <td><code>modality: "image", base64</code></td>
+                    <td>Vision encoder and matching projector</td>
+                  </tr>
+                  <tr>
+                    <td>Audio</td>
+                    <td><code>modality: "audio", base64</code></td>
+                    <td>Supported audio model/projector and audio decoding</td>
+                  </tr>
+                  <tr>
+                    <td>Video frames</td>
+                    <td><code>modality: "video", frames: [{timestamp_ms, base64}]</code></td>
+                    <td>Vision runtime; host decodes frames in timestamp order</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <p>
+              Optional <code>text</code> provides context alongside media. Video containers must be
+              decoded by the host; TurboJev does not invoke ffmpeg/ffprobe executables. Ordered
+              frames do not prove motion understanding and do not include the audio track.
+            </p>
+            <h3>Typed extraction</h3>
+            <p>
+              For <code>generate</code>, place the same envelope in <code>context</code> and define
+              scalar fields, such as a receipt total and currency. The response uses
+              <code>result</code>, not <code>answers</code>. Field workflows preserve media bytes
+              while adding dependency answers. Set <code>thinking: false</code>; native media
+              reasoning and browser reasoning return an explicit unsupported error.
+            </p>
+            <h3>Model quality and browser limits</h3>
+            <p>
+              The playground offers CLIP/CLAP similarity and LFM2 vision/audio GGUF paths.
+              Similarity models do not follow arbitrary instructions. Browser audio GGUF remains
+              experimental: the recorded Node/WASM adapter probe is not equivalent to qualification
+              in every browser. Downloads, memory and preprocessing can dominate latency. See
+              <a href="browser.html">browser models and limits</a>.
+            </p>
+          </div>
+        </section>
+        <nav class="page-turn" aria-label="Adjacent pages">
+          <a href="decisions.html"><small>Previous</small>← Decision design</a
+          ><a href="examples.html"><small>Next</small>Examples →</a>
+        </nav>
+        <div class="article-footer">
+          <a href="https://github.com/DestroyerDarkNess/TurboJev/tree/main/website/src"
+            >Edit this page ↗</a
+          >
+          <a href="../index.html#playground">Open playground →</a>
+        </div>
+      </main>
+      <aside class="on-this-page">
+        <p>On this page</p>
+        <nav id="page-outline"></nav>
+      </aside>
+    </div>
+    <dialog id="search-dialog">
+      <form method="dialog">
+        <label for="docs-search">Search documentation</label>
+        <button aria-label="Close search">Esc</button>
+      </form>
+      <input
+        type="search"
+        id="docs-search"
+        placeholder="Search APIs, languages, examples…"
+        autocomplete="off"
+      />
+      <div id="search-results" aria-live="polite"></div>
+    </dialog>
+    <script src="../vendor/prism/prism.js" defer></script>
+    <script src="../app.js?v=8f2aa745090b" defer></script>
+  </body>
+</html>

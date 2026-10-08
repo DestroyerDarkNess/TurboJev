@@ -13,7 +13,8 @@ try {
     $wasm = Join-Path $metadata.target_directory 'wasm32-unknown-unknown/release/turbojev_wasm.wasm'
     & $bindgen --target web --out-dir website/vendor/wasm $wasm
     if ($LASTEXITCODE -ne 0) { throw 'wasm-bindgen failed.' }
-    if (-not (Test-Path 'samples/TurboJev-js-native/node_modules/esbuild')) {
+    if (-not (Test-Path 'samples/TurboJev-js-native/node_modules/esbuild') -or
+        -not (Test-Path 'samples/TurboJev-js-native/node_modules/prettier')) {
         npm ci --prefix samples/TurboJev-js-native
         if ($LASTEXITCODE -ne 0) { throw 'Browser dependencies could not be installed.' }
     }

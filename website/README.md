@@ -24,6 +24,7 @@ The PowerShell script uses the cached wasm-bindgen installed by `python samples/
 
 ## Edit
 
+- Formatting: `.prettierrc.json` and `.editorconfig` at the repository root define the source style. The build formats every generated HTML page with the same settings.
 - `index.html`, `styles.css`: landing, playground, and documentation styling.
 - `app.js`: navigation, search dialog, keyboard controls, and code copying.
 - `src/docs-content.html`: documentation source; `build.mjs` generates `docs/*.html` and the search index. Each topic has its own URL. Legacy `docs.html#python` links redirect to the corresponding page.
@@ -56,3 +57,16 @@ The site documents the published 0.31.0 contract. `evaluate` uses choice/noul/or
 Option ordering has its own page and playground selector: `none` is the single-pass default; `cyclic` averages logits over K rotations; `balanced` averages probabilities over canonical Williams layouts (K for even K, 2K for odd K). These apply only to choices, never to an ordered score scale. The selector's cost note updates when the number of answers changes. Changing a loaded policy requires unloading the model first.
 
 The decision-design guide distinguishes model decisions from application constraints and perception assistance. Current native package binaries are Windows x86/x64/ARM64; WASM and portable Rust source do not imply native binary availability on every OS.
+
+## Source formatting
+
+From the repository root:
+
+```powershell
+npm ci --prefix samples/TurboJev-js-native
+node samples/TurboJev-js-native/node_modules/prettier/bin/prettier.cjs --write "website/**/*.{html,css,js,mjs,ts,json}" "samples/**/*.{html,css,js,mjs,ts,json}"
+ruff format samples website/serve.py
+dotnet format whitespace samples/TurboJev-csharp-NET/Sample.csproj --no-restore
+```
+
+Use `--check` instead of `--write` for a Prettier check, and `ruff format --check` for Python. The formatter ignores bundles, dependencies, build output and validation reports. The website build preserves readable indentation in generated documentation.

@@ -24,8 +24,6 @@ parser.add_argument(
 )
 args = parser.parse_args()
 site_dir = args.root.resolve()
-server = ThreadingHTTPServer(
-    (args.host, args.port), partial(IsolatedHandler, directory=site_dir)
-)
+server = ThreadingHTTPServer((args.host, args.port), partial(IsolatedHandler, directory=site_dir))
 print(f"Serving {site_dir} at http://{args.host}:{args.port}")
 server.serve_forever()

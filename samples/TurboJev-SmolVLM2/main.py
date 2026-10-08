@@ -1,4 +1,5 @@
 """Image and short-video decisions with SmolVLM2 and compiled TurboJev."""
+
 from pathlib import Path
 import sys
 

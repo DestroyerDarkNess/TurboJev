@@ -1,4 +1,5 @@
 """Launch a sample using the compiled libraries for this host architecture."""
+
 import argparse
 import os
 import subprocess
@@ -10,7 +11,9 @@ parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument("sample", choices=["web", "ts", "python", "csharp", "rust", "vision", "audio"])
 parser.add_argument("--model", type=Path, help="Local GGUF model used by native text samples")
 parser.add_argument("--text", default="My package arrived broken and I need a replacement.")
-parser.add_argument("--generate", action="store_true", help="Run the shared typed-field workflow in a native sample")
+parser.add_argument(
+    "--generate", action="store_true", help="Run the shared typed-field workflow in a native sample"
+)
 parser.add_argument("--file", type=Path, help="Local media for vision/audio samples")
 parser.add_argument("--media", type=Path, help="Image/video input for the TypeScript or C# sample")
 parser.add_argument("--modality", choices=["image", "video", "audio"])
@@ -18,14 +21,23 @@ parser.add_argument("--question", default="What is happening?")
 parser.add_argument("--options", nargs="+", help="Candidate descriptions for vision/audio")
 args = parser.parse_args()
 if args.sample in ("vision", "audio"):
-    python = ROOT / ".cache/multimodal-venv" / ("Scripts/python.exe" if os.name == "nt" else "bin/python")
+    python = (
+        ROOT
+        / ".cache/multimodal-venv"
+        / ("Scripts/python.exe" if os.name == "nt" else "bin/python")
+    )
     if not python.exists():
         parser.error(f"First run: python {SAMPLES / 'multimodal/setup.py'} {args.sample}")
     if args.file is None:
         parser.error("vision/audio requires --file /path/to/media")
     sample = "TurboJev-SmolVLM2" if args.sample == "vision" else "TurboJev-LFM-Audio"
-    command = [str(python), str(SAMPLES / sample / "main.py"), str(args.file.resolve()),
-               "--question", args.question]
+    command = [
+        str(python),
+        str(SAMPLES / sample / "main.py"),
+        str(args.file.resolve()),
+        "--question",
+        args.question,
+    ]
     if args.modality:
         command += ["--modality", args.modality]
     if args.options:
@@ -51,13 +63,22 @@ else:
     executables = {
         "ts": ["node", str(SAMPLES / "TurboJev-TS-node/dist/main.js")],
         "python": [sys.executable, str(SAMPLES / "TurboJev-Python/main.py")],
-        "rust": [str(stage / ("turbojev-rust-sample.exe" if os.name == "nt" else "turbojev-rust-sample"))],
+        "rust": [
+            str(stage / ("turbojev-rust-sample.exe" if os.name == "nt" else "turbojev-rust-sample"))
+        ],
         "csharp": ["dotnet", str(SAMPLES / "TurboJev-csharp-NET/bin/Release/net8.0/Sample.dll")],
     }
     if args.media is None:
-        command = executables[args.sample] + [str(args.model.resolve()), "--generate" if args.generate else args.text]
+        command = executables[args.sample] + [
+            str(args.model.resolve()),
+            "--generate" if args.generate else args.text,
+        ]
     else:
-        python = ROOT / ".cache/multimodal-venv" / ("Scripts/python.exe" if os.name == "nt" else "bin/python")
+        python = (
+            ROOT
+            / ".cache/multimodal-venv"
+            / ("Scripts/python.exe" if os.name == "nt" else "bin/python")
+        )
         worker = SAMPLES / "multimodal/worker.py"
         model = ROOT / ".cache/multimodal-models/vision"
         if not python.exists() or not (model / "model.safetensors").exists():

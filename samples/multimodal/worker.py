@@ -1,4 +1,5 @@
 """Optional sample runtimes: real media -> candidate logits, never generated answers."""
+
 import argparse
 import base64
 import contextlib
@@ -27,9 +28,9 @@ def candidate_ids(tokenizer, prefix, labels):
     ids = []
     for label in labels:
         after = tokenizer.encode(prefix + label, add_special_tokens=False)
-        if after[:len(before)] != before or not 0 < len(after) - len(before) <= 64:
+        if after[: len(before)] != before or not 0 < len(after) - len(before) <= 64:
             raise ValueError("Candidate must have a stable token boundary and 1 to 64 tokens")
-        ids.append(after[len(before):])
+        ids.append(after[len(before) :])
     if len(set(map(tuple, ids))) != len(ids):
         raise ValueError("Candidates must have distinct token sequences")
     return ids
@@ -38,6 +39,7 @@ def candidate_ids(tokenizer, prefix, labels):
 def sequence_score(logits, ids):
     """Length-normalized conditional log likelihood; no sampling or generation."""
     import torch
+
     targets = torch.tensor(ids, device=logits.device).unsqueeze(-1)
     return logits.float().log_softmax(-1).gather(-1, targets).mean().item()
 
@@ -48,17 +50,19 @@ class Vision:
     def __init__(self, model_path):
         import torch
         from transformers import AutoModelForImageTextToText, AutoProcessor
+
         self.processor = AutoProcessor.from_pretrained(model_path, local_files_only=True)
         # The checkpoint defaults to upscaling images to 2048 px with many tiles.
         # One 512 px view keeps this CPU example practical on small machines.
         self.processor.image_processor.size = {"longest_edge": 512}
         self.model = AutoModelForImageTextToText.from_pretrained(
-            model_path, local_files_only=True, dtype=torch.float32,
-            attn_implementation="sdpa").eval()
+            model_path, local_files_only=True, dtype=torch.float32, attn_implementation="sdpa"
+        ).eval()
 
     def score(self, state, data, task):
         import torch
         from PIL import Image
+
         prompt, labels = prompt_for(state, task)
         frames = 4
         with tempfile.TemporaryDirectory(prefix="turbojev-media-") as directory:
@@ -68,24 +72,38 @@ class Vision:
                     media = {"type": "image", "image": source.convert("RGB")}
             else:
                 import av
+
                 with av.open(io.BytesIO(data)) as container:
                     if not container.streams.video:
                         raise ValueError("No video stream found")
                     stream = container.streams.video[0]
                     if container.duration is None or container.duration > 30 * av.time_base:
-                        raise ValueError("Provide a video with known duration of at most 30 seconds")
+                        raise ValueError(
+                            "Provide a video with known duration of at most 30 seconds"
+                        )
                     if stream.frames:
                         frames = min(4, stream.frames)
                 path = Path(directory) / "input.mp4"
                 path.write_bytes(data)
                 media = {"type": "video", "path": str(path)}
-            messages = [{"role": "user", "content": [media, {"type": "text", "text": prompt}]},
-                        {"role": "assistant", "content": [{"type": "text", "text": "The answer is"}]}]
-            prefix = self.processor.apply_chat_template(messages, continue_final_message=True, tokenize=False)
+            messages = [
+                {"role": "user", "content": [media, {"type": "text", "text": prompt}]},
+                {"role": "assistant", "content": [{"type": "text", "text": "The answer is"}]},
+            ]
+            prefix = self.processor.apply_chat_template(
+                messages, continue_final_message=True, tokenize=False
+            )
             candidates = candidate_ids(self.processor.tokenizer, prefix, labels)
             inputs = self.processor.apply_chat_template(
-                messages, continue_final_message=True, tokenize=True, return_dict=True,
-                return_tensors="pt", num_frames=frames, fps=None, do_sample_frames=True)
+                messages,
+                continue_final_message=True,
+                tokenize=True,
+                return_dict=True,
+                return_tensors="pt",
+                num_frames=frames,
+                fps=None,
+                do_sample_frames=True,
+            )
             if state["modality"] == "video" and inputs["pixel_values"].shape[1] > 4:
                 raise ValueError("Video processor exceeded the four-frame budget")
             scores = []
@@ -93,8 +111,12 @@ class Vision:
                 suffix = torch.tensor([ids[:-1]], dtype=torch.long)
                 scoring_inputs = dict(inputs)
                 scoring_inputs["input_ids"] = torch.cat([inputs["input_ids"], suffix], dim=1)
-                scoring_inputs["attention_mask"] = torch.cat([inputs["attention_mask"], torch.ones_like(suffix)], dim=1)
-                logits = self.model(**scoring_inputs, use_cache=False, logits_to_keep=len(ids)).logits[0]
+                scoring_inputs["attention_mask"] = torch.cat(
+                    [inputs["attention_mask"], torch.ones_like(suffix)], dim=1
+                )
+                logits = self.model(
+                    **scoring_inputs, use_cache=False, logits_to_keep=len(ids)
+                ).logits[0]
                 scores.append(sequence_score(logits, ids))
             return scores
 
@@ -105,16 +127,19 @@ class Audio:
     def __init__(self, model_path):
         import torch
         from liquid_audio import LFM2AudioModel, LFM2AudioProcessor
+
         # liquid-audio treats strings as Hub IDs, even absolute Windows paths.
         model_path = Path(model_path)
         self.processor = LFM2AudioProcessor.from_pretrained(model_path, device="cpu").eval()
         self.model = LFM2AudioModel.from_pretrained(
-            model_path, device="cpu", dtype=torch.bfloat16).eval()
+            model_path, device="cpu", dtype=torch.bfloat16
+        ).eval()
 
     def score(self, state, data, task):
         import soundfile as sf
         import torch
         from liquid_audio import ChatState
+
         with sf.SoundFile(io.BytesIO(data)) as source:
             rate = source.samplerate
             if not 0 < source.frames <= rate * 30:
@@ -141,8 +166,9 @@ class Audio:
         scores = []
         for ids in candidates:
             suffix = self.model.lfm.embed_tokens(torch.tensor([ids[:-1]], dtype=torch.long))
-            hidden = self.model.lfm(inputs_embeds=torch.cat([embeddings, suffix], dim=1),
-                                    use_cache=False).last_hidden_state[0, -len(ids):]
+            hidden = self.model.lfm(
+                inputs_embeds=torch.cat([embeddings, suffix], dim=1), use_cache=False
+            ).last_hidden_state[0, -len(ids) :]
             logits = torch.nn.functional.linear(hidden, self.model.lfm.embed_tokens.weight)
             scores.append(sequence_score(logits, ids))
         return scores
@@ -159,18 +185,24 @@ def main():
     os.environ.setdefault("HF_HUB_OFFLINE", "1")
     os.environ.setdefault("TOKENIZERS_PARALLELISM", "false")
     import torch
+
     torch.set_num_threads(min(4, os.cpu_count() or 1))
     # Third-party diagnostic prints must never corrupt the JSON-lines transport.
     with contextlib.redirect_stdout(sys.stderr):
         runtime = (Vision if args.kind == "vision" else Audio)(str(args.model.resolve()))
     source = args.model / "turbojev-source.json"
     model_id = json.loads(source.read_text())["id"] if source.exists() else str(args.model)
-    print(json.dumps({"contract": "turbojev.scorer.v1", "modalities": runtime.modalities}), flush=True)
+    print(
+        json.dumps({"contract": "turbojev.scorer.v1", "modalities": runtime.modalities}), flush=True
+    )
     for line in sys.stdin:
         try:
             batch = json.loads(line)
             state = batch["state"]
-            if state.get("contract") != "turbojev.media.v1" or state.get("modality") not in runtime.modalities:
+            if (
+                state.get("contract") != "turbojev.media.v1"
+                or state.get("modality") not in runtime.modalities
+            ):
                 raise ValueError("Unsupported media contract or modality")
             if len(state["base64"]) > 32 * 1024 * 1024:
                 raise ValueError("Media exceeds 24 MiB")
@@ -178,8 +210,10 @@ def main():
             if not data:
                 raise ValueError("Media is empty")
             with contextlib.redirect_stdout(sys.stderr), torch.inference_mode():
-                scores = [{"id": task["id"], "logits": runtime.score(state, data, task)}
-                          for task in batch["tasks"]]
+                scores = [
+                    {"id": task["id"], "logits": runtime.score(state, data, task)}
+                    for task in batch["tasks"]
+                ]
             response = {"model": model_id, "scores": scores, "metrics": {}}
             payload = json.dumps(response, allow_nan=False)
         except Exception as error:

@@ -1,38 +1,222 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Node / TypeScript — TurboJev</title><meta name="description" content="Node / TypeScript documentation for TurboJev."><link rel="icon" href="../favicon.svg"><link rel="stylesheet" href="../styles.css?v=e4211fe53a88"></head><body class="docs-page"><a class="skip-link" href="#article">Skip to content</a><header class="site-header"><a class="brand" href="../index.html">turbo<span>jev</span><b aria-hidden="true">↗</b></a><span class="header-divider">/</span><a href="quickstart.html">Documentation</a><button class="search-trigger" type="button">Search documentation <kbd>Ctrl K</kbd></button><a class="github-link" href="https://github.com/DestroyerDarkNess/TurboJev">GitHub ↗</a><button class="menu-toggle" aria-label="Toggle documentation navigation" aria-expanded="false">☰</button></header><div class="docs-layout"><aside class="docs-sidebar"><nav class="docs-nav" aria-label="Documentation"><p>Get started</p><a  href="quickstart.html">Quickstart</a><a  href="architecture.html">Architecture</a><a  href="api.html">Core API</a><a  href="fields.html">Typed fields</a><p>Languages</p><a  href="rust.html">Rust</a><a aria-current="page" href="node.html">Node / TypeScript</a><a  href="python.html">Python</a><a  href="c.html">C ABI</a><a  href="dotnet.html">.NET / C#</a><a  href="browser.html">Browser / WASM</a><a  href="mobile.html">Android + Swift</a><p>Guides</p><a  href="ordering.html">Option ordering</a><a  href="decisions.html">Decision design</a><a  href="multimodal.html">Multimodal</a><a  href="examples.html">Examples</a><a  href="publishing.html">Publishing</a></nav></aside><main id="article" class="docs-content"><div class="breadcrumbs">Docs <span>/</span> Node / TypeScript</div><article id="node" class="language-card"><div class="language-heading"><div><h1>Node / TypeScript</h1><p>Worker-backed native calls with typed results and clean async shutdown.</p></div><a href="https://www.npmjs.com/package/@turbojev/node" target="_blank" rel="noreferrer">npm ↗</a></div><div class="install-line"><code>npm install @turbojev/node</code><button class="copy-button" type="button">Copy</button></div><div class="code-block"><div class="code-toolbar"><span>decision.ts</span><button class="copy-button" type="button">Copy</button></div><pre class="language-typescript"><code class="language-typescript">import { TurboJev } from "@turbojev/node";
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Node / TypeScript — TurboJev</title>
+    <meta name="description" content="Node / TypeScript documentation for TurboJev." />
+    <link rel="icon" href="../favicon.svg" />
+    <link rel="stylesheet" href="../styles.css?v=8f2aa745090b" />
+  </head>
+  <body class="docs-page">
+    <a class="skip-link" href="#article">Skip to content</a>
+    <header class="site-header">
+      <a class="brand" href="../index.html"> turbo<span>jev</span><b aria-hidden="true">↗</b> </a>
+      <span class="header-divider">/</span>
+      <a href="quickstart.html">Documentation</a>
+      <button class="search-trigger" type="button">Search documentation <kbd>Ctrl K</kbd></button>
+      <a class="github-link" href="https://github.com/DestroyerDarkNess/TurboJev">GitHub ↗</a>
+      <button
+        class="menu-toggle"
+        aria-label="Toggle documentation navigation"
+        aria-expanded="false"
+      >
+        ☰
+      </button>
+    </header>
+    <div class="docs-layout">
+      <aside class="docs-sidebar">
+        <nav class="docs-nav" aria-label="Documentation">
+          <p>Get started</p>
+          <a href="quickstart.html">Quickstart</a>
+          <a href="architecture.html">Architecture</a>
+          <a href="api.html">Core API</a>
+          <a href="fields.html">Typed fields</a>
+          <p>Languages</p>
+          <a href="rust.html">Rust</a>
+          <a aria-current="page" href="node.html">Node / TypeScript</a>
+          <a href="python.html">Python</a>
+          <a href="c.html">C ABI</a>
+          <a href="dotnet.html">.NET / C#</a>
+          <a href="browser.html">Browser / WASM</a>
+          <a href="mobile.html">Android + Swift</a>
+          <p>Guides</p>
+          <a href="ordering.html">Option ordering</a>
+          <a href="decisions.html">Decision design</a>
+          <a href="multimodal.html">Multimodal</a>
+          <a href="examples.html">Examples</a>
+          <a href="publishing.html">Publishing</a>
+        </nav>
+      </aside>
+      <main id="article" class="docs-content">
+        <div class="breadcrumbs">Docs <span>/</span> Node / TypeScript</div>
+        <article id="node" class="language-card">
+          <div class="language-heading">
+            <div>
+              <h1>Node / TypeScript</h1>
+              <p>Worker-backed native calls with typed results and clean async shutdown.</p>
+            </div>
+            <a href="https://www.npmjs.com/package/@turbojev/node" target="_blank" rel="noreferrer"
+              >npm ↗</a
+            >
+          </div>
+          <div class="install-line">
+            <code>npm install @turbojev/node</code
+            ><button class="copy-button" type="button">Copy</button>
+          </div>
+          <div class="code-block">
+            <div class="code-toolbar">
+              <span>decision.ts</span><button class="copy-button" type="button">Copy</button>
+            </div>
+            <pre
+              class="language-typescript"
+            ><code class="language-typescript">import { TurboJev } from "@turbojev/node";
 
-const jev = await TurboJev.load({model: "./model.gguf", nGpuLayers: 0, nThreads: 4});
+const jev = await TurboJev.load({ model: "./model.gguf", nGpuLayers: 0, nThreads: 4 });
 try {
-  const result = await jev.evaluate({state: {message: "My package arrived broken."}, questions: {department: {type: "choice", instructions: "Which department should handle this?", criteria: {billing: "Payments", shipping: "Delivery", technical: "Product issue", other: "Other"}}}});
+  const result = await jev.evaluate({
+    state: { message: "My package arrived broken." },
+    questions: {
+      department: {
+        type: "choice",
+        instructions: "Which department should handle this?",
+        criteria: {
+          billing: "Payments",
+          shipping: "Delivery",
+          technical: "Product issue",
+          other: "Other",
+        },
+      },
+    },
+  });
   console.log(result.answers.department);
 } finally {
   await jev.close();
-}</code></pre></div><p class="source-link">Text and media source: <a href="https://github.com/DestroyerDarkNess/TurboJev/blob/main/samples/TurboJev-TS-node/src/main.ts" target="_blank" rel="noreferrer">TS sample ↗</a></p><h2>Evaluate an image</h2><p>Load a supported vision GGUF and its matching projector. Both are inputs to the same native host; no external Python worker is required on this path.</p><div class="code-block"><div class="code-toolbar"><span>load-media.ts</span><button class="copy-button" type="button">Copy</button></div><pre class="language-typescript"><code class="language-typescript">const engine = await TurboJev.load({
-  model: &quot;./vision-model.gguf&quot;, mmproj: &quot;./matching-mmproj.gguf&quot;,
-  device: &quot;cpu&quot;, nCtx: 8192, nSeqMax: 1,
-});</code></pre></div><p>Once the engine is configured with that runtime, pass the same media envelope to <code>evaluate</code>:</p><div class="code-block"><div class="code-toolbar"><span>media.ts</span><button class="copy-button" type="button">Copy</button></div><pre class="language-typescript"><code class="language-typescript">import { readFile } from &quot;node:fs/promises&quot;;
+}</code></pre>
+          </div>
+          <p class="source-link">
+            Text and media source:
+            <a
+              href="https://github.com/DestroyerDarkNess/TurboJev/blob/main/samples/TurboJev-TS-node/src/main.ts"
+              target="_blank"
+              rel="noreferrer"
+              >TS sample ↗</a
+            >
+          </p>
+          <h2>Evaluate an image</h2>
+          <p>
+            Load a supported vision GGUF and its matching projector. Both are inputs to the same
+            native host; no external Python worker is required on this path.
+          </p>
+          <div class="code-block">
+            <div class="code-toolbar">
+              <span>load-media.ts</span><button class="copy-button" type="button">Copy</button>
+            </div>
+            <pre
+              class="language-typescript"
+            ><code class="language-typescript">const engine = await TurboJev.load({
+  model: "./vision-model.gguf",
+  mmproj: "./matching-mmproj.gguf",
+  device: "cpu",
+  nCtx: 8192,
+  nSeqMax: 1,
+});</code></pre>
+          </div>
+          <p>
+            Once the engine is configured with that runtime, pass the same media envelope to
+            <code>evaluate</code>:
+          </p>
+          <div class="code-block">
+            <div class="code-toolbar">
+              <span>media.ts</span><button class="copy-button" type="button">Copy</button>
+            </div>
+            <pre
+              class="language-typescript"
+            ><code class="language-typescript">import { readFile } from "node:fs/promises";
 
 const result = await engine.evaluate({
   state: {
-    contract: &quot;turbojev.media.v1&quot;,
-    modality: &quot;image&quot;,
-    base64: (await readFile(&quot;photo.jpg&quot;)).toString(&quot;base64&quot;),
+    contract: "turbojev.media.v1",
+    modality: "image",
+    base64: (await readFile("photo.jpg")).toString("base64"),
   },
   questions: {
     scene: {
-      type: &quot;choice&quot;,
-      instructions: &quot;What animal is shown?&quot;,
-      criteria: { cat: &quot;A cat&quot;, dog: &quot;A dog&quot; },
+      type: "choice",
+      instructions: "What animal is shown?",
+      criteria: { cat: "A cat", dog: "A dog" },
     },
   },
 });
-console.log(result.answers.scene);</code></pre></div><h2>Generate typed fields</h2><p>Call inside the same engine lifecycle shown above. A skipped field is absent; it is not a null value.</p><div class="code-block"><div class="code-toolbar"><span>fields.ts</span><button class="copy-button" type="button">Copy</button></div><pre class="language-typescript"><code class="language-typescript">const response = await jev.generate({
-  context: &quot;Invoice total: 324.50 GBP. Payment is overdue.&quot;,
+console.log(result.answers.scene);</code></pre>
+          </div>
+          <h2>Generate typed fields</h2>
+          <p>
+            Call inside the same engine lifecycle shown above. A skipped field is absent; it is not
+            a null value.
+          </p>
+          <div class="code-block">
+            <div class="code-toolbar">
+              <span>fields.ts</span><button class="copy-button" type="button">Copy</button>
+            </div>
+            <pre
+              class="language-typescript"
+            ><code class="language-typescript">const response = await jev.generate({
+  context: "Invoice total: 324.50 GBP. Payment is overdue.",
   questions: {
-    total: { type: &quot;number&quot;, instructions: &quot;What is the total in GBP?&quot; },
-    overdue: { type: &quot;boolean&quot;, instructions: &quot;Is payment overdue?&quot; },
-    reminder: { type: &quot;string&quot;, when: { overdue: true }, depends_on: [&quot;total&quot;],
-                instructions: &quot;Write one short payment reminder.&quot; },
+    total: { type: "number", instructions: "What is the total in GBP?" },
+    overdue: { type: "boolean", instructions: "Is payment overdue?" },
+    reminder: {
+      type: "string",
+      when: { overdue: true },
+      depends_on: ["total"],
+      instructions: "Write one short payment reminder.",
+    },
   },
-  thinking: false, text_max_tokens: 128, numeric_max_tokens: 64,
+  thinking: false,
+  text_max_tokens: 128,
+  numeric_max_tokens: 64,
 });
-console.log(response.result, response.skipped, response.usage);</code></pre></div><p>For unordered routing, configure <code>execution: {orderRobustness: "balanced"}</code> at load time. For finite generated fields, use their own <code>permutations</code> setting. See <a href="fields.html">all field options</a> and <a href="ordering.html">ordering costs</a>.</p></article><nav class="page-turn" aria-label="Adjacent pages"><a href="rust.html"><small>Previous</small>← Rust</a><a href="python.html"><small>Next</small>Python →</a></nav><div class="article-footer"><a href="https://github.com/DestroyerDarkNess/TurboJev/tree/main/website/src">Edit this page ↗</a><a href="../index.html#playground">Open playground →</a></div></main><aside class="on-this-page"><p>On this page</p><nav id="page-outline"></nav></aside></div><dialog id="search-dialog"><form method="dialog"><label for="docs-search">Search documentation</label><button aria-label="Close search">Esc</button></form><input type="search" id="docs-search" placeholder="Search APIs, languages, examples…" autocomplete="off"><div id="search-results" aria-live="polite"></div></dialog><script src="../vendor/prism/prism.js" defer></script><script src="../app.js?v=e4211fe53a88" defer></script></body></html>
+console.log(response.result, response.skipped, response.usage);</code></pre>
+          </div>
+          <p>
+            For unordered routing, configure
+            <code>execution: {orderRobustness: "balanced"}</code> at load time. For finite generated
+            fields, use their own <code>permutations</code> setting. See
+            <a href="fields.html">all field options</a> and
+            <a href="ordering.html">ordering costs</a>.
+          </p>
+        </article>
+        <nav class="page-turn" aria-label="Adjacent pages">
+          <a href="rust.html"><small>Previous</small>← Rust</a
+          ><a href="python.html"><small>Next</small>Python →</a>
+        </nav>
+        <div class="article-footer">
+          <a href="https://github.com/DestroyerDarkNess/TurboJev/tree/main/website/src"
+            >Edit this page ↗</a
+          >
+          <a href="../index.html#playground">Open playground →</a>
+        </div>
+      </main>
+      <aside class="on-this-page">
+        <p>On this page</p>
+        <nav id="page-outline"></nav>
+      </aside>
+    </div>
+    <dialog id="search-dialog">
+      <form method="dialog">
+        <label for="docs-search">Search documentation</label>
+        <button aria-label="Close search">Esc</button>
+      </form>
+      <input
+        type="search"
+        id="docs-search"
+        placeholder="Search APIs, languages, examples…"
+        autocomplete="off"
+      />
+      <div id="search-results" aria-live="polite"></div>
+    </dialog>
+    <script src="../vendor/prism/prism.js" defer></script>
+    <script src="../app.js?v=8f2aa745090b" defer></script>
+  </body>
+</html>

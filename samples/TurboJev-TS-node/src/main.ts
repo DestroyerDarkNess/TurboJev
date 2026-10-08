@@ -6,7 +6,7 @@ import type { TurboJev as Engine } from "../../../bindings/node/dist/index.js";
 const stage = process.env.TURBOJEV_ARTIFACTS;
 if (!stage) throw new Error("Use python samples/run.py ts");
 
-const { TurboJev } = await import(pathToFileURL(join(stage, "node/dist/index.js")).href) as {
+const { TurboJev } = (await import(pathToFileURL(join(stage, "node/dist/index.js")).href)) as {
   TurboJev: typeof Engine;
 };
 
@@ -20,19 +20,29 @@ function valueAfter(flag: string, fallback?: string): string | undefined {
 }
 
 if (argumentsAfterModel.includes("--generate")) {
-  const engine = await TurboJev.load({ model, nativePath: join(stage, "turbojev.node"),device:"cpu",nCtx:8192,nSeqMax:1,nThreads:4 });
+  const engine = await TurboJev.load({
+    model,
+    nativePath: join(stage, "turbojev.node"),
+    device: "cpu",
+    nCtx: 8192,
+    nSeqMax: 1,
+    nThreads: 4,
+  });
   try {
-    const request=JSON.parse(readFileSync(new URL("../../typed-fields/request.json",import.meta.url),"utf8"));
-    console.log(JSON.stringify(await engine.generate(request),null,2));
-  } finally { await engine.close(); }
+    const request = JSON.parse(
+      readFileSync(new URL("../../typed-fields/request.json", import.meta.url), "utf8"),
+    );
+    console.log(JSON.stringify(await engine.generate(request), null, 2));
+  } finally {
+    await engine.close();
+  }
 } else if (mediaFlag >= 0) {
   const mediaPath = argumentsAfterModel[mediaFlag + 1];
   const modality = valueAfter("--modality", "image");
   const question = valueAfter("--question", "What is shown?");
   const optionsFlag = argumentsAfterModel.indexOf("--options");
-  const options = optionsFlag >= 0
-    ? argumentsAfterModel.slice(optionsFlag + 1)
-    : ["A cat", "A dog"];
+  const options =
+    optionsFlag >= 0 ? argumentsAfterModel.slice(optionsFlag + 1) : ["A cat", "A dog"];
   const workerPython = process.env.TURBOJEV_MULTIMODAL_PYTHON;
   const workerPath = process.env.TURBOJEV_MULTIMODAL_WORKER;
   const workerModel = process.env.TURBOJEV_MULTIMODAL_MODEL;
@@ -53,7 +63,11 @@ if (argumentsAfterModel.includes("--generate")) {
   const engine = await TurboJev.load({
     model: workerModel,
     nativePath: join(stage, "turbojev.node"),
-    worker: { program: workerPython, args: [workerPath, "vision", workerModel], timeoutSeconds: 600 },
+    worker: {
+      program: workerPython,
+      args: [workerPath, "vision", workerModel],
+      timeoutSeconds: 600,
+    },
   });
   try {
     const result = await engine.evaluate({
@@ -66,7 +80,9 @@ if (argumentsAfterModel.includes("--generate")) {
         scene: {
           type: "choice",
           instructions: question,
-          criteria: Object.fromEntries(options.map((option, index) => [`option_${index + 1}`, option])),
+          criteria: Object.fromEntries(
+            options.map((option, index) => [`option_${index + 1}`, option]),
+          ),
         },
       },
     });
@@ -86,20 +102,31 @@ if (argumentsAfterModel.includes("--generate")) {
   try {
     const result = await engine.evaluate({
       state: { message: argumentsAfterModel[0] ?? "My package arrived broken" },
-      questions: { department: {
-        type: "choice",
-        instructions: "Which department should handle this message?",
-        criteria: { billing: "Payments and refunds", shipping: "Delivery", technical: "Product issue", other: "Other" },
-      } },
+      questions: {
+        department: {
+          type: "choice",
+          instructions: "Which department should handle this message?",
+          criteria: {
+            billing: "Payments and refunds",
+            shipping: "Delivery",
+            technical: "Product issue",
+            other: "Other",
+          },
+        },
+      },
     });
-    const answer = (result as {
-      answers: Record<string, { choice: string; probabilities: Record<string, number> }>;
-    }).answers.department;
+    const answer = (
+      result as {
+        answers: Record<string, { choice: string; probabilities: Record<string, number> }>;
+      }
+    ).answers.department;
     console.log(`Department: ${answer.choice}`);
-    console.table(Object.entries(answer.probabilities).map(([department, probability]) => ({
-      department,
-      probability: `${(probability * 100).toFixed(1)}%`,
-    })));
+    console.table(
+      Object.entries(answer.probabilities).map(([department, probability]) => ({
+        department,
+        probability: `${(probability * 100).toFixed(1)}%`,
+      })),
+    );
   } finally {
     await engine.close();
   }

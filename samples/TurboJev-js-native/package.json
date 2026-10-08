@@ -1,1 +1,17 @@
-{"name":"turbojev-vanilla-sample","private":true,"type":"module","scripts":{"prepare:runtime":"node prepare.mjs","dev":"vite --host 127.0.0.1","build":"vite build","preview":"vite preview --host 127.0.0.1"},"devDependencies":{"vite":"7.1.7","esbuild":"0.25.9","@huggingface/transformers":"4.3.0"}}
+{
+  "name": "turbojev-vanilla-sample",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "prepare:runtime": "node prepare.mjs",
+    "dev": "vite --host 127.0.0.1",
+    "build": "vite build",
+    "preview": "vite preview --host 127.0.0.1"
+  },
+  "devDependencies": {
+    "@huggingface/transformers": "4.3.0",
+    "esbuild": "0.25.9",
+    "prettier": "3.6.2",
+    "vite": "7.1.7"
+  }
+}

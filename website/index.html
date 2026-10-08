@@ -1,19 +1,208 @@
 <!doctype html>
 <html lang="en">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="Run typed decisions with local models in Rust, JavaScript, Python, C and .NET. Try TurboJev in your browser."><title>TurboJev — Give your model a decision to make.</title><link rel="icon" href="favicon.svg"><link rel="stylesheet" href="styles.css?v=e4211fe53a88"></head>
-<body><a class="skip-link" href="#main">Skip to content</a>
-<header class="site-header"><a class="brand" href="index.html">turbo<span>jev</span><b aria-hidden="true">↗</b></a><nav class="main-nav" aria-label="Main navigation"><a href="#playground">Playground</a><a href="#languages">Languages</a><a href="docs/quickstart.html">Documentation</a></nav><a class="github-link" href="https://github.com/DestroyerDarkNess/TurboJev">GitHub ↗</a><button class="menu-toggle" aria-label="Toggle navigation" aria-expanded="false">☰</button></header>
-<main id="main">
-<section class="hero"><h1>Give your model<br>a <em>decision</em> to make.</h1><div class="hero-bottom"><p>Route a message. Recognize a sound. Extract typed fields.<br>Use a local model with the decision contract your application needs.</p><a class="button primary" href="#playground">Try it yourself <span>↓</span></a></div></section>
-<section id="playground" class="playground-section"><div class="section-heading"><div><h2>The playground</h2><p>Your input. Your choices. A model running in your browser.</p></div><a class="text-link" href="docs/ordering.html">Ordering and cost ↗</a></div>
-<div class="studio">
-<div class="studio-top"><div class="mode-tabs" role="tablist" aria-label="Input type"><button role="tab" aria-selected="true" data-mode="text">Text</button><button role="tab" aria-selected="false" data-mode="image">Image</button><button role="tab" aria-selected="false" data-mode="audio">Audio</button><button role="tab" aria-selected="false" data-mode="video">Video</button></div><details class="action-menu"><summary aria-label="Playground actions">•••</summary><div><button id="demo-copy">Copy result JSON</button><button id="demo-reset">Reset example</button><button id="demo-unload" disabled>Unload model</button></div></details></div>
-<div class="model-row"><div class="model-picker"><label for="demo-runtime">Runtime</label><select id="demo-runtime"><option value="transformers">Transformers.js · ONNX</option><option value="llamacpp">llama.cpp · GGUF / WASM</option></select></div><div class="model-picker"><label for="demo-model">Model</label><select id="demo-model"></select></div><div class="device-picker"><label for="demo-device">Run on</label><select id="demo-device"><option value="wasm">CPU · WASM</option><option value="webgpu">GPU · WebGPU</option></select></div><div class="device-picker"><label for="demo-order">Option ordering</label><select id="demo-order" aria-describedby="ordering-note"><option value="none" selected>None · single pass</option><option value="cyclic">Cyclic · K passes</option><option value="balanced">Balanced · K / 2K passes</option></select></div><button id="demo-load" class="button secondary">Load model <span>↓</span></button><button id="demo-cancel" class="button secondary" hidden>Cancel</button></div>
-<div class="model-caption"><span id="model-description"></span><a id="model-link" target="_blank" rel="noreferrer">Model card ↗</a></div>
-<div id="download-panel" hidden><div class="download-caption"><span id="download-file">Preparing download…</span><span id="download-percent"></span></div><progress id="download-progress" max="100" aria-label="Model file download"></progress></div>
-<div class="studio-body"><div class="input-panel"><div class="panel-heading"><h3>Input</h3><select id="demo-preset" aria-label="Example"></select></div><label id="state-label" for="demo-state">Message</label><textarea id="demo-state" rows="5"></textarea><label id="instruction-label" for="demo-instruction">Question for the model</label><input id="demo-instruction" value="Which team should handle this customer request?" autocomplete="off"><div id="media-panel" hidden><label class="upload-area" for="demo-file"><span id="upload-title">Choose an image</span><small id="upload-help">or drop a file here · up to 24 MB</small><input id="demo-file" type="file"></label><div id="media-preview"></div><button id="example-media" class="text-link">Use sample media ↗</button></div><label for="demo-options">Possible answers <small>One per line · 2–20 choices</small></label><textarea id="demo-options" class="options-editor" rows="4"></textarea><p id="mode-note" class="field-note"></p><p id="ordering-note" class="field-note"></p><button id="demo-run" class="button primary run-button" disabled>Evaluate <span>→</span></button></div>
-<div class="output-panel"><div class="panel-heading"><h3>Output</h3><div class="output-tabs"><button data-output="scores" aria-pressed="true">Scores</button><button data-output="json" aria-pressed="false">JSON</button></div></div><div id="result-empty"><span aria-hidden="true">↳</span><h4>A decision starts here.</h4><p>Load a model, edit the input and evaluate.<br>Results come from inference on your device.</p></div><div id="demo-result" hidden><div id="result-scores"><small>SELECTED ANSWER</small><h4 id="demo-choice"></h4><div id="demo-probabilities"></div></div><pre id="result-json" hidden><code></code></pre><p class="field-note">Probabilities are relative to these choices, not calibrated confidence.</p></div><div class="metrics"><div><span>Model load</span><strong id="load-time">—</strong></div><div><span>Last evaluation</span><strong id="run-time">—</strong></div><div><span>Runs</span><strong id="run-count">0</strong></div></div></div></div>
-<div class="studio-status"><span id="demo-status" role="status">Choose a model to begin.</span><span>Local inference</span></div></div>
-<p class="playground-footnote">Model files download from Hugging Face when you press Load. Inputs stay on your device. Larger models need more memory; CPU inference may take time.</p></section>
-<section id="languages" class="language-section-home"><div><h2>Same decisions.<br>Your language.</h2><p>Use evaluate for choices, boolean decisions and ordered scores. Use generate for scalar extraction, nullable fields and conditional workflows.</p><a class="text-link" href="docs/fields.html">Read the typed-field API →</a></div><div class="language-links"><a href="docs/rust.html"><span>Rust</span><code>cargo add turbojev</code><b>↗</b></a><a href="docs/node.html"><span>TypeScript</span><code>npm i @turbojev/node</code><b>↗</b></a><a href="docs/python.html"><span>Python</span><code>pip install turbojev</code><b>↗</b></a><a href="docs/dotnet.html"><span>C# / .NET</span><code>dotnet add package TurboJev</code><b>↗</b></a><a href="docs/browser.html"><span>Browser</span><code>npm i @turbojev/web</code><b>↗</b></a><a href="docs/c.html"><span>C & mobile</span><code>Stable C ABI</code><b>↗</b></a></div></section>
-</main><footer class="site-footer"><a class="brand" href="index.html">turbo<span>jev</span></a><span>Built for local decisions.</span><a href="docs/quickstart.html">Documentation</a><a href="https://github.com/DestroyerDarkNess/TurboJev">Source ↗</a></footer><script src="app.js?v=e4211fe53a88" defer></script><script type="module" src="demo.js?v=e4211fe53a88"></script></body></html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta
+      name="description"
+      content="Run typed decisions with local models in Rust, JavaScript, Python, C and .NET. Try TurboJev in your browser."
+    />
+    <title>TurboJev — Give your model a decision to make.</title>
+    <link rel="icon" href="favicon.svg" />
+    <link rel="stylesheet" href="styles.css?v=8f2aa745090b" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+    <header class="site-header">
+      <a class="brand" href="index.html">turbo<span>jev</span><b aria-hidden="true">↗</b></a>
+      <nav class="main-nav" aria-label="Main navigation">
+        <a href="#playground">Playground</a><a href="#languages">Languages</a
+        ><a href="docs/quickstart.html">Documentation</a>
+      </nav>
+      <a class="github-link" href="https://github.com/DestroyerDarkNess/TurboJev">GitHub ↗</a
+      ><button class="menu-toggle" aria-label="Toggle navigation" aria-expanded="false">☰</button>
+    </header>
+    <main id="main">
+      <section class="hero">
+        <h1>Give your model<br />a <em>decision</em> to make.</h1>
+        <div class="hero-bottom">
+          <p>
+            Route a message. Recognize a sound. Extract typed fields.<br />Use a local model with
+            the decision contract your application needs.
+          </p>
+          <a class="button primary" href="#playground">Try it yourself <span>↓</span></a>
+        </div>
+      </section>
+      <section id="playground" class="playground-section">
+        <div class="section-heading">
+          <div>
+            <h2>The playground</h2>
+            <p>Your input. Your choices. A model running in your browser.</p>
+          </div>
+          <a class="text-link" href="docs/ordering.html">Ordering and cost ↗</a>
+        </div>
+        <div class="studio">
+          <div class="studio-top">
+            <div class="mode-tabs" role="tablist" aria-label="Input type">
+              <button role="tab" aria-selected="true" data-mode="text">Text</button
+              ><button role="tab" aria-selected="false" data-mode="image">Image</button
+              ><button role="tab" aria-selected="false" data-mode="audio">Audio</button
+              ><button role="tab" aria-selected="false" data-mode="video">Video</button>
+            </div>
+            <details class="action-menu">
+              <summary aria-label="Playground actions">•••</summary>
+              <div>
+                <button id="demo-copy">Copy result JSON</button
+                ><button id="demo-reset">Reset example</button
+                ><button id="demo-unload" disabled>Unload model</button>
+              </div>
+            </details>
+          </div>
+          <div class="model-row">
+            <div class="model-picker">
+              <label for="demo-runtime">Runtime</label
+              ><select id="demo-runtime">
+                <option value="transformers">Transformers.js · ONNX</option>
+                <option value="llamacpp">llama.cpp · GGUF / WASM</option>
+              </select>
+            </div>
+            <div class="model-picker">
+              <label for="demo-model">Model</label
+              ><select id="demo-model"></select>
+            </div>
+            <div class="device-picker">
+              <label for="demo-device">Run on</label
+              ><select id="demo-device">
+                <option value="wasm">CPU · WASM</option>
+                <option value="webgpu">GPU · WebGPU</option>
+              </select>
+            </div>
+            <div class="device-picker">
+              <label for="demo-order">Option ordering</label
+              ><select id="demo-order" aria-describedby="ordering-note">
+                <option value="none" selected>None · single pass</option>
+                <option value="cyclic">Cyclic · K passes</option>
+                <option value="balanced">Balanced · K / 2K passes</option>
+              </select>
+            </div>
+            <button id="demo-load" class="button secondary">Load model <span>↓</span></button
+            ><button id="demo-cancel" class="button secondary" hidden>Cancel</button>
+          </div>
+          <div class="model-caption">
+            <span id="model-description"></span
+            ><a id="model-link" target="_blank" rel="noreferrer">Model card ↗</a>
+          </div>
+          <div id="download-panel" hidden>
+            <div class="download-caption">
+              <span id="download-file">Preparing download…</span><span id="download-percent"></span>
+            </div>
+            <progress id="download-progress" max="100" aria-label="Model file download"></progress>
+          </div>
+          <div class="studio-body">
+            <div class="input-panel">
+              <div class="panel-heading">
+                <h3>Input</h3>
+                <select id="demo-preset" aria-label="Example"></select>
+              </div>
+              <label id="state-label" for="demo-state">Message</label
+              ><textarea id="demo-state" rows="5"></textarea
+              ><label id="instruction-label" for="demo-instruction">Question for the model</label
+              ><input
+                id="demo-instruction"
+                value="Which team should handle this customer request?"
+                autocomplete="off"
+              />
+              <div id="media-panel" hidden>
+                <label class="upload-area" for="demo-file"
+                  ><span id="upload-title">Choose an image</span
+                  ><small id="upload-help">or drop a file here · up to 24 MB</small
+                  ><input id="demo-file" type="file"
+                /></label>
+                <div id="media-preview"></div>
+                <button id="example-media" class="text-link">Use sample media ↗</button>
+              </div>
+              <label for="demo-options"
+                >Possible answers <small>One per line · 2–20 choices</small></label
+              ><textarea id="demo-options" class="options-editor" rows="4"></textarea>
+              <p id="mode-note" class="field-note"></p>
+              <p id="ordering-note" class="field-note"></p>
+              <button id="demo-run" class="button primary run-button" disabled>
+                Evaluate <span>→</span>
+              </button>
+            </div>
+            <div class="output-panel">
+              <div class="panel-heading">
+                <h3>Output</h3>
+                <div class="output-tabs">
+                  <button data-output="scores" aria-pressed="true">Scores</button
+                  ><button data-output="json" aria-pressed="false">JSON</button>
+                </div>
+              </div>
+              <div id="result-empty">
+                <span aria-hidden="true">↳</span>
+                <h4>A decision starts here.</h4>
+                <p>
+                  Load a model, edit the input and evaluate.<br />Results come from inference on
+                  your device.
+                </p>
+              </div>
+              <div id="demo-result" hidden>
+                <div id="result-scores">
+                  <small>SELECTED ANSWER</small>
+                  <h4 id="demo-choice"></h4>
+                  <div id="demo-probabilities"></div>
+                </div>
+                <pre id="result-json" hidden><code></code></pre>
+                <p class="field-note">
+                  Probabilities are relative to these choices, not calibrated confidence.
+                </p>
+              </div>
+              <div class="metrics">
+                <div><span>Model load</span><strong id="load-time">—</strong></div>
+                <div><span>Last evaluation</span><strong id="run-time">—</strong></div>
+                <div><span>Runs</span><strong id="run-count">0</strong></div>
+              </div>
+            </div>
+          </div>
+          <div class="studio-status">
+            <span id="demo-status" role="status">Choose a model to begin.</span
+            ><span>Local inference</span>
+          </div>
+        </div>
+        <p class="playground-footnote">
+          Model files download from Hugging Face when you press Load. Inputs stay on your device.
+          Larger models need more memory; CPU inference may take time.
+        </p>
+      </section>
+      <section id="languages" class="language-section-home">
+        <div>
+          <h2>Same decisions.<br />Your language.</h2>
+          <p>
+            Use evaluate for choices, boolean decisions and ordered scores. Use generate for scalar
+            extraction, nullable fields and conditional workflows.
+          </p>
+          <a class="text-link" href="docs/fields.html">Read the typed-field API →</a>
+        </div>
+        <div class="language-links">
+          <a href="docs/rust.html"><span>Rust</span><code>cargo add turbojev</code><b>↗</b></a
+          ><a href="docs/node.html"
+            ><span>TypeScript</span><code>npm i @turbojev/node</code><b>↗</b></a
+          ><a href="docs/python.html"
+            ><span>Python</span><code>pip install turbojev</code><b>↗</b></a
+          ><a href="docs/dotnet.html"
+            ><span>C# / .NET</span><code>dotnet add package TurboJev</code><b>↗</b></a
+          ><a href="docs/browser.html"
+            ><span>Browser</span><code>npm i @turbojev/web</code><b>↗</b></a
+          ><a href="docs/c.html"><span>C & mobile</span><code>Stable C ABI</code><b>↗</b></a>
+        </div>
+      </section>
+    </main>
+    <footer class="site-footer">
+      <a class="brand" href="index.html">turbo<span>jev</span></a
+      ><span>Built for local decisions.</span><a href="docs/quickstart.html">Documentation</a
+      ><a href="https://github.com/DestroyerDarkNess/TurboJev">Source ↗</a>
+    </footer>
+    <script src="app.js?v=8f2aa745090b" defer></script>
+    <script type="module" src="demo.js?v=8f2aa745090b"></script>
+  </body>
+</html>
