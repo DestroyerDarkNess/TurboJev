@@ -13,6 +13,20 @@ async function blobBase64(file) {
 export async function mediaEvidence(file, modality, text = "") {
     return { contract: "turbojev.media.v1", text, modality, base64: await blobBase64(file) };
 }
+/** Encode several still images in caller order, without an implicit network request. */
+export async function imageEvidence(images, text = "") {
+    if (!images.length || images.length > 32)
+        throw new Error("Supply 1..32 images");
+    if (images.reduce((total, image) => total + image.size, 0) > MAX_MEDIA_BYTES) {
+        throw new Error("Combined images must not exceed 24 MiB");
+    }
+    return {
+        contract: "turbojev.media.v1",
+        text,
+        modality: "image",
+        images: await Promise.all(images.map(blobBase64)),
+    };
+}
 /** Encode ordered, already-decoded still frames; video containers are not decoded by TurboJev. */
 export async function videoFrameEvidence(frames, text = "") {
     if (!frames.length || frames.length > 32)
@@ -21,7 +35,9 @@ export async function videoFrameEvidence(frames, text = "") {
     let totalBytes = 0;
     const encoded = [];
     for (const frame of frames) {
-        if (!Number.isSafeInteger(frame.timestampMs) || frame.timestampMs < 0 || frame.timestampMs <= previous) {
+        if (!Number.isSafeInteger(frame.timestampMs) ||
+            frame.timestampMs < 0 ||
+            frame.timestampMs <= previous) {
             throw new Error("Video frame timestamps must be increasing non-negative integers in milliseconds");
         }
         previous = frame.timestampMs;
@@ -42,8 +58,10 @@ export class TurboJevRemote {
     }
     async evaluate(request, signal) {
         const response = await fetch(`${this.baseUrl.replace(/\/$/, "")}/v1/evaluate`, {
-            method: "POST", headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(request), signal,
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(request),
+            signal,
         });
         const body = await response.json();
         if (!response.ok)

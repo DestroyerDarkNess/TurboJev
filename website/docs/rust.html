@@ -6,7 +6,7 @@
     <title>Rust — TurboJev</title>
     <meta name="description" content="Rust documentation for TurboJev." />
     <link rel="icon" href="../favicon.svg" />
-    <link rel="stylesheet" href="../styles.css?v=8f2aa745090b" />
+    <link rel="stylesheet" href="../styles.css?v=eefd0e23bda9" />
   </head>
   <body class="docs-page">
     <a class="skip-link" href="#article">Skip to content</a>
@@ -32,6 +32,7 @@
           <a href="architecture.html">Architecture</a>
           <a href="api.html">Core API</a>
           <a href="fields.html">Typed fields</a>
+          <a href="cookbook.html">Cookbook</a>
           <p>Languages</p>
           <a aria-current="page" href="rust.html">Rust</a>
           <a href="node.html">Node / TypeScript</a>
@@ -54,26 +55,36 @@
           <div class="language-heading">
             <div>
               <h1>Rust</h1>
+
               <p>Native, strongly typed integration with the crates directly.</p>
             </div>
+
             <a href="https://crates.io/crates/turbojev" target="_blank" rel="noreferrer"
               >crates.io ↗</a
             >
           </div>
+
           <div class="code-block">
             <div class="code-toolbar">
               <span>Cargo.toml</span><button class="copy-button" type="button">Copy</button>
             </div>
+
             <pre class="language-toml"><code class="language-toml">[dependencies]
+
 turbojev = "0.31"
+
 serde_json = "1"
+
 turbojev-runtime-llamacpp = { version = "0.31", features = ["ffi"] }</code></pre>
           </div>
+
           <h2>Make a decision</h2>
+
           <div class="code-block">
             <div class="code-toolbar">
               <span>main.rs</span><button class="copy-button" type="button">Copy</button>
             </div>
+
             <pre class="language-rust"><code class="language-rust">use turbojev::TurboJev;
 use turbojev_runtime_llamacpp::{ffi::{FfiLlamaCpp, NativeConfig}, reference_backend, ReferencePromptConfig, ReferencePromptRenderer};
 
@@ -95,8 +106,10 @@ fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
     Ok(())
 }</code></pre>
           </div>
+
           <p class="source-link">
             Runnable source:
+
             <a
               href="https://github.com/DestroyerDarkNess/TurboJev/blob/main/samples/TurboJev-rust/src/main.rs"
               target="_blank"
@@ -104,15 +117,19 @@ fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
               >samples/TurboJev-rust ↗</a
             >
           </p>
+
           <h2>Generate typed fields</h2>
+
           <p>
             Deserialize a portable request into the exported scalar workflow type. Use the same
             engine as above.
           </p>
+
           <div class="code-block">
             <div class="code-toolbar">
               <span>fields.rs</span><button class="copy-button" type="button">Copy</button>
             </div>
+
             <pre
               class="language-rust"
             ><code class="language-rust">let request: turbojev::schema::fields::GenerateRequest = serde_json::from_value(
@@ -130,14 +147,16 @@ fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
 let response = engine.generate(request)?;
 println!(&quot;{}&quot;, serde_json::to_string_pretty(&amp;response)?);</code></pre>
           </div>
+
           <p>
             Choice correction is configured with
+
             <code>engine.with_order_robustness(turbojev::OrderRobustness::Balanced)</code>. Ordered
             score scales remain in caller order. See <a href="ordering.html">option ordering</a>.
           </p>
         </article>
         <nav class="page-turn" aria-label="Adjacent pages">
-          <a href="fields.html"><small>Previous</small>← Typed fields</a
+          <a href="cookbook.html"><small>Previous</small>← Cookbook</a
           ><a href="node.html"><small>Next</small>Node / TypeScript →</a>
         </nav>
         <div class="article-footer">
@@ -166,6 +185,6 @@ println!(&quot;{}&quot;, serde_json::to_string_pretty(&amp;response)?);</code></
       <div id="search-results" aria-live="polite"></div>
     </dialog>
     <script src="../vendor/prism/prism.js" defer></script>
-    <script src="../app.js?v=8f2aa745090b" defer></script>
+    <script src="../app.js?v=eefd0e23bda9" defer></script>
   </body>
 </html>

@@ -10,6 +10,7 @@
 #endif
 
 #include <algorithm>
+#include <random>
 #include <cstring>
 #include <cmath>
 #include <functional>
@@ -642,10 +643,11 @@ int32_t tj_llama_score_media_next(
         set_error(error, error_capacity, "invalid multimodal scoring arguments or runtime was not opened with mmproj");
         return -1;
     }
-    if ((modality == 2 && (frame_count == 0 || frame_count > 32
+    const bool image_list = modality == 0 && frame_count > 0;
+    if (((modality == 2 || image_list) && (frame_count == 0 || frame_count > 32
             || frame_base64 == nullptr || frame_base64_lengths == nullptr || frame_timestamps_ms == nullptr
             || media_base64_len != 0))
-        || (modality != 2 && (frame_count != 0 || media_base64_len == 0))) {
+        || (modality != 2 && !image_list && (frame_count != 0 || media_base64_len == 0))) {
         set_error(error, error_capacity, "video requires 1..32 timestamped image frames; image/audio require one encoded payload");
         return -1;
     }
@@ -668,7 +670,7 @@ int32_t tj_llama_score_media_next(
     if (assistant_prefix != nullptr) rendered.append(assistant_prefix);
     std::vector<std::unique_ptr<mtmd_bitmap, decltype(&mtmd_bitmap_free)>> bitmap_storage;
     std::vector<const mtmd_bitmap *> bitmaps;
-    if (modality == 2) {
+    if (modality == 2 || image_list) {
         bitmap_storage.reserve(frame_count);
         bitmaps.reserve(frame_count);
         uint64_t previous_timestamp = 0;
@@ -732,7 +734,7 @@ int32_t tj_llama_score_media_next(
     std::unique_ptr<mtmd_input_chunks, decltype(&mtmd_input_chunks_free)> chunks(
         raw_chunks, &mtmd_input_chunks_free);
     const std::string marker = mtmd_get_marker(runtime->mtmd);
-    const size_t expected_markers = modality == 2 ? frame_count : 1;
+    const size_t expected_markers = (modality == 2 || image_list) ? frame_count : 1;
     size_t marker_count = 0;
     for (size_t position = 0; !marker.empty()
          && (position = rendered.find(marker, position)) != std::string::npos;
@@ -1111,6 +1113,11 @@ int32_t tj_llama_generate_field(tj_llama_runtime * runtime, const char * task_js
         const bool thinking = task.at("thinking").get<bool>();
         const uint32_t thinking_budget = task.at("thinking_budget").get<uint32_t>();
         const uint32_t max_tokens = task.at("max_tokens").get<uint32_t>();
+        const double temperature = task.value("temperature", 0.0);
+        if (!std::isfinite(temperature) || temperature < 0.0) {
+            set_error(error, error_capacity, "temperature must be finite and nonnegative"); return -1;
+        }
+        std::mt19937_64 random(task.value("seed", uint64_t(0)));
         if (max_tokens == 0 || max_tokens > 32768 || thinking_budget > 32768) {
             set_error(error, error_capacity, "invalid field token limits"); return -1;
         }
@@ -1123,7 +1130,7 @@ int32_t tj_llama_generate_field(tj_llama_runtime * runtime, const char * task_js
 #if defined(TURBOJEV_HAS_MTMD)
             if (!runtime->mtmd) { set_error(error, error_capacity, "multimodal field generation requires a matching mmproj"); return -1; }
             const std::string marker = mtmd_get_marker(runtime->mtmd);
-            const size_t count = state.value("modality", "") == "video" ? state.at("frames").size() : 1;
+            const size_t count = state.value("modality", "") == "video" ? state.at("frames").size() : state.contains("images") ? state.at("images").size() : 1;
             for (size_t i = 0; i < count; ++i) context += "\n" + marker;
 #else
             set_error(error, error_capacity, "multimodal field generation is unavailable in this build"); return -1;
@@ -1151,6 +1158,12 @@ int32_t tj_llama_generate_field(tj_llama_runtime * runtime, const char * task_js
             for (const auto & frame : state.value("frames", json::array())) {
                 storage.push_back(frame.at("base64").get<std::string>());
                 timestamps.push_back(frame.at("timestamp_ms").get<uint64_t>());
+            }
+            if (state.contains("images")) {
+                for (const auto & image : state.at("images")) {
+                    storage.push_back(image.get<std::string>());
+                    timestamps.push_back(timestamps.size());
+                }
             }
             for (const auto & frame : storage) { frames.push_back(frame.c_str()); lengths.push_back(frame.size()); }
             // Reuse the exact mtmd preprocessing/prefill route. The two dummy
@@ -1191,6 +1204,14 @@ int32_t tj_llama_generate_field(tj_llama_runtime * runtime, const char * task_js
             const auto best = std::max_element(array.data, array.data + array.size, [](const auto & a, const auto & b) { return a.logit < b.logit; });
             if (best == array.data + array.size || !std::isfinite(best->logit)) { set_error(error, error_capacity, "grammar permits no token"); return -1; }
             llama_token next = best->id;
+            if (temperature > 0.0) {
+                std::vector<double> weights(array.size);
+                for (size_t i = 0; i < array.size; ++i) {
+                    weights[i] = std::exp((double(array.data[i].logit) - best->logit) / temperature);
+                }
+                std::discrete_distribution<size_t> distribution(weights.begin(), weights.end());
+                next = array.data[distribution(random)].id;
+            }
             if (llama_vocab_is_eog(runtime->vocab, next)) break;
             const int32_t required = llama_detokenize(runtime->vocab, &next, 1, nullptr, 0, false, true);
             if (required == std::numeric_limits<int32_t>::min()) { set_error(error, error_capacity, "token decoding overflow"); return -1; }

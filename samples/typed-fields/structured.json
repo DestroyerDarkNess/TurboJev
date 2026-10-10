@@ -1,0 +1,37 @@
+{
+  "context": "Invoice merchant: Acme. Line items: Pencil quantity 2, Notebook quantity 1. Payment is overdue.",
+  "temperature": 0,
+  "thinking": false,
+  "questions": {
+    "invoice": {
+      "type": "object",
+      "properties": {
+        "merchant": { "type": "string", "instructions": "What is the merchant name?" },
+        "overdue": { "type": "boolean", "instructions": "Is payment overdue?" }
+      }
+    },
+    "rows": {
+      "type": "array",
+      "instructions": "Extract the invoice line items in order, without repeats.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "item": { "type": "string", "instructions": "What is the item name?" },
+          "quantity": { "type": "integer", "instructions": "How many units?" }
+        }
+      },
+      "minItems": 2,
+      "maxItems": 2
+    },
+    "priority": {
+      "type": "number",
+      "instructions": "How urgently should overdue payment be handled?",
+      "levels": [
+        { "label": "low", "description": "No deadline or overdue payment" },
+        { "label": "medium", "description": "Payment is overdue" },
+        { "label": "high", "description": "An immediate deadline or legal escalation" }
+      ],
+      "return_probabilities": true
+    }
+  }
+}

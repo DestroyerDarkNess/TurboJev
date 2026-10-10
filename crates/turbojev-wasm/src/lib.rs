@@ -93,11 +93,14 @@ impl AsyncScoringBackend for BrowserBackend {
             .map_err(BackendError::Unsupported)?;
             let hook = Reflect::get(runtime, &JsValue::from_str("inferField"))
                 .map_err(|e| BackendError::Inference(js_message(e)))?;
-            if let Some(function) = hook
-                .dyn_into::<Function>()
-                .ok()
-                .filter(|_| task.values.is_none() || task.thinking)
-            {
+            if let Some(function) = hook.dyn_into::<Function>().ok().filter(|_| {
+                task.values.is_none()
+                    || task.thinking
+                    || (matches!(self, Self::Decisions { .. })
+                        && task.values.as_ref().is_some_and(|values| {
+                            values.len() > turbojev::schema::fields::MAX_CONTROL_VALUES
+                        }))
+            }) {
                 let json = serde_json::to_string(task)
                     .map_err(|e| BackendError::InvalidInput(e.to_string()))?;
                 let value = function
@@ -125,6 +128,9 @@ impl AsyncScoringBackend for BrowserBackend {
                     input_tokens: Some(0),
                     generated_tokens: 0,
                 });
+            }
+            if let Self::Tokens(backend) = self {
+                return backend.infer_field_async(task).await;
             }
             let batch = task.decision_batch()?;
             turbojev_backend::field_output_from_scores(
@@ -661,4 +667,28 @@ fn core_error(e: turbojev::Error) -> JsValue {
 #[wasm_bindgen]
 pub fn turbojev_wasm_contract() -> String {
     "turbojev.wasm.v2".to_owned()
+}
+
+/// Validate and inspect a schema before model loading.
+#[wasm_bindgen]
+pub fn compile_schema_json(input: &str) -> Result<String, JsValue> {
+    turbojev::schema::fields::compile_schema_json(input)
+        .map_err(|error| JsValue::from_str(&error.to_string()))
+}
+
+/// Standalone double-precision probability normalization.
+#[wasm_bindgen]
+pub fn candidate_softmax_json(input: &str) -> Result<String, JsValue> {
+    #[derive(serde::Deserialize)]
+    #[serde(deny_unknown_fields)]
+    struct Input {
+        logits: indexmap::IndexMap<String, f64>,
+        temperature: f64,
+    }
+    let input: Input = serde_json::from_str(input).map_err(js_json)?;
+    let values: Vec<_> = input.logits.values().copied().collect();
+    let probabilities = turbojev::calibration::candidate_softmax(&values, input.temperature)
+        .map_err(|error| JsValue::from_str(&error.to_string()))?;
+    let output: indexmap::IndexMap<_, _> = input.logits.into_keys().zip(probabilities).collect();
+    serde_json::to_string(&output).map_err(js_json)
 }

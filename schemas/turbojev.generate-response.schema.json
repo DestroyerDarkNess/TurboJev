@@ -3,86 +3,12 @@
   "title": "TurboJev GenerateResponse",
   "type": "object",
   "additionalProperties": false,
-  "required": [
-    "result",
-    "thinking",
-    "thinking_effort",
-    "skipped",
-    "usage"
-  ],
+  "required": ["result", "thinking", "thinking_effort", "skipped", "usage"],
   "properties": {
     "result": {
       "type": "object",
       "additionalProperties": {
-        "oneOf": [
-          {
-            "type": [
-              "string",
-              "number",
-              "boolean",
-              "null"
-            ]
-          },
-          {
-            "type": "object",
-            "additionalProperties": false,
-            "required": [
-              "value",
-              "confidence",
-              "probabilities",
-              "distribution"
-            ],
-            "properties": {
-              "value": {
-                "type": [
-                  "string",
-                  "number",
-                  "boolean",
-                  "null"
-                ]
-              },
-              "confidence": {
-                "type": "number",
-                "minimum": 0,
-                "maximum": 1
-              },
-              "probabilities": {
-                "type": "object",
-                "additionalProperties": {
-                  "type": "number",
-                  "minimum": 0,
-                  "maximum": 1
-                }
-              },
-              "distribution": {
-                "type": "array",
-                "items": {
-                  "type": "object",
-                  "required": [
-                    "value",
-                    "probability"
-                  ],
-                  "additionalProperties": false,
-                  "properties": {
-                    "value": {
-                      "type": [
-                        "string",
-                        "number",
-                        "boolean",
-                        "null"
-                      ]
-                    },
-                    "probability": {
-                      "type": "number",
-                      "minimum": 0,
-                      "maximum": 1
-                    }
-                  }
-                }
-              }
-            }
-          }
-        ]
+        "$ref": "#/$defs/jsonValue"
       }
     },
     "thinking": {
@@ -94,12 +20,7 @@
     "thinking_effort": {
       "type": "object",
       "additionalProperties": {
-        "enum": [
-          "none",
-          "low",
-          "medium",
-          "high"
-        ]
+        "enum": ["none", "low", "medium", "high"]
       }
     },
     "skipped": {
@@ -111,19 +32,14 @@
     },
     "usage": {
       "type": "object",
-      "required": [
-        "decisions"
-      ],
+      "required": ["decisions"],
       "properties": {
         "decisions": {
           "type": "integer",
           "minimum": 0
         },
         "input_tokens": {
-          "type": [
-            "integer",
-            "null"
-          ],
+          "type": ["integer", "null"],
           "minimum": 0
         },
         "generated_tokens": {
@@ -132,5 +48,73 @@
         }
       }
     }
-  }
+  },
+  "$defs": {
+    "probabilityAnswer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["value", "confidence", "probabilities", "distribution", "probability"],
+      "properties": {
+        "value": {
+          "type": ["string", "number", "boolean", "null"]
+        },
+        "confidence": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "probabilities": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          }
+        },
+        "distribution": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["value", "probability"],
+            "additionalProperties": false,
+            "properties": {
+              "value": {
+                "type": ["string", "number", "boolean", "null"]
+              },
+              "probability": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              }
+            }
+          }
+        },
+        "probability": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      }
+    },
+    "jsonValue": {
+      "anyOf": [
+        {
+          "type": ["string", "number", "boolean", "null"]
+        },
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/jsonValue"
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/jsonValue"
+          }
+        }
+      ]
+    }
+  },
+  "description": "Results may contain nested objects, arrays and probability answers. Validate the requested field schema as well: generic JSON cannot distinguish a user object named value from a probability answer."
 }

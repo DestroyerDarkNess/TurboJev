@@ -330,8 +330,21 @@ impl FfiLlamaCpp {
             turbojev_schema::media::Modality::Audio => 1,
             turbojev_schema::media::Modality::Video => 2,
         };
-        let frame_strings = media_evidence
-            .frames
+        let image_frames: Vec<_> = media_evidence
+            .images
+            .iter()
+            .enumerate()
+            .map(|(index, base64)| turbojev_schema::media::VideoFrame {
+                timestamp_ms: index as u64,
+                base64: base64.clone(),
+            })
+            .collect();
+        let frames = if image_frames.is_empty() {
+            &media_evidence.frames
+        } else {
+            &image_frames
+        };
+        let frame_strings = frames
             .iter()
             .map(|frame| {
                 CString::new(frame.base64.as_str()).map_err(|_| {
@@ -343,13 +356,11 @@ impl FfiLlamaCpp {
             .iter()
             .map(|frame| frame.as_ptr())
             .collect::<Vec<_>>();
-        let frame_lengths = media_evidence
-            .frames
+        let frame_lengths = frames
             .iter()
             .map(|frame| frame.base64.len())
             .collect::<Vec<_>>();
-        let frame_timestamps = media_evidence
-            .frames
+        let frame_timestamps = frames
             .iter()
             .map(|frame| frame.timestamp_ms)
             .collect::<Vec<_>>();

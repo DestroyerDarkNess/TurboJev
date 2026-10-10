@@ -6,7 +6,7 @@
     <title>Examples — TurboJev</title>
     <meta name="description" content="Examples documentation for TurboJev." />
     <link rel="icon" href="../favicon.svg" />
-    <link rel="stylesheet" href="../styles.css?v=8f2aa745090b" />
+    <link rel="stylesheet" href="../styles.css?v=eefd0e23bda9" />
   </head>
   <body class="docs-page">
     <a class="skip-link" href="#article">Skip to content</a>
@@ -32,6 +32,7 @@
           <a href="architecture.html">Architecture</a>
           <a href="api.html">Core API</a>
           <a href="fields.html">Typed fields</a>
+          <a href="cookbook.html">Cookbook</a>
           <p>Languages</p>
           <a href="rust.html">Rust</a>
           <a href="node.html">Node / TypeScript</a>
@@ -53,67 +54,93 @@
         <section id="examples" class="doc-section searchable">
           <div class="doc-section-body">
             <h1>Examples</h1>
+
             <p>
               Repository <code>samples/</code> build this checkout. The separate
+
               <a href="https://github.com/DestroyerDarkNess/TurboJev.Demos"
                 >TurboJev.Demos repository</a
               >
+
               uses published packages and CDN assets. Each Python demo owns its implementation and
               local assets; it does not invoke another demo.
             </p>
+
             <h3>Run typed-field samples</h3>
+
             <div class="code-block">
               <div class="code-toolbar">
                 <span>PowerShell · repository root</span
                 ><button class="copy-button" type="button">Copy</button>
               </div>
+
               <pre
                 class="language-powershell"
               ><code class="language-powershell">py samples/build.py native --arch x64
+
 py samples/run.py python --model C:/models/model.gguf --generate
+
 py samples/run.py ts --model C:/models/model.gguf --generate
+
 py samples/run.py csharp --model C:/models/model.gguf --generate
+
 py samples/run.py rust --model C:/models/model.gguf --generate</code></pre>
             </div>
+
             <h3>Choose a demo</h3>
+
             <div class="table-wrap">
               <table>
                 <thead>
                   <tr>
                     <th>Demo</th>
+
                     <th>Demonstrates</th>
                   </tr>
                 </thead>
+
                 <tbody>
                   <tr>
                     <td>simple</td>
+
                     <td>Choice, noul and ordered score from one customer message</td>
                   </tr>
+
                   <tr>
                     <td>TurboJev-Python</td>
+
                     <td>Ticket routing and scalar workflow modes</td>
                   </tr>
+
                   <tr>
                     <td>fair-die-python</td>
+
                     <td>Enum distributions and explicit permutation budgets</td>
                   </tr>
+
                   <tr>
                     <td>receipt-python / receipt-us-python</td>
+
                     <td>Image evidence, nullable extraction and dependencies</td>
                   </tr>
+
                   <tr>
                     <td>snake-python</td>
+
                     <td>Model-selected moves, disclosed observations and benchmark output</td>
                   </tr>
+
                   <tr>
                     <td>
                       TurboJev-js-native / TurboJev-TS-node / TurboJev-csharp-NET / TurboJev-rust
                     </td>
+
                     <td>Browser and native host integrations</td>
                   </tr>
                 </tbody>
               </table>
             </div>
+
             <p>
               Follow each folder's README for its installation, model and run options. A demo result
               measures that prompt and model; it is not a guarantee of accuracy for other tasks.
@@ -150,6 +177,6 @@ py samples/run.py rust --model C:/models/model.gguf --generate</code></pre>
       <div id="search-results" aria-live="polite"></div>
     </dialog>
     <script src="../vendor/prism/prism.js" defer></script>
-    <script src="../app.js?v=8f2aa745090b" defer></script>
+    <script src="../app.js?v=eefd0e23bda9" defer></script>
   </body>
 </html>

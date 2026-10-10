@@ -82,7 +82,7 @@ fn skipped_dependencies_propagate_without_inference_or_fake_null() {
         })))
         .unwrap();
     assert_eq!(result.result.len(), 1);
-    assert_eq!(result.skipped, vec!["descendant", "skip"]); // stable source-map order
+    assert_eq!(result.skipped, vec!["skip", "descendant"]); // stable source-map order
     assert_eq!(engine.backend().seen.borrow().len(), 1);
     assert!(result.thinking_effort.is_empty());
 }
@@ -92,7 +92,7 @@ fn dependent_prompts_receive_plain_values_not_probability_wrappers() {
     let engine = TurboJevEngine::new(Model::default());
     let result = engine
         .generate(request(json!({
-            "roll":{"type":"integer", "enum":[2,5], "return_probabilities":true},
+            "roll":{"type":"integer", "enum":[2,5], "return_probabilities":true, "permutations":1},
             "text":{"type":"string", "depends_on":["roll"]}
         })))
         .unwrap();

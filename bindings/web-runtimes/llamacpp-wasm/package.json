@@ -1,6 +1,6 @@
 {
   "name": "@turbojev/runtime-llamacpp-wasm",
-  "version": "0.31.0",
+  "version": "0.32.0",
   "description": "Browser-side llama.cpp WASM decision runtime for TurboJev",
   "license": "Apache-2.0",
   "repository": {
@@ -8,8 +8,13 @@
     "url": "https://github.com/DestroyerDarkNess/TurboJev.git",
     "directory": "bindings/web-runtimes/llamacpp-wasm"
   },
-  "publishConfig": { "access": "public" },
+  "publishConfig": {
+    "access": "public"
+  },
   "type": "module",
   "exports": "./src/index.js",
-  "files": ["src", "README.md"]
+  "files": [
+    "src",
+    "README.md"
+  ]
 }

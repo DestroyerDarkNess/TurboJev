@@ -7,7 +7,9 @@
 //! accepts an already-resolved local model path (or a deterministic `fixture://` spec)
 //! and owns exactly one thread-affine model session.
 
+mod control;
 pub mod worker;
+pub use control::GenerationControl;
 
 use std::collections::BTreeMap;
 
@@ -513,16 +515,67 @@ impl NativeSession {
 
     /// Additive JSON Schema API; all field semantics live in the portable core.
     pub fn generate_json(&self, input: &str) -> Result<String, HostError> {
+        self.generate_json_controlled(input, &GenerationControl::new(None)?)
+    }
+
+    /// Cancellation and timeout are cooperative between model operations, not inside a decode.
+    pub fn generate_json_controlled(
+        &self,
+        input: &str,
+        control: &GenerationControl,
+    ) -> Result<String, HostError> {
+        control.check()?;
         let request: turbojev_schema::fields::GenerateRequest =
             serde_json::from_str(input).map_err(HostError::Json)?;
         let response = match &self.engine {
-            NativeEngine::Worker(engine) => engine.generate(request),
-            NativeEngine::Fixture(engine) => engine.generate(request),
+            NativeEngine::Worker(engine) => engine.generate_controlled(request, || {
+                control
+                    .check()
+                    .map_err(|error| turbojev_backend::BackendError::Inference(error.to_string()))
+            }),
+            NativeEngine::Fixture(engine) => engine.generate_controlled(request, || {
+                control
+                    .check()
+                    .map_err(|error| turbojev_backend::BackendError::Inference(error.to_string()))
+            }),
             #[cfg(feature = "llamacpp")]
-            NativeEngine::Llama(engine) => engine.generate(request),
+            NativeEngine::Llama(engine) => engine.generate_controlled(request, || {
+                control
+                    .check()
+                    .map_err(|error| turbojev_backend::BackendError::Inference(error.to_string()))
+            }),
         }
-        .map_err(|e| HostError::Core(e.to_string()))?;
+        .map_err(|error| {
+            control
+                .check()
+                .err()
+                .unwrap_or_else(|| HostError::Core(error.to_string()))
+        })?;
+        control.check()?;
         serde_json::to_string(&response).map_err(HostError::Json)
+    }
+
+    /// Standalone candidate normalization, shared by thin SDK helpers.
+    pub fn candidate_softmax_json(input: &str) -> Result<String, HostError> {
+        #[derive(Deserialize)]
+        #[serde(deny_unknown_fields)]
+        struct Input {
+            logits: indexmap::IndexMap<String, f64>,
+            temperature: f64,
+        }
+        let input: Input = serde_json::from_str(input)?;
+        let values: Vec<_> = input.logits.values().copied().collect();
+        let probabilities = turbojev::calibration::candidate_softmax(&values, input.temperature)
+            .map_err(|error| HostError::InvalidOptions(error.to_string()))?;
+        let distribution: indexmap::IndexMap<_, _> =
+            input.logits.into_keys().zip(probabilities).collect();
+        serde_json::to_string(&distribution).map_err(HostError::Json)
+    }
+
+    /// Compile schemas without inference; the result is shared by all bindings.
+    pub fn compile_schema_json(input: &str) -> Result<String, HostError> {
+        turbojev_schema::fields::compile_schema_json(input)
+            .map_err(|error| HostError::InvalidOptions(error.to_string()))
     }
 
     /// Evaluate one external compatibility profile without duplicating semantic logic.
@@ -646,6 +699,10 @@ fn parse_profile(value: &str) -> Result<WireProfile, HostError> {
 /// Stable host-layer error category.
 #[derive(Debug, Error)]
 pub enum HostError {
+    #[error("generation cancelled")]
+    GenerationCancelled,
+    #[error("generation deadline exceeded")]
+    GenerationTimeout,
     #[error("invalid native host options: {0}")]
     InvalidOptions(String),
     #[error("runtime unavailable: {0}")]
@@ -668,6 +725,8 @@ impl HostError {
     /// Stable machine-readable error code shared by host bindings.
     pub const fn code(&self) -> &'static str {
         match self {
+            Self::GenerationCancelled => "GENERATION_CANCELLED",
+            Self::GenerationTimeout => "GENERATION_TIMEOUT",
             Self::InvalidOptions(_) => "INVALID_OPTIONS",
             Self::RuntimeUnavailable(_) => "RUNTIME_UNAVAILABLE",
             Self::Runtime(_) => "RUNTIME_ERROR",

@@ -9,7 +9,103 @@ use std::{
     panic::{catch_unwind, AssertUnwindSafe},
     thread::ThreadId,
 };
-use turbojev_host_native::{HostError, NativeSession};
+use turbojev_host_native::{GenerationControl, HostError, NativeSession};
+
+/// Thread-safe cancellation state; the engine itself remains thread-affine.
+#[repr(C)]
+pub struct tj_generation_control {
+    inner: GenerationControl,
+}
+
+/// Create control. Negative timeout disables the deadline; zero expires immediately.
+///
+/// # Safety
+/// `out_control` must be a writable pointer slot. Free the returned handle once.
+#[no_mangle]
+pub unsafe extern "C" fn tj_generation_control_open(
+    timeout_ms: i64,
+    out_control: *mut *mut tj_generation_control,
+) -> i32 {
+    if out_control.is_null() {
+        return set_error("INVALID_ARGUMENT", "out_control must not be null");
+    }
+    let timeout = (timeout_ms >= 0).then(|| std::time::Duration::from_millis(timeout_ms as u64));
+    match GenerationControl::new(timeout) {
+        Ok(inner) => {
+            // SAFETY: the caller provides writable output storage.
+            unsafe {
+                *out_control = Box::into_raw(Box::new(tj_generation_control { inner }));
+            }
+            clear_error();
+            TJ_OK
+        }
+        Err(error) => host_error(error),
+    }
+}
+
+/// Cancel from any thread. Control must remain alive until generation returns.
+///
+/// # Safety
+/// `control` must be a live handle; no concurrent call may free it.
+#[no_mangle]
+pub unsafe extern "C" fn tj_generation_control_cancel(control: *const tj_generation_control) {
+    // SAFETY: live handle required by the caller contract.
+    if let Some(control) = unsafe { control.as_ref() } {
+        control.inner.cancel();
+    }
+}
+
+/// Release control after every generation/cancel operation has completed.
+///
+/// # Safety
+/// Free a handle returned by open exactly once, with no outstanding uses.
+#[no_mangle]
+pub unsafe extern "C" fn tj_generation_control_free(control: *mut tj_generation_control) {
+    if !control.is_null() {
+        // SAFETY: unique owned handle required by the caller contract.
+        drop(unsafe { Box::from_raw(control) });
+    }
+}
+
+/// Generate with cooperative checks before/after each complete model operation.
+///
+/// # Safety
+/// Engine affinity and input/output ownership match `tj_engine_generate_json`.
+/// Control must remain live until this function returns. Cancellation may run concurrently.
+#[no_mangle]
+pub unsafe extern "C" fn tj_engine_generate_json_controlled(
+    engine: *mut tj_engine,
+    request_json: *const c_char,
+    control: *const tj_generation_control,
+    out_json: *mut *mut c_char,
+) -> i32 {
+    match catch_unwind(AssertUnwindSafe(|| {
+        // SAFETY: checked borrowed pointers under the caller's live-handle contract.
+        let handle = match unsafe { handle_ref(engine) } {
+            Ok(value) => value,
+            Err(code) => return code,
+        };
+        // SAFETY: UTF-8 C string required for the duration of the call.
+        let request = match unsafe { input(request_json, "request_json") } {
+            Ok(value) => value,
+            Err(code) => return code,
+        };
+        // SAFETY: control may be read concurrently but cannot be freed during this call.
+        let Some(control) = (unsafe { control.as_ref() }) else {
+            return set_error("INVALID_ARGUMENT", "control must not be null");
+        };
+        match handle
+            .session
+            .generate_json_controlled(request, &control.inner)
+        {
+            Ok(value) => write_output(value, out_json),
+            Err(error) => host_error(error),
+        }
+    })) {
+        Ok(code) => code,
+        Err(_) => set_error("PANIC", "panic contained at TurboJev C ABI boundary"),
+    }
+}
 
 pub const TJ_OK: i32 = 0;
 pub const TJ_E_INVALID_ARGUMENT: i32 = 1;
@@ -233,6 +329,57 @@ pub unsafe extern "C" fn tj_engine_generate_json(
     })) {
         Ok(code) => code,
         Err(_) => set_error("PANIC", "panic contained at TurboJev C ABI boundary"),
+    }
+}
+
+/// Normalize named candidate logits without loading a model.
+///
+/// # Safety
+/// Input must be valid NUL-terminated UTF-8. Output must be a writable slot.
+/// Free the returned string with `tj_string_free`.
+#[no_mangle]
+pub unsafe extern "C" fn tj_candidate_softmax_json(
+    input_json: *const c_char,
+    out_json: *mut *mut c_char,
+) -> i32 {
+    match catch_unwind(AssertUnwindSafe(|| {
+        // SAFETY: borrowed string required by the caller contract.
+        let input = match unsafe { input(input_json, "input_json") } {
+            Ok(value) => value,
+            Err(code) => return code,
+        };
+        match NativeSession::candidate_softmax_json(input) {
+            Ok(value) => write_output(value, out_json),
+            Err(error) => host_error(error),
+        }
+    })) {
+        Ok(code) => code,
+        Err(_) => set_error("PANIC", "panic contained at TurboJev C ABI boundary"),
+    }
+}
+
+/// Compile a schema without creating an engine or invoking a model.
+///
+/// # Safety
+/// Input must be valid NUL-terminated UTF-8. Output must be a writable pointer
+/// slot; release its returned owned string with `tj_string_free`.
+#[no_mangle]
+pub unsafe extern "C" fn tj_compile_schema_json(
+    schema_json: *const c_char,
+    out_json: *mut *mut c_char,
+) -> i32 {
+    match catch_unwind(AssertUnwindSafe(|| {
+        let schema = match unsafe { input(schema_json, "schema_json") } {
+            Ok(value) => value,
+            Err(code) => return code,
+        };
+        match NativeSession::compile_schema_json(schema) {
+            Ok(value) => write_output(value, out_json),
+            Err(error) => host_error(error),
+        }
+    })) {
+        Ok(code) => code,
+        Err(_) => set_error("PANIC", "panic contained at schema compiler boundary"),
     }
 }
 

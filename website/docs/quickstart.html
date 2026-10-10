@@ -6,7 +6,7 @@
     <title>Quickstart — TurboJev</title>
     <meta name="description" content="Quickstart documentation for TurboJev." />
     <link rel="icon" href="../favicon.svg" />
-    <link rel="stylesheet" href="../styles.css?v=8f2aa745090b" />
+    <link rel="stylesheet" href="../styles.css?v=eefd0e23bda9" />
   </head>
   <body class="docs-page">
     <a class="skip-link" href="#article">Skip to content</a>
@@ -32,6 +32,7 @@
           <a href="architecture.html">Architecture</a>
           <a href="api.html">Core API</a>
           <a href="fields.html">Typed fields</a>
+          <a href="cookbook.html">Cookbook</a>
           <p>Languages</p>
           <a href="rust.html">Rust</a>
           <a href="node.html">Node / TypeScript</a>
@@ -53,28 +54,37 @@
         <section id="quickstart" class="doc-section searchable">
           <div class="doc-section-body">
             <h1>Quickstart</h1>
+
             <p>
               Install the published package for your language. Native Node, Python and .NET packages
               currently include Windows x86, x64 and ARM64 libraries. Rust can build from source;
               browser WASM is independent of the host CPU architecture. Download a GGUF supported by
               the selected llama.cpp build, then pass its local path.
             </p>
+
             <div class="code-block">
               <div class="code-toolbar">
                 <span>Terminal</span><button class="copy-button" type="button">Copy</button>
               </div>
+
               <pre
                 class="language-bash"
               ><code class="language-bash">python -m pip install --upgrade turbojev
+
 npm install @turbojev/node
+
 dotnet add package TurboJev
+
 cargo add turbojev
+
 cargo add turbojev-runtime-llamacpp --features ffi</code></pre>
             </div>
+
             <div class="code-block">
               <div class="code-toolbar">
                 <span>quickstart.py</span><button class="copy-button" type="button">Copy</button>
               </div>
+
               <pre
                 class="language-python"
               ><code class="language-python">from turbojev import TurboJev
@@ -98,23 +108,29 @@ with TurboJev.load("./model.gguf", device="cpu", n_ctx=8192, n_seq_max=1) as jev
     )
     print(response["answers"]["team"])</code></pre>
             </div>
+
             <p>
               <code>evaluate</code> returns decisions in <code>answers</code>.
-              <code>generate</code> returns typed scalar fields in <code>result</code>. Neither
-              promises that the selected model will interpret every question correctly. Start with
-              clear instructions and measure your own cases.
+              <code>generate</code> returns typed scalar and structured fields in
+              <code>result</code>. Neither promises that the selected model will interpret every
+              question correctly. Start with clear instructions and measure your own cases.
             </p>
+
             <h3>Repository samples</h3>
+
             <p>
               Samples exercise this checkout and build its local artifacts. The separate
+
               <a href="https://github.com/DestroyerDarkNess/TurboJev.Demos">demos repository</a>
               installs published packages; each Python demo owns its code and data.
             </p>
+
             <div class="code-block">
               <div class="code-toolbar">
                 <span>PowerShell · repository root</span
                 ><button class="copy-button" type="button">Copy</button>
               </div>
+
               <pre
                 class="language-powershell"
               ><code class="language-powershell">py samples/build.py native --arch x64
@@ -124,10 +140,13 @@ py samples/run.py csharp --model C:/models/model.gguf --generate
 py samples/build.py web
 py samples/run.py web</code></pre>
             </div>
+
             <p>
               Choose one architecture supported by your build toolchain: <code>x86</code>,
               <code>x64</code>, or <code>arm64</code>. From inside <code>samples/</code>, use
-              <code>py build.py</code> and <code>py run.py</code>, without repeating the directory.
+              <code>py build.py</code> and
+
+              <code>py run.py</code>, without repeating the directory.
             </p>
           </div>
         </section>
@@ -160,6 +179,6 @@ py samples/run.py web</code></pre>
       <div id="search-results" aria-live="polite"></div>
     </dialog>
     <script src="../vendor/prism/prism.js" defer></script>
-    <script src="../app.js?v=8f2aa745090b" defer></script>
+    <script src="../app.js?v=eefd0e23bda9" defer></script>
   </body>
 </html>

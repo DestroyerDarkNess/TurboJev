@@ -20,7 +20,9 @@ export async function resolveModel(options) {
         return source;
     if (source.startsWith("file://"))
         return fileURLToPath(source);
-    if (!source.startsWith("http://") && !source.startsWith("https://") && !source.startsWith("hf://"))
+    if (!source.startsWith("http://") &&
+        !source.startsWith("https://") &&
+        !source.startsWith("hf://"))
         return resolve(source);
     const url = source.startsWith("hf://") ? hfUrl(source) : source;
     const cache = resolve(options.cacheDir ?? join(process.env.HOME ?? process.cwd(), ".cache", "turbojev"));

@@ -1,0 +1,20 @@
+{
+  "context": "Receipt: dog grooming appointment, total 45.00.",
+  "questions": {
+    "category": {
+      "type": "string",
+      "choices": [
+        { "value": "groceries", "description": "Food shopping" },
+        { "value": "transport", "description": "Travel and fuel" },
+        { "value": "new", "description": "None of the existing categories fit" }
+      ],
+      "instructions": "Select an existing expense category, or new when none fits. Do not invent a match.",
+      "permutations": 1
+    },
+    "new_category": {
+      "type": "string",
+      "instructions": "Propose a short reusable expense category name.",
+      "when": { "category": "new" }
+    }
+  }
+}

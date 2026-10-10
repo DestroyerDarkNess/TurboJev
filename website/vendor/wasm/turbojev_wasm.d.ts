@@ -2,6 +2,14 @@
 /* eslint-disable */
 export function turbojev_wasm_contract(): string;
 /**
+ * Validate and inspect a schema before model loading.
+ */
+export function compile_schema_json(input: string): string;
+/**
+ * Standalone double-precision probability normalization.
+ */
+export function candidate_softmax_json(input: string): string;
+/**
  * High-level browser engine. The runtime object must already be initialized.
  */
 export class WasmEngine {
@@ -22,6 +30,8 @@ export interface InitOutput {
   readonly wasmengine_generate_json: (a: number, b: number, c: number) => any;
   readonly wasmengine_evaluate_compatible_json: (a: number, b: number, c: number, d: number, e: number) => any;
   readonly turbojev_wasm_contract: () => [number, number];
+  readonly compile_schema_json: (a: number, b: number) => [number, number, number, number];
+  readonly candidate_softmax_json: (a: number, b: number) => [number, number, number, number];
   readonly __wbindgen_exn_store: (a: number) => void;
   readonly __externref_table_alloc: () => number;
   readonly __wbindgen_export_2: WebAssembly.Table;
@@ -30,8 +40,8 @@ export interface InitOutput {
   readonly __wbindgen_realloc: (a: number, b: number, c: number, d: number) => number;
   readonly __externref_table_dealloc: (a: number) => void;
   readonly __wbindgen_free: (a: number, b: number, c: number) => void;
-  readonly closure77_externref_shim: (a: number, b: number, c: any) => void;
-  readonly closure272_externref_shim: (a: number, b: number, c: any, d: any) => void;
+  readonly closure86_externref_shim: (a: number, b: number, c: any) => void;
+  readonly closure288_externref_shim: (a: number, b: number, c: any, d: any) => void;
   readonly __wbindgen_start: () => void;
 }
 

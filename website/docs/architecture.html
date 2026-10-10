@@ -6,7 +6,7 @@
     <title>Architecture — TurboJev</title>
     <meta name="description" content="Architecture documentation for TurboJev." />
     <link rel="icon" href="../favicon.svg" />
-    <link rel="stylesheet" href="../styles.css?v=8f2aa745090b" />
+    <link rel="stylesheet" href="../styles.css?v=eefd0e23bda9" />
   </head>
   <body class="docs-page">
     <a class="skip-link" href="#article">Skip to content</a>
@@ -32,6 +32,7 @@
           <a aria-current="page" href="architecture.html">Architecture</a>
           <a href="api.html">Core API</a>
           <a href="fields.html">Typed fields</a>
+          <a href="cookbook.html">Cookbook</a>
           <p>Languages</p>
           <a href="rust.html">Rust</a>
           <a href="node.html">Node / TypeScript</a>
@@ -53,41 +54,59 @@
         <section id="architecture" class="doc-section searchable">
           <div class="doc-section-body">
             <h1>Architecture</h1>
+
             <p>
               The core accepts evaluate requests for typed decisions and generate requests for
               scalar workflows. It validates dependencies, conditions, nullable values and workload
               limits. An adapter renders the model's real prompt and tokenizer, returns candidate
               scores, and lets TurboJev validate, normalize, calibrate, and build the response.
             </p>
+
             <div class="architecture-diagram">
               <div><span>state</span><small>text · JSON · media</small></div>
+
               <i>→</i>
+
               <div>
                 <span>questions / fields</span><small>choice · noul · score · scalars</small>
               </div>
+
               <i>→</i>
+
               <div class="diagram-core">
                 <span>TurboJev core</span><small>plan · score · respond</small>
               </div>
+
               <i>→</i>
+
               <div><span>typed response</span><small>answers / result + skipped</small></div>
             </div>
+
             <div class="two-column-notes">
               <div>
                 <h3>Core owns</h3>
+
                 <ul>
                   <li>Schema, candidate and dependency validation</li>
+
                   <li>Execution planning and calibration metadata</li>
+
                   <li>Typed responses, conditional omissions and scalar validation</li>
+
                   <li>Order robustness and parity contracts</li>
                 </ul>
               </div>
+
               <div>
                 <h3>Adapters own</h3>
+
                 <ul>
                   <li>Chat template and tokenizer</li>
+
                   <li>GGUF, Transformers.js, or custom runtime</li>
+
                   <li>Media preprocessing and hardware</li>
+
                   <li>Process, file, and network boundaries</li>
                 </ul>
               </div>
@@ -124,6 +143,6 @@
       <div id="search-results" aria-live="polite"></div>
     </dialog>
     <script src="../vendor/prism/prism.js" defer></script>
-    <script src="../app.js?v=8f2aa745090b" defer></script>
+    <script src="../app.js?v=eefd0e23bda9" defer></script>
   </body>
 </html>

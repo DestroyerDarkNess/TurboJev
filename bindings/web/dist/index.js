@@ -1,32 +1,108 @@
-export { TurboJevRemote, mediaEvidence, videoFrameEvidence } from "./remote.js";
+export { TurboJevRemote, imageEvidence, mediaEvidence, videoFrameEvidence } from "./remote.js";
 export class TurboJevWeb {
     #worker;
     #id = 1;
     #pending = new Map();
     #closed = false;
-    constructor(worker) { this.#worker = worker; worker.onmessage = ({ data }) => { const p = this.#pending.get(data.id); if (!p)
-        return; this.#pending.delete(data.id); data.ok ? p.resolve(data.value) : p.reject(new Error(data.error)); }; worker.onerror = e => { for (const p of this.#pending.values())
-        p.reject(e); this.#pending.clear(); }; }
-    static async load(options) { const worker = new Worker(options.workerUrl ?? new URL("../worker.js", import.meta.url), { type: "module" }); const x = new TurboJevWeb(worker); try {
-        await x.#call("load", options);
-        return x;
+    #closing = false;
+    constructor(worker) {
+        this.#worker = worker;
+        worker.onmessage = ({ data }) => {
+            const p = this.#pending.get(data.id);
+            if (!p)
+                return;
+            this.#pending.delete(data.id);
+            data.ok ? p.resolve(data.value) : p.reject(new Error(data.error));
+        };
+        worker.onerror = (e) => {
+            for (const p of this.#pending.values())
+                p.reject(e);
+            this.#pending.clear();
+        };
     }
-    catch (error) {
-        worker.terminate();
-        throw error;
-    } }
-    async evaluate(request) { return this.#call("evaluate", { request }); }
-    async generate(request) { return this.#call("generate", { request }); }
-    async evaluateCompatible(profile, request) { return this.#call("compatible", { profile, request }); }
-    async info() { return this.#call("info", {}); }
-    async close() { if (this.#closed)
-        return; try {
-        await this.#call("close", {});
+    static async load(options) {
+        const worker = new Worker(options.workerUrl ?? new URL("../worker.js", import.meta.url), {
+            type: "module",
+        });
+        const x = new TurboJevWeb(worker);
+        try {
+            await x.#call("load", options);
+            return x;
+        }
+        catch (error) {
+            worker.terminate();
+            throw error;
+        }
     }
-    finally {
-        this.#closed = true;
-        this.#worker.terminate();
-    } }
-    #call(op, args) { if (this.#closed)
-        return Promise.reject(new Error("ENGINE_CLOSED")); const id = this.#id++; return new Promise((resolve, reject) => { this.#pending.set(id, { resolve, reject }); this.#worker.postMessage({ id, op, args }); }); }
+    async evaluate(request) {
+        return this.#call("evaluate", { request });
+    }
+    async candidateSoftmax(logits, temperature = 1) {
+        return this.#call("candidateSoftmax", {
+            input: { logits, temperature },
+        });
+    }
+    async compileSchema(schema) {
+        return this.#call("compileSchema", { schema });
+    }
+    async generate(request, options = {}) {
+        return this.#call("generate", { request }, options);
+    }
+    async evaluateCompatible(profile, request) {
+        return this.#call("compatible", { profile, request });
+    }
+    async info() {
+        return this.#call("info", {});
+    }
+    async close() {
+        if (this.#closed || this.#closing)
+            return;
+        this.#closing = true;
+        try {
+            await this.#call("close", {});
+        }
+        finally {
+            this.#closed = true;
+            this.#worker.terminate();
+            for (const pending of this.#pending.values())
+                pending.reject(new Error("ENGINE_CLOSED"));
+            this.#pending.clear();
+        }
+    }
+    #call(op, args, options = {}) {
+        if (this.#closed || (this.#closing && op !== "close"))
+            return Promise.reject(new Error("ENGINE_CLOSED"));
+        if (options.timeoutMs !== undefined &&
+            (!Number.isFinite(options.timeoutMs) || options.timeoutMs < 0)) {
+            return Promise.reject(new Error("Timeout must be a finite non-negative number"));
+        }
+        if (options.signal?.aborted)
+            return Promise.reject(new Error("GENERATION_CANCELLED: generation cancelled"));
+        const id = this.#id++;
+        return new Promise((resolve, reject) => {
+            const cancel = () => this.#worker.postMessage({ op: "cancelGeneration", args: { requestId: id } });
+            const cleanup = () => options.signal?.removeEventListener("abort", cancel);
+            this.#pending.set(id, {
+                resolve: (value) => {
+                    cleanup();
+                    resolve(value);
+                },
+                reject: (error) => {
+                    cleanup();
+                    reject(error);
+                },
+            });
+            options.signal?.addEventListener("abort", cancel, { once: true });
+            this.#worker.postMessage({
+                id,
+                op,
+                args: {
+                    ...args,
+                    ...(options.timeoutMs === undefined
+                        ? {}
+                        : { deadlineMs: Date.now() + options.timeoutMs }),
+                },
+            });
+        });
+    }
 }

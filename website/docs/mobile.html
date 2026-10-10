@@ -6,7 +6,7 @@
     <title>Android + Swift — TurboJev</title>
     <meta name="description" content="Android + Swift documentation for TurboJev." />
     <link rel="icon" href="../favicon.svg" />
-    <link rel="stylesheet" href="../styles.css?v=8f2aa745090b" />
+    <link rel="stylesheet" href="../styles.css?v=eefd0e23bda9" />
   </head>
   <body class="docs-page">
     <a class="skip-link" href="#article">Skip to content</a>
@@ -32,6 +32,7 @@
           <a href="architecture.html">Architecture</a>
           <a href="api.html">Core API</a>
           <a href="fields.html">Typed fields</a>
+          <a href="cookbook.html">Cookbook</a>
           <p>Languages</p>
           <a href="rust.html">Rust</a>
           <a href="node.html">Node / TypeScript</a>
@@ -54,8 +55,10 @@
           <div class="language-heading">
             <div>
               <h1>Android + Swift</h1>
+
               <p>Both mobile bindings call the C ABI on a dedicated affinity thread.</p>
             </div>
+
             <a
               href="https://github.com/DestroyerDarkNess/TurboJev/tree/main/bindings"
               target="_blank"
@@ -63,11 +66,13 @@
               >sources ↗</a
             >
           </div>
+
           <div class="mobile-snippets">
             <div class="code-block">
               <div class="code-toolbar">
                 <span>Kotlin</span><button class="copy-button" type="button">Copy</button>
               </div>
+
               <pre class="language-kotlin"><code class="language-kotlin">val jev = TurboJev.load(
     JSONObject("{\"model\":\"app/model.gguf\"}")
 ).join()
@@ -75,40 +80,54 @@ val request = """{"state":{"message":"My package arrived broken"},"questions":{"
 val result = jev.evaluate(JSONObject(request)).join()
 jev.close()</code></pre>
             </div>
+
             <div class="code-block">
               <div class="code-toolbar">
                 <span>Swift</span><button class="copy-button" type="button">Copy</button>
               </div>
+
               <pre class="language-swift"><code class="language-swift">let jev = try TurboJevEngine(
+
     optionsJSON: #"{"model":"model.gguf"}"#
+
 )
+
 let json = try jev.evaluate(#"{"state":{"message":"My package arrived broken"},"questions":{"department":{"type":"choice","instructions":"Which department?","criteria":{"billing":"Payments","shipping":"Delivery"}}}}"#)
+
 try jev.close()</code></pre>
             </div>
           </div>
+
           <h2>Generate typed fields</h2>
+
           <p>
             Use the same scalar request JSON as the other bindings. Native libraries must be built
             and packaged for the target platform; Android and Swift are source integrations, not
             claims of published mobile binaries.
           </p>
+
           <div class="code-block">
             <div class="code-toolbar">
               <span>Kotlin</span><button class="copy-button" type="button">Copy</button>
             </div>
+
             <pre
               class="language-kotlin"
             ><code class="language-kotlin">val fields = JSONObject(&quot;&quot;&quot;{&quot;context&quot;:&quot;Invoice total: 324.50 GBP.&quot;,&quot;questions&quot;:{&quot;total&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;instructions&quot;:&quot;What is the total in GBP?&quot;}},&quot;thinking&quot;:false}&quot;&quot;&quot;)
+
 val response = jev.generate(fields).join()</code></pre>
           </div>
+
           <div class="code-block">
             <div class="code-toolbar">
               <span>Swift</span><button class="copy-button" type="button">Copy</button>
             </div>
+
             <pre
               class="language-swift"
             ><code class="language-swift">let response = try jev.generate(#&quot;{&quot;context&quot;:&quot;Invoice total: 324.50 GBP.&quot;,&quot;questions&quot;:{&quot;total&quot;:{&quot;type&quot;:&quot;number&quot;,&quot;instructions&quot;:&quot;What is the total in GBP?&quot;}},&quot;thinking&quot;:false}&quot;#)</code></pre>
           </div>
+
           <p>
             These calls belong before the engine close shown above. Native load options, field
             dependencies, conditions and budgets use the same JSON contract.
@@ -144,6 +163,6 @@ val response = jev.generate(fields).join()</code></pre>
       <div id="search-results" aria-live="polite"></div>
     </dialog>
     <script src="../vendor/prism/prism.js" defer></script>
-    <script src="../app.js?v=8f2aa745090b" defer></script>
+    <script src="../app.js?v=eefd0e23bda9" defer></script>
   </body>
 </html>

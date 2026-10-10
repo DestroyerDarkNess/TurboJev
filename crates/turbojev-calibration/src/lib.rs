@@ -379,6 +379,28 @@ pub fn stable_softmax(logits: &[f32], temperature: f64) -> Result<Vec<f64>, Cali
     Ok(weights.into_iter().map(|weight| weight / total).collect())
 }
 
+/// Stable double-precision candidate normalization. This is not fitted calibration.
+pub fn candidate_softmax(logits: &[f64], temperature: f64) -> Result<Vec<f64>, CalibrationError> {
+    validate_temperature(temperature)?;
+    if logits.is_empty() {
+        return Err(CalibrationError::TooFewCandidates);
+    }
+    if logits.iter().any(|value| !value.is_finite()) {
+        return Err(CalibrationError::NonFiniteLogit);
+    }
+    let peak = logits.iter().copied().fold(f64::NEG_INFINITY, f64::max);
+    // Subtract before scaling: finite large logits and small temperatures cannot overflow upward.
+    let weights: Vec<_> = logits
+        .iter()
+        .map(|value| ((value - peak) / temperature).exp())
+        .collect();
+    let mass: f64 = weights.iter().sum();
+    if !mass.is_finite() || mass <= 0.0 {
+        return Err(CalibrationError::InvalidNormalization);
+    }
+    Ok(weights.into_iter().map(|value| value / mass).collect())
+}
+
 /// Evaluate NLL, multiclass Brier score, accuracy and top-label ECE.
 pub fn evaluate_calibration(
     examples: &[CalibrationExample],

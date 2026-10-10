@@ -38,7 +38,6 @@ fn invalid_values_and_options_fail_before_inference() {
         json!({"type":"number", "minimum":0}),
         json!({"type":"string", "return_probabilities":true}),
         json!({"type":"boolean", "return_probabilities":1}),
-        json!({"type":"boolean", "permutations":1}),
         json!({"type":"string", "enum":["a","b"], "permutations":0}),
         json!({"type":"string", "enum":["a","b"], "permutations":true}),
         json!({"type":"string", "enum":["a","b"], "permutations":2.0}),

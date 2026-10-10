@@ -6,7 +6,7 @@
     <title>Python — TurboJev</title>
     <meta name="description" content="Python documentation for TurboJev." />
     <link rel="icon" href="../favicon.svg" />
-    <link rel="stylesheet" href="../styles.css?v=8f2aa745090b" />
+    <link rel="stylesheet" href="../styles.css?v=eefd0e23bda9" />
   </head>
   <body class="docs-page">
     <a class="skip-link" href="#article">Skip to content</a>
@@ -32,6 +32,7 @@
           <a href="architecture.html">Architecture</a>
           <a href="api.html">Core API</a>
           <a href="fields.html">Typed fields</a>
+          <a href="cookbook.html">Cookbook</a>
           <p>Languages</p>
           <a href="rust.html">Rust</a>
           <a href="node.html">Node / TypeScript</a>
@@ -54,19 +55,24 @@
           <div class="language-heading">
             <div>
               <h1>Python</h1>
+
               <p>A context-managed API that returns ordinary dictionaries.</p>
             </div>
+
             <a href="https://pypi.org/project/turbojev/" target="_blank" rel="noreferrer"
               >PyPI ↗</a
             >
           </div>
+
           <div class="install-line">
             <code>pip install turbojev</code><button class="copy-button" type="button">Copy</button>
           </div>
+
           <div class="code-block">
             <div class="code-toolbar">
               <span>decision.py</span><button class="copy-button" type="button">Copy</button>
             </div>
+
             <pre class="language-python"><code class="language-python">from turbojev import TurboJev
 
 with TurboJev.load("./model.gguf", n_gpu_layers=0) as jev:
@@ -91,8 +97,10 @@ with TurboJev.load("./model.gguf", n_gpu_layers=0) as jev:
 print(result["choice"])
 print(result["probabilities"])</code></pre>
           </div>
+
           <p class="source-link">
             Runnable source:
+
             <a
               href="https://github.com/DestroyerDarkNess/TurboJev/blob/main/samples/TurboJev-Python/main.py"
               target="_blank"
@@ -100,11 +108,14 @@ print(result["probabilities"])</code></pre>
               >samples/TurboJev-Python ↗</a
             >
           </p>
+
           <h2>Generate typed fields</h2>
+
           <div class="code-block">
             <div class="code-toolbar">
               <span>fields.py</span><button class="copy-button" type="button">Copy</button>
             </div>
+
             <pre
               class="language-python"
             ><code class="language-python">with TurboJev.load("./model.gguf", device="cpu", n_ctx=8192, n_seq_max=1) as jev:
@@ -126,10 +137,13 @@ print(result["probabilities"])</code></pre>
     )
     print(response["result"], response["skipped"], response["usage"])</code></pre>
           </div>
+
           <p>
             Python accepts a request dictionary or keyword arguments for <code>generate</code>. Load
             options use snake_case; nested execution options retain JSON spelling:
+
             <code>execution={"orderRobustness": "balanced"}</code>. See
+
             <a href="fields.html">nullable values, conditions and thinking</a>.
           </p>
         </article>
@@ -163,6 +177,6 @@ print(result["probabilities"])</code></pre>
       <div id="search-results" aria-live="polite"></div>
     </dialog>
     <script src="../vendor/prism/prism.js" defer></script>
-    <script src="../app.js?v=8f2aa745090b" defer></script>
+    <script src="../app.js?v=eefd0e23bda9" defer></script>
   </body>
 </html>

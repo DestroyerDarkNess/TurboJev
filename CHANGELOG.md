@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.32.0
+
+- Extend the Rust schema compiler with nested objects, inherited dependency gates, described choices, confidence conditions and ordered levels. Preserve JSON property order and distinguish normalized confidence from raw probability.
+- Add bounded scalar/object arrays, continuation, nullable items, duplicate stopping and seeded sampling. Every appended item comes from actual model inference; unsupported combinations fail before inference.
+- Raise finite enum schemas to 512 values and control codebooks to 26. Native GGUF and ONNX score complete value continuations for large text enums; browser GGUF accepts an explicit value-scorer plugin.
+- Add ordered multi-image evidence, model-free schema inspection, shared double-precision candidate normalization, typed SDK result helpers and cooperative generation cancellation/deadlines. Native engines remain thread-affine.
+- Port the four current TypeLLM cookbook workflows to documentation and runnable request samples. Add Rust, C ABI, Python, Node, .NET and WASM contract checks plus real Qwen3-0.6B extraction/large-enum validation. See `docs/TYPELLM_0_6_9_PORT.md` for runtime limits and measured coverage.
+
 ## 0.31.0
 
 - Add opt-in `orderRobustness: "balanced"` to native and browser `evaluate`: canonical Williams layouts retain the full option set, calibrate each layout once and average probabilities by semantic key. Single-pass `none` remains the default; existing cyclic logit averaging is retained. Ordered scores and nouls stay single-pass.

@@ -1,0 +1,226 @@
+<section id="cookbook" class="doc-section searchable">
+  <div class="section-title"><h2>Cookbook</h2></div>
+  <p>
+    These workflows adapt all four articles in the
+    <a href="https://typellm.ai/cookbook">TypeLLM cookbook</a> to local inference. Use a model
+    suited to the evidence and decision: typed output does not guarantee accuracy. This structured
+    SDK extension is a source change awaiting publication; build this revision for new APIs.
+    Registry demos retain the last published packages.
+  </p>
+  <h3>Extract a dense page in batches</h3>
+  <p>
+    Use a vision GGUF and its matching projector. The model supplies rows and the continuation
+    decision; host code only enforces a bounded loop and stops when no progress is made.
+  </p>
+  <div class="code-block">
+    <div class="code-toolbar">
+      <span>python</span><button class="copy-button" type="button">Copy</button>
+    </div>
+    <pre class="language-python"><code class="language-python">from pathlib import Path
+from turbojev import TurboJev
+
+rows = []
+with TurboJev.load(&quot;vision.gguf&quot;, mmproj=&quot;mmproj.gguf&quot;, device=&quot;cpu&quot;, n_ctx=8192) as client:
+    for _ in range(10):
+        response = client.generate(
+            context=&quot;Extract every invoice line in reading order. Never repeat existing rows.&quot;,
+            images=[Path(&quot;invoice.png&quot;)],
+            text_max_tokens=512,
+            questions={
+                &quot;rows&quot;: {
+                    &quot;type&quot;: &quot;array&quot;,
+                    &quot;instructions&quot;: &quot;Return the next invoice lines, then stop when none remain.&quot;,
+                    &quot;items&quot;: {
+                        &quot;type&quot;: &quot;object&quot;,
+                        &quot;properties&quot;: {
+                            &quot;description&quot;: {&quot;type&quot;: &quot;string&quot;},
+                            &quot;quantity&quot;: {&quot;type&quot;: &quot;integer&quot;},
+                            &quot;amount&quot;: {&quot;type&quot;: &quot;number&quot;},
+                        },
+                    },
+                    &quot;continue_from&quot;: rows,
+                },
+                &quot;has_next&quot;: {
+                    &quot;type&quot;: &quot;boolean&quot;,
+                    &quot;depends_on&quot;: [&quot;rows&quot;],
+                    &quot;instructions&quot;: &quot;Are any printed invoice rows still absent from rows?&quot;,
+                },
+            },
+        )
+        next_rows = response[&quot;result&quot;][&quot;rows&quot;]
+        advanced = len(next_rows) &gt; len(rows)
+        rows = next_rows
+        if not response[&quot;result&quot;][&quot;has_next&quot;] or not advanced:
+            break
+print(rows)</code></pre>
+  </div>
+  <p>
+    Without a maximum, each call can append 50 new items. An explicit <code>maxItems</code> instead
+    limits the total array, including its prefix, to 1–50. Each object is actual constrained
+    generation; this is not single-token classification. The model and context limit determine
+    usable page complexity.
+  </p>
+  <h3>More than 255 categories</h3>
+  <p>
+    Schemas accept up to 512 typed values. Native GGUF and text ONNX compare complete value
+    continuations for more than 26 values, with the complete set in the prompt.
+  </p>
+  <div class="code-block">
+    <div class="code-toolbar">
+      <span>python</span><button class="copy-button" type="button">Copy</button>
+    </div>
+    <pre class="language-python"><code class="language-python">from turbojev import TurboJev
+
+categories = [f&quot;category_{index}&quot; for index in range(418)]
+with TurboJev.load(&quot;model.gguf&quot;, device=&quot;cpu&quot;, n_ctx=8192) as client:
+    response = client.generate(
+        context=&quot;The document explicitly identifies category_17.&quot;,
+        questions={
+            &quot;category&quot;: {
+                &quot;type&quot;: &quot;string&quot;,
+                &quot;enum&quot;: categories,
+                &quot;instructions&quot;: &quot;Which exact category is stated?&quot;,
+                &quot;return_probabilities&quot;: True,
+                &quot;permutations&quot;: 1,
+            }
+        },
+    )
+    print(response[&quot;result&quot;][&quot;category&quot;])</code></pre>
+  </div>
+  <p>
+    Replace identifiers with meaningful application categories/descriptions. This shows the API, not
+    measured 418-class accuracy. GGUF/WASM requires a value-scorer plugin and otherwise errors. A
+    large enum has a higher prompt/scoring cost; comparing only its first tokens is incorrect.
+  </p>
+  <h3>Hierarchical classification</h3>
+  <p>
+    Choose a department, then ask only its category. Unchosen branches appear in
+    <code>skipped</code> and are absent from the result. Probability wrappers are unwrapped in
+    dependent prompts.
+  </p>
+  <div class="code-block">
+    <div class="code-toolbar">
+      <span>python</span><button class="copy-button" type="button">Copy</button>
+    </div>
+    <pre class="language-python"><code class="language-python">from turbojev import TurboJev
+
+with TurboJev.load(&quot;model.gguf&quot;, device=&quot;cpu&quot;) as client:
+    response = client.generate(
+        context=&quot;I was charged twice and want a refund.&quot;,
+        questions={
+            &quot;department&quot;: {
+                &quot;type&quot;: &quot;string&quot;,
+                &quot;enum&quot;: [&quot;billing&quot;, &quot;technical&quot;],
+                &quot;instructions&quot;: &quot;Which department should handle this?&quot;,
+            },
+            &quot;billing_category&quot;: {
+                &quot;type&quot;: &quot;string&quot;,
+                &quot;enum&quot;: [&quot;refund&quot;, &quot;invoice&quot;, &quot;payment_method&quot;],
+                &quot;instructions&quot;: &quot;What billing issue is described?&quot;,
+                &quot;when&quot;: {&quot;department&quot;: &quot;billing&quot;},
+            },
+            &quot;technical_category&quot;: {
+                &quot;type&quot;: &quot;string&quot;,
+                &quot;enum&quot;: [&quot;login&quot;, &quot;outage&quot;, &quot;performance&quot;],
+                &quot;instructions&quot;: &quot;What technical issue is described?&quot;,
+                &quot;when&quot;: {&quot;department&quot;: &quot;technical&quot;},
+            },
+        },
+    )
+    print(response[&quot;result&quot;], response[&quot;skipped&quot;])</code></pre>
+  </div>
+  <p>
+    The described-choice/confidence variant is in
+    <a
+      href="https://github.com/DestroyerDarkNess/TurboJev/blob/main/samples/typed-fields/hierarchical.json"
+      >hierarchical.json</a
+    >.
+  </p>
+  <h3>Discover and reuse categories</h3>
+  <p>
+    Offer current categories plus <code>new</code>. Only if selected, ask for a category name. The
+    application reviews and stores the proposal; TurboJev does not mutate its taxonomy.
+  </p>
+  <div class="code-block">
+    <div class="code-toolbar">
+      <span>python</span><button class="copy-button" type="button">Copy</button>
+    </div>
+    <pre class="language-python"><code class="language-python">from turbojev import TurboJev
+
+categories = [&quot;groceries&quot;, &quot;transport&quot;, &quot;utilities&quot;]
+with TurboJev.load(&quot;model.gguf&quot;, device=&quot;cpu&quot;) as client:
+    response = client.generate(
+        context=&quot;Receipt: dog grooming, 45.00.&quot;,
+        questions={
+            &quot;category&quot;: {
+                &quot;type&quot;: &quot;string&quot;,
+                &quot;enum&quot;: [*categories, &quot;new&quot;],
+                &quot;instructions&quot;: &quot;Choose an existing expense category, or new if none fits.&quot;,
+            },
+            &quot;new_category&quot;: {
+                &quot;type&quot;: &quot;string&quot;,
+                &quot;instructions&quot;: &quot;Propose a short reusable expense category name.&quot;,
+                &quot;when&quot;: {&quot;category&quot;: &quot;new&quot;},
+            },
+        },
+    )
+    print(response[&quot;result&quot;])</code></pre>
+  </div>
+  <h3>Inspect the contract without loading a model</h3>
+  <div class="code-block">
+    <div class="code-toolbar">
+      <span>python</span><button class="copy-button" type="button">Copy</button>
+    </div>
+    <pre
+      class="language-python"
+    ><code class="language-python">from turbojev import Choice, compile_json_schema
+
+schema = {
+    &quot;type&quot;: &quot;object&quot;,
+    &quot;properties&quot;: {
+        &quot;team&quot;: Choice(&quot;Which team?&quot;, {&quot;billing&quot;: &quot;Payments&quot;, &quot;outage&quot;: &quot;Service down&quot;}).to_schema()
+    },
+}
+for decision in compile_json_schema(schema):
+    print(decision.name, decision.choices)</code></pre>
+  </div>
+  <p>
+    Compilation runs Rust validation. The metadata contains semantic values rather than unchecked
+    model-specific token IDs. Generation still validates each request.
+  </p>
+  <h3>Select latency and cancellation deliberately</h3>
+  <p>
+    Set <code>permutations: 1</code> for one finite evaluation. Probability requests without a
+    budget default to balanced layouts for small unordered fields. Ordered levels remain
+    single-pass.
+  </p>
+  <div class="code-block">
+    <div class="code-toolbar">
+      <span>python</span><button class="copy-button" type="button">Copy</button>
+    </div>
+    <pre
+      class="language-python"
+    ><code class="language-python">from turbojev import GenerationCancelled, GenerationControl, GenerationTimeout, TurboJev
+
+with TurboJev.load(&quot;model.gguf&quot;, device=&quot;cpu&quot;) as client:
+    control = GenerationControl(timeout=30)
+    try:
+        response = client.generate(
+            context=&quot;The service is down.&quot;,
+            questions={&quot;outage&quot;: {&quot;type&quot;: &quot;boolean&quot;, &quot;permutations&quot;: 1}},
+            control=control,
+        )
+        print(response[&quot;result&quot;])
+    except GenerationCancelled:
+        print(&quot;Cancelled between model operations&quot;)
+    except GenerationTimeout:
+        print(&quot;Deadline expired between model operations&quot;)</code></pre>
+  </div>
+  <p>
+    Another thread may call <code>control.cancel()</code>. Native cancellation does not interrupt an
+    active decode; it aborts the workflow after that operation. Node/browser use
+    <code>client.generate(request, {timeoutMs: 30000, signal})</code>; C# accepts
+    <code>TimeSpan</code> and <code>CancellationToken</code>. An aborted workflow is not a
+    model-selected null answer.
+  </p>
+</section>

@@ -31,7 +31,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     ));
     let engine = TurboJev::new(reference_backend(renderer, runtime));
     if text == "--generate" {
-        let request = serde_json::from_str(include_str!("../../typed-fields/request.json"))?;
+        let input = match std::env::args().nth(3) {
+            Some(path) => std::fs::read_to_string(path)?,
+            None => include_str!("../../typed-fields/request.json").to_owned(),
+        };
+        let request = serde_json::from_str(&input)?;
         println!(
             "{}",
             serde_json::to_string_pretty(&engine.generate(request)?)?

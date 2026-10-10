@@ -6,7 +6,7 @@
     <title>Publishing — TurboJev</title>
     <meta name="description" content="Publishing documentation for TurboJev." />
     <link rel="icon" href="../favicon.svg" />
-    <link rel="stylesheet" href="../styles.css?v=8f2aa745090b" />
+    <link rel="stylesheet" href="../styles.css?v=eefd0e23bda9" />
   </head>
   <body class="docs-page">
     <a class="skip-link" href="#article">Skip to content</a>
@@ -32,6 +32,7 @@
           <a href="architecture.html">Architecture</a>
           <a href="api.html">Core API</a>
           <a href="fields.html">Typed fields</a>
+          <a href="cookbook.html">Cookbook</a>
           <p>Languages</p>
           <a href="rust.html">Rust</a>
           <a href="node.html">Node / TypeScript</a>
@@ -53,10 +54,12 @@
         <section id="publishing" class="doc-section searchable">
           <div class="doc-section-body">
             <h1>Publishing</h1>
+
             <p>
               Registry availability can differ by language. Check the published package and its
               supported platforms before installing.
             </p>
+
             <div class="registry-grid">
               <a href="https://www.npmjs.com/org/turbojev" target="_blank" rel="noreferrer"
                 ><strong>npm</strong><span>@turbojev/node · @turbojev/web</span>↗</a
@@ -68,21 +71,29 @@
                 ><strong>crates.io</strong><span>turbojev + modular crates</span>↗</a
               >
             </div>
+
             <div class="code-block">
               <div class="code-toolbar">
                 <span>local release menu</span
                 ><button class="copy-button" type="button">Copy</button>
               </div>
+
               <pre
                 class="language-powershell"
               ><code class="language-powershell">pwsh scripts/publish-local.ps1 -Target npm -Yes
+
 pwsh scripts/publish-local.ps1 -Target python -Yes
+
 pwsh scripts/publish-local.ps1 -Target nuget -Yes
+
 pwsh scripts/publish-local.ps1 -Target cargo -Yes
+
 pwsh scripts/publish-local.ps1 -Target all -Yes</code></pre>
             </div>
+
             <p class="muted">
               Full notes:
+
               <a
                 href="https://github.com/DestroyerDarkNess/TurboJev/blob/main/docs/LOCAL_PUBLISHING.md"
                 target="_blank"
@@ -121,6 +132,6 @@ pwsh scripts/publish-local.ps1 -Target all -Yes</code></pre>
       <div id="search-results" aria-live="polite"></div>
     </dialog>
     <script src="../vendor/prism/prism.js" defer></script>
-    <script src="../app.js?v=8f2aa745090b" defer></script>
+    <script src="../app.js?v=eefd0e23bda9" defer></script>
   </body>
 </html>

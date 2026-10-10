@@ -30,11 +30,15 @@ separate, and exposes the same contract through Rust, Node/TypeScript, Python,
 C, .NET, and browser/WASM hosts.
 
 For extraction and dependent workflows, `generate` also supports JSON-typed
-strings, integers, decimals, booleans, nullable enums, conditions, dependencies,
+strings, integers, decimals, booleans, nullable/described enums, nested objects,
+bounded arrays, ordinal scales, confidence gates and dependencies,
 per-field reasoning and optional probability averaging across option orders.
 Unrestricted values use bounded model generation; finite decisions keep direct
 candidate scoring. See [typed fields](docs/TYPED_FIELDS.md) and the
 [real-model evals](evals/README.md) for the contract and runtime limits.
+The [cookbook](docs/COOKBOOK.md) covers continuation, hierarchical routing and
+category discovery; the [TypeLLM 0.6.9 port matrix](docs/TYPELLM_0_6_9_PORT.md) records
+feature equivalents and validation.
 
 ## Get a real model running
 
@@ -78,7 +82,7 @@ Use `evaluate` when one state needs several typed decisions at once:
 
 ```json
 {
-  "state": {"message": "My package arrived broken.", "customerTier": "plus"},
+  "state": { "message": "My package arrived broken.", "customerTier": "plus" },
   "questions": {
     "route": {
       "type": "choice",
@@ -107,15 +111,15 @@ answer, zero-generation usage, execution path, and calibration provenance.
 
 ## Why TurboJev
 
-| Need | TurboJev approach |
-|---|---|
-| Route a request | `choice` returns a stable named option and its full distribution. |
-| Gate an action | `noul` represents a typed yes/no decision without string parsing. |
-| Evaluate a state | `score` returns an ordered, expected-value assessment. |
-| Avoid output parsing | Backends score candidates; TurboJev owns validation and response construction. |
-| Keep data local | Local inference is supported with no mandatory telemetry or service. |
-| Use one contract everywhere | Native bindings and browser/WASM share the same decision schema. |
-| Bring a new model | Implement a small scoring adapter instead of rewriting decision logic. |
+| Need                        | TurboJev approach                                                              |
+| --------------------------- | ------------------------------------------------------------------------------ |
+| Route a request             | `choice` returns a stable named option and its full distribution.              |
+| Gate an action              | `noul` represents a typed yes/no decision without string parsing.              |
+| Evaluate a state            | `score` returns an ordered, expected-value assessment.                         |
+| Avoid output parsing        | Backends score candidates; TurboJev owns validation and response construction. |
+| Keep data local             | Local inference is supported with no mandatory telemetry or service.           |
+| Use one contract everywhere | Native bindings and browser/WASM share the same decision schema.               |
+| Bring a new model           | Implement a small scoring adapter instead of rewriting decision logic.         |
 
 ### Stable option ordering when order is irrelevant
 
@@ -165,14 +169,14 @@ is multimodal. Runtime support is declared by the adapter and documented in
 
 ## Pick your host
 
-| Host | Starting point | Runtime path |
-|---|---|---|
-| Rust | [Rust sample](samples/TurboJev-rust) | Rust crates + llama.cpp |
-| Node / TypeScript | [Node sample](samples/TurboJev-TS-node) | Node-API + llama.cpp |
-| Python | [Python sample](samples/TurboJev-Python) | PyO3 + llama.cpp or worker |
-| C / .NET | [C# sample](samples/TurboJev-csharp-NET) | Stable C ABI + P/Invoke |
-| Browser | [Vanilla JS sample](samples/TurboJev-js-native) | Rust/WASM + Transformers.js |
-| Custom model runtime | [Adapter contract](docs/ARCHITECTURE.md) | Candidate-scoring backend |
+| Host                 | Starting point                                  | Runtime path                |
+| -------------------- | ----------------------------------------------- | --------------------------- |
+| Rust                 | [Rust sample](samples/TurboJev-rust)            | Rust crates + llama.cpp     |
+| Node / TypeScript    | [Node sample](samples/TurboJev-TS-node)         | Node-API + llama.cpp        |
+| Python               | [Python sample](samples/TurboJev-Python)        | PyO3 + llama.cpp or worker  |
+| C / .NET             | [C# sample](samples/TurboJev-csharp-NET)        | Stable C ABI + P/Invoke     |
+| Browser              | [Vanilla JS sample](samples/TurboJev-js-native) | Rust/WASM + Transformers.js |
+| Custom model runtime | [Adapter contract](docs/ARCHITECTURE.md)        | Candidate-scoring backend   |
 
 ## Built for evidence, not opaque claims
 

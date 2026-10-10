@@ -5,10 +5,29 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Literal, Mapping
 
+from .schema import (
+    ArrayField,
+    Choice,
+    Decision,
+    Generation,
+    MAX_ARRAY_ITEMS,
+    MAX_ENUM_CHOICES,
+    SchemaError,
+    Usage,
+    candidate_softmax,
+    compile_json_schema,
+    example_schema,
+    run_schema,
+)
+from .benchmark import benchmark_prefix_cache
+from .images import encode_image
+
 # Python 3.8+ does not search a package directory for a native extension's DLL
 # dependencies unless it is registered explicitly. Wheels place these DLLs next
 # to _native.pyd; keep this handle alive for the lifetime of the imported package.
-_DLL_DIRECTORY = os.add_dll_directory(str(Path(__file__).resolve().parent)) if os.name == "nt" else None
+_DLL_DIRECTORY = (
+    os.add_dll_directory(str(Path(__file__).resolve().parent)) if os.name == "nt" else None
+)
 
 try:
     from ._native import NativeEngine
@@ -18,8 +37,30 @@ except Exception as exc:  # pragma: no cover - wheel/build diagnostic
 else:
     _IMPORT_ERROR = None
 
+
 class TurboJevError(RuntimeError):
     pass
+
+
+class GenerationCancelled(TurboJevError):
+    """Generation was cancelled cooperatively between model operations."""
+
+
+class GenerationTimeout(TurboJevError, TimeoutError):
+    """The deadline expired. An in-flight model operation must finish first."""
+
+
+class GenerationControl:
+    """Thread-safe cancellation and a timeout in seconds, measured from construction."""
+
+    def __init__(self, timeout: float | None = None):
+        from ._native import NativeGenerationControl
+
+        self._native = NativeGenerationControl(timeout)
+
+    def cancel(self) -> None:
+        self._native.cancel()
+
 
 @dataclass(frozen=True)
 class LoadOptions:
@@ -60,8 +101,10 @@ class LoadOptions:
             options["execution"] = self.execution
         return options
 
+
 class TurboJev:
-    def __init__(self, native: Any): self._native = native
+    def __init__(self, native: Any):
+        self._native = native
 
     @classmethod
     def load(cls, model: str | LoadOptions, **kwargs: Any) -> "TurboJev":
@@ -70,12 +113,25 @@ class TurboJev:
         options = model if isinstance(model, LoadOptions) else LoadOptions(model=model, **kwargs)
         try:
             return cls(NativeEngine.load_json(json.dumps(options.to_wire(), ensure_ascii=False)))
-        except Exception as exc: raise TurboJevError(str(exc)) from exc
+        except Exception as exc:
+            message = str(exc)
+            if message.startswith("GENERATION_CANCELLED:"):
+                raise GenerationCancelled(message) from exc
+            if message.startswith("GENERATION_TIMEOUT:"):
+                raise GenerationTimeout(message) from exc
+            raise TurboJevError(message) from exc
 
     def evaluate(self, request: Mapping[str, Any]) -> dict[str, Any]:
         return json.loads(self._call("evaluate_json", json.dumps(request, ensure_ascii=False)))
 
-    def generate(self, request: Mapping[str, Any] | None = None, **kwargs: Any) -> dict[str, Any]:
+    def generate(
+        self,
+        request: Mapping[str, Any] | None = None,
+        *,
+        timeout: float | None = None,
+        control: GenerationControl | None = None,
+        **kwargs: Any,
+    ) -> dict[str, Any]:
         """Generate JSON-typed fields with enums, dependencies, and conditions.
 
         Pass a request mapping or use context=..., questions=... / schema=... .
@@ -83,23 +139,84 @@ class TurboJev:
         """
         if request is not None and kwargs:
             raise TypeError("pass a request mapping or keyword arguments, not both")
-        return json.loads(self._call("generate_json", json.dumps(request if request is not None else kwargs, ensure_ascii=False, allow_nan=False)))
+        payload = dict(request if request is not None else kwargs)
+        if "images" in payload:
+            payload["images"] = [encode_image(image) for image in payload["images"]]
+        wire = json.dumps(payload, ensure_ascii=False, allow_nan=False)
+        if timeout is not None and control is not None:
+            raise TypeError("pass timeout or control, not both")
+        if timeout is not None or control is not None:
+            active = control if control is not None else GenerationControl(timeout)
+            return json.loads(self._call("generate_json_controlled", wire, active._native))
+        return json.loads(self._call("generate_json", wire))
+
+    def compile_schema(self, schema: Mapping[str, Any]) -> list[Decision | ArrayField]:
+        from .schema import compile_json_schema
+
+        return compile_json_schema(schema)
+
+    def generate_typed(self, request: Mapping[str, Any] | None = None, **kwargs: Any) -> Generation:
+        from .schema import Generation
+
+        return Generation.from_response(self.generate(request, **kwargs))
 
     def evaluate_compatible(self, profile: str, request: Mapping[str, Any]) -> dict[str, Any]:
-        return json.loads(self._call("evaluate_compatible_json", profile, json.dumps(request, ensure_ascii=False)))
+        return json.loads(
+            self._call("evaluate_compatible_json", profile, json.dumps(request, ensure_ascii=False))
+        )
 
-    def info(self) -> dict[str, Any]: return json.loads(self._call("info_json"))
+    def info(self) -> dict[str, Any]:
+        return json.loads(self._call("info_json"))
 
     def close(self) -> None:
         if self._native is not None:
-            self._native.close(); self._native = None
+            self._native.close()
+            self._native = None
 
     def _call(self, name: str, *args: Any) -> str:
-        if self._native is None: raise TurboJevError("engine is closed")
-        try: return getattr(self._native, name)(*args)
-        except Exception as exc: raise TurboJevError(str(exc)) from exc
+        if self._native is None:
+            raise TurboJevError("engine is closed")
+        try:
+            return getattr(self._native, name)(*args)
+        except Exception as exc:
+            message = str(exc)
+            if message.startswith("GENERATION_CANCELLED:"):
+                raise GenerationCancelled(message) from exc
+            if message.startswith("GENERATION_TIMEOUT:"):
+                raise GenerationTimeout(message) from exc
+            raise TurboJevError(message) from exc
 
-    def __enter__(self) -> "TurboJev": return self
-    def __exit__(self, exc_type, exc, tb) -> None: self.close()
+    def __enter__(self) -> "TurboJev":
+        return self
 
-__all__ = ["TurboJev", "TurboJevError", "LoadOptions"]
+    def __exit__(self, exc_type, exc, tb) -> None:
+        self.close()
+
+
+__all__ = [
+    "TurboJev",
+    "TurboJevError",
+    "LoadOptions",
+    "GenerationControl",
+    "GenerationCancelled",
+    "GenerationTimeout",
+]
+
+
+__all__ += [
+    "ArrayField",
+    "Choice",
+    "Decision",
+    "Generation",
+    "MAX_ARRAY_ITEMS",
+    "MAX_ENUM_CHOICES",
+    "SchemaError",
+    "Usage",
+    "candidate_softmax",
+    "compile_json_schema",
+    "example_schema",
+    "run_schema",
+]
+
+
+__all__ += ["benchmark_prefix_cache", "encode_image"]

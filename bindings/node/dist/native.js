@@ -1,11 +1,14 @@
 import { existsSync } from "node:fs";
 import { createRequire } from "node:module";
 import { resolve } from "node:path";
-export function loadNative(options) {
+export function loadNative(options = {}) {
     const require = createRequire(import.meta.url);
-    const candidates = [options.nativePath, process.env.TURBOJEV_NATIVE_PATH,
+    const candidates = [
+        options.nativePath,
+        process.env.TURBOJEV_NATIVE_PATH,
         resolve(process.cwd(), "turbojev.node"),
-        `@turbojev/node-${process.platform}-${process.arch}`].filter(Boolean);
+        `@turbojev/node-${process.platform}-${process.arch}`,
+    ].filter(Boolean);
     const failures = [];
     for (const candidate of candidates) {
         try {

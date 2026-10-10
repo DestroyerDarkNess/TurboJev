@@ -2,6 +2,7 @@ import { readFile, writeFile, mkdir, copyFile } from "node:fs/promises";
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 import { createHash } from "node:crypto";
+import { setTimeout as delay } from "node:timers/promises";
 const require = createRequire(
   new URL("../samples/TurboJev-js-native/package.json", import.meta.url),
 );
@@ -11,8 +12,23 @@ const formatting = JSON.parse(
   await readFile(new URL("../.prettierrc.json", import.meta.url), "utf8"),
 );
 const root = fileURLToPath(new URL(".", import.meta.url));
-const writeHtml = async (file, html) =>
-  writeFile(root + file, await prettier.format(html, { ...formatting, parser: "html" }));
+async function writeHtml(file, html) {
+  const formatted = await prettier.format(html, { ...formatting, parser: "html" });
+  for (let attempt = 0; ; attempt++) {
+    try {
+      await writeFile(root + file, formatted);
+      return;
+    } catch (error) {
+      // Windows file watchers may briefly hold a generated page during a rebuild.
+      // Retry transient sharing failures, but preserve persistent build errors.
+      const transient = ["UNKNOWN", "EBUSY", "EPERM", "EACCES"].includes(error.code);
+      if (process.platform !== "win32" || !transient || attempt >= 7) {
+        throw error;
+      }
+      await delay(100 * (attempt + 1));
+    }
+  }
+}
 await build({
   entryPoints: [fileURLToPath(new URL("../bindings/web/src/index.ts", import.meta.url))],
   outfile: root + "vendor/web/dist/index.js",
@@ -80,12 +96,16 @@ const landing = (await readFile(root + "index.html", "utf8")).replace(
   `$1?v=${version}`,
 );
 await writeHtml("index.html", landing);
-const source = await readFile(root + "src/docs-content.html", "utf8");
+const source =
+  (await readFile(root + "src/docs-content.html", "utf8")) +
+  "\n" +
+  (await readFile(root + "src/cookbook-content.html", "utf8"));
 const pages = [
   ["quickstart", "Quickstart"],
   ["architecture", "Architecture"],
   ["api", "Core API"],
   ["fields", "Typed fields"],
+  ["cookbook", "Cookbook"],
   ["rust", "Rust"],
   ["node", "Node / TypeScript"],
   ["python", "Python"],
@@ -123,8 +143,8 @@ function codeLanguage(toolbar) {
 function navigation(pages, currentSlug) {
   const groups = new Map([
     [0, "Get started"],
-    [4, "Languages"],
-    [11, "Guides"],
+    [5, "Languages"],
+    [12, "Guides"],
   ]);
   return pages
     .map(([slug, title], index) => {

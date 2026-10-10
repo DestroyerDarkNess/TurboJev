@@ -1,0 +1,32 @@
+{
+  "context": "The customer was charged twice and wants a refund.",
+  "questions": {
+    "department": {
+      "type": "string",
+      "choices": [
+        { "value": "billing", "description": "Charges, payments and refunds" },
+        { "value": "support", "description": "Technical problems" }
+      ],
+      "instructions": "Which department should handle this?",
+      "return_probabilities": true,
+      "permutations": 1
+    },
+    "billing_category": {
+      "type": "string",
+      "enum": ["refund", "invoice", "payment_method"],
+      "instructions": "What is the billing issue?",
+      "when": { "department": "billing" }
+    },
+    "support_category": {
+      "type": "string",
+      "enum": ["login", "outage", "performance"],
+      "instructions": "What is the technical issue?",
+      "when": { "department": "support" }
+    },
+    "reply": {
+      "type": "string",
+      "instructions": "Write one short acknowledgement.",
+      "when": { "department": { "confidence": { "gte": 0.6 } } }
+    }
+  }
+}

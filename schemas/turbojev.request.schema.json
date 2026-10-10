@@ -6,47 +6,176 @@
   "additionalProperties": false,
   "required": ["state", "questions"],
   "properties": {
-    "model": { "type": "string", "minLength": 1 },
+    "model": {
+      "type": "string",
+      "minLength": 1
+    },
     "state": {
       "oneOf": [
-        { "type": "string", "minLength": 1 },
-        { "type": "object", "minProperties": 1,
-          "if": {"required": ["contract"], "properties": {"contract": {"type":"string", "pattern":"^turbojev\\.media\\."}}},
-          "then": {"$ref":"#/$defs/media"}
+        {
+          "type": "string",
+          "minLength": 1
         },
-        { "type": "array", "minItems": 1 }
+        {
+          "type": "object",
+          "minProperties": 1,
+          "if": {
+            "required": ["contract"],
+            "properties": {
+              "contract": {
+                "type": "string",
+                "pattern": "^turbojev\\.media\\."
+              }
+            }
+          },
+          "then": {
+            "$ref": "#/$defs/media"
+          }
+        },
+        {
+          "type": "array",
+          "minItems": 1
+        }
       ]
     },
     "questions": {
       "type": "object",
       "minProperties": 1,
       "maxProperties": 256,
-      "additionalProperties": { "$ref": "#/$defs/question" }
+      "additionalProperties": {
+        "$ref": "#/$defs/question"
+      }
     }
   },
   "$defs": {
     "media": {
-      "type": "object", "additionalProperties": false,
-      "required": ["contract", "modality", "base64"],
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["contract", "modality"],
       "properties": {
-        "contract": {"const":"turbojev.media.v1"},
-        "text": {"type":"string"},
-        "modality": {"enum":["image","audio","video"]},
-        "base64": {"type":"string", "minLength":1, "maxLength":33554432}
-      }
+        "contract": {
+          "const": "turbojev.media.v1"
+        },
+        "text": {
+          "type": "string"
+        },
+        "modality": {
+          "enum": ["image", "audio", "video"]
+        },
+        "base64": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 33554432
+        },
+        "images": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 32,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 33554432
+          }
+        },
+        "frames": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 32,
+          "items": {
+            "type": "object",
+            "required": ["timestamp_ms", "base64"],
+            "additionalProperties": false,
+            "properties": {
+              "timestamp_ms": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "base64": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 33554432
+              }
+            }
+          }
+        }
+      },
+      "oneOf": [
+        {
+          "properties": {
+            "modality": {
+              "enum": ["image", "audio"]
+            }
+          },
+          "required": ["base64"],
+          "not": {
+            "anyOf": [
+              {
+                "required": ["images"]
+              },
+              {
+                "required": ["frames"]
+              }
+            ]
+          }
+        },
+        {
+          "properties": {
+            "modality": {
+              "const": "image"
+            }
+          },
+          "required": ["images"],
+          "not": {
+            "anyOf": [
+              {
+                "required": ["base64"]
+              },
+              {
+                "required": ["frames"]
+              }
+            ]
+          }
+        },
+        {
+          "properties": {
+            "modality": {
+              "const": "video"
+            }
+          },
+          "required": ["frames"],
+          "not": {
+            "anyOf": [
+              {
+                "required": ["base64"]
+              },
+              {
+                "required": ["images"]
+              }
+            ]
+          }
+        }
+      ]
     },
     "choice": {
       "type": "object",
       "additionalProperties": false,
       "required": ["type", "instructions", "criteria"],
       "properties": {
-        "type": { "const": "choice" },
-        "instructions": { "type": "string", "minLength": 1 },
+        "type": {
+          "const": "choice"
+        },
+        "instructions": {
+          "type": "string",
+          "minLength": 1
+        },
         "criteria": {
           "type": "object",
           "minProperties": 2,
           "maxProperties": 256,
-          "additionalProperties": { "type": "string", "minLength": 1 }
+          "additionalProperties": {
+            "type": "string",
+            "minLength": 1
+          }
         }
       }
     },
@@ -55,8 +184,13 @@
       "additionalProperties": false,
       "required": ["type", "instructions"],
       "properties": {
-        "type": { "enum": ["noul", "boolean"] },
-        "instructions": { "type": "string", "minLength": 1 }
+        "type": {
+          "enum": ["noul", "boolean"]
+        },
+        "instructions": {
+          "type": "string",
+          "minLength": 1
+        }
       }
     },
     "score": {
@@ -64,21 +198,35 @@
       "additionalProperties": false,
       "required": ["type", "instructions", "criteria"],
       "properties": {
-        "type": { "const": "score" },
-        "instructions": { "type": "string", "minLength": 1 },
+        "type": {
+          "const": "score"
+        },
+        "instructions": {
+          "type": "string",
+          "minLength": 1
+        },
         "criteria": {
           "type": "array",
           "minItems": 2,
           "maxItems": 256,
-          "items": { "type": "string", "minLength": 1 }
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
         }
       }
     },
     "question": {
       "oneOf": [
-        { "$ref": "#/$defs/choice" },
-        { "$ref": "#/$defs/noul" },
-        { "$ref": "#/$defs/score" }
+        {
+          "$ref": "#/$defs/choice"
+        },
+        {
+          "$ref": "#/$defs/noul"
+        },
+        {
+          "$ref": "#/$defs/score"
+        }
       ]
     }
   }

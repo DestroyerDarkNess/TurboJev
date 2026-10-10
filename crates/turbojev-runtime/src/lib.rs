@@ -362,6 +362,19 @@ where
                         generated_tokens: 0,
                     });
                 }
+                if task.values.as_ref().is_some_and(|values| {
+                    values.len() > turbojev_schema::fields::MAX_CONTROL_VALUES
+                }) {
+                    let prepared = self.prepare_value_field(task, self.executor.capabilities())?;
+                    let output = self
+                        .executor
+                        .score(&prepared, ExecutionPlan::default())
+                        .map_err(map_runtime_error)?;
+                    return turbojev_backend::field_output_from_scores(
+                        task,
+                        map_runtime_output(output),
+                    );
+                }
                 let batch = task.decision_batch()?;
                 let mut output = turbojev_backend::field_output_from_scores(
                     task,
@@ -512,6 +525,38 @@ where
     C: PromptCodec,
     E: AsyncRuntimeExecutor,
 {
+    fn infer_field_async<'a>(
+        &'a self,
+        task: &'a turbojev_backend::FieldTask,
+    ) -> BackendFuture<'a, Result<turbojev_backend::FieldOutput, BackendError>> {
+        Box::pin(async move {
+            if task.thinking {
+                return Err(BackendError::Unsupported("per-field thinking".into()));
+            }
+            if task
+                .values
+                .as_ref()
+                .is_some_and(|values| values.len() > turbojev_schema::fields::MAX_CONTROL_VALUES)
+            {
+                let prepared = self.prepare_value_field(task, self.executor.capabilities())?;
+                let output = self
+                    .executor
+                    .score_async(&prepared, ExecutionPlan::default())
+                    .await
+                    .map_err(map_runtime_error)?;
+                return turbojev_backend::field_output_from_scores(
+                    task,
+                    map_runtime_output(output),
+                );
+            }
+            turbojev_backend::field_output_from_scores(
+                task,
+                self.score_async(&task.decision_batch()?, ExecutionPlan::default())
+                    .await?,
+            )
+        })
+    }
+
     fn name(&self) -> &'static str {
         self.executor.name()
     }
@@ -561,6 +606,83 @@ where
     R: PromptRenderer,
     C: PromptCodec,
 {
+    fn prepare_value_field(
+        &self,
+        task: &turbojev_backend::FieldTask,
+        capabilities: RuntimeCapabilities,
+    ) -> Result<RuntimeBatch, BackendError> {
+        if !capabilities.sequence_scores {
+            return Err(BackendError::Unsupported(
+                "large enums require exact sequence/value scoring".into(),
+            ));
+        }
+        if turbojev_schema::media::MediaEvidence::from_state(&task.state)
+            .map_err(BackendError::InvalidInput)?
+            .is_some()
+        {
+            return Err(BackendError::Unsupported(
+                "large multimodal enums require a media-aware value scorer".into(),
+            ));
+        }
+        let values = task.values.as_ref().expect("finite value field");
+        let messages = RenderedMessages {
+            profile: self.renderer.profile().to_owned(),
+            system: Some("Choose the best answer using the evidence and the complete set of allowed values. Answer as a JSON object with key choice.".into()),
+            user: format!("State:\n{}\n\nQuestion:\n{}\n\nAllowed values:\n{}", task.state, task.instructions, serde_json::json!(values)),
+            assistant_prefix: "{\"choice\":".into(),
+        };
+        let prompt = self
+            .codec
+            .encode_prompt(&messages)
+            .map_err(map_runtime_error)?;
+        let mut candidates = Vec::new();
+        let mut seen = HashSet::new();
+        for value in values {
+            let symbol = format!(" {value}}}");
+            let full = self
+                .codec
+                .encode_prompt_with_answer(&messages, &symbol)
+                .map_err(map_runtime_error)?;
+            if !full.starts_with(&prompt) || full.len() <= prompt.len() {
+                return Err(BackendError::InvalidInput(
+                    "value tokenizer changes the answer boundary".into(),
+                ));
+            }
+            let token_ids = full[prompt.len()..].to_vec();
+            if self.codec.decode(&token_ids).map_err(map_runtime_error)? != symbol
+                || !seen.insert(token_ids.clone())
+            {
+                return Err(BackendError::InvalidInput(
+                    "value continuation does not uniquely round-trip".into(),
+                ));
+            }
+            candidates.push(RuntimeCandidate { symbol, token_ids });
+        }
+        if !is_prefix_free(&candidates) {
+            return Err(BackendError::InvalidInput(
+                "value continuations are not prefix-free".into(),
+            ));
+        }
+        let max_tokens_per_code = candidates
+            .iter()
+            .map(|candidate| candidate.token_ids.len())
+            .max()
+            .unwrap_or(1);
+        Ok(RuntimeBatch {
+            state: task.state.clone(),
+            common_prefix: Vec::new(),
+            tasks: vec![RuntimeTask {
+                id: task.name.clone(),
+                messages,
+                prompt_suffix: prompt,
+                candidates,
+                codebook_kind: CodebookKind::VariableLengthSequence {
+                    max_tokens_per_code,
+                },
+            }],
+        })
+    }
+
     fn prepare_batch(
         &self,
         batch: &DecisionBatch,
@@ -718,7 +840,9 @@ where
                 "contract": media.contract,
                 "text": media.text,
                 "modality": media.modality,
-                "media": if media.frames.is_empty() {
+                "media": if !media.images.is_empty() {
+                    media.images.iter().map(|_| "<__media__>").collect::<Vec<_>>().join("\n")
+                } else if media.frames.is_empty() {
                     "<__media__>".to_owned()
                 } else {
                     media.frames.iter().map(|frame| {

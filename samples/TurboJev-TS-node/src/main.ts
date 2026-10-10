@@ -30,7 +30,10 @@ if (argumentsAfterModel.includes("--generate")) {
   });
   try {
     const request = JSON.parse(
-      readFileSync(new URL("../../typed-fields/request.json", import.meta.url), "utf8"),
+      readFileSync(
+        valueAfter("--generate") ?? new URL("../../typed-fields/request.json", import.meta.url),
+        "utf8",
+      ),
     );
     console.log(JSON.stringify(await engine.generate(request), null, 2));
   } finally {

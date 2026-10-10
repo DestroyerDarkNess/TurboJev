@@ -1,7 +1,10 @@
 TurboJev typed-field contracts, regression cases, numeric evaluation cases and
 receipt/fair-die examples are informed by TypeLLM:
 https://github.com/TypeLLM/TypeLLM
-See evals/data/provenance.json for the exact local reference identity.
+See evals/data/provenance.json for the original local reference identity.
+The structured SDK extension additionally adapts TypeLLM 0.6.9 schema, array,
+ordinal, described-choice, confidence and cookbook contracts; see
+docs/TYPELLM_0_6_9_PORT.md for the source/feature mapping.
 TypeLLM is licensed under Apache License 2.0; its numeric dataset is retained
 with the original license in evals/data/numeric/LICENSE.
 

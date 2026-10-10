@@ -5,6 +5,7 @@
 use napi::{Error, Result, Status};
 use napi_derive::napi;
 use turbojev_host_native::{HostError, NativeSession};
+mod control;
 
 fn map_error(error: HostError) -> Error {
     Error::new(
@@ -20,6 +21,15 @@ pub struct NativeEngine {
 
 #[napi]
 impl NativeEngine {
+    #[napi]
+    pub fn candidate_softmax_json(input: String) -> Result<String> {
+        NativeSession::candidate_softmax_json(&input).map_err(map_error)
+    }
+
+    #[napi]
+    pub fn compile_schema_json(schema_json: String) -> Result<String> {
+        NativeSession::compile_schema_json(&schema_json).map_err(map_error)
+    }
     #[napi(factory)]
     pub fn open(options_json: String) -> Result<Self> {
         NativeSession::open_json(&options_json)
@@ -52,6 +62,20 @@ impl NativeEngine {
             .as_ref()
             .ok_or_else(|| Error::from_reason("ENGINE_CLOSED"))?
             .generate_json(&request_json)
+            .map_err(map_error)
+    }
+
+    #[napi]
+    pub fn generate_json_controlled(
+        &self,
+        request_json: String,
+        control_id: String,
+    ) -> Result<String> {
+        let control = control::lookup(&control_id)?;
+        self.inner
+            .as_ref()
+            .ok_or_else(|| Error::from_reason("ENGINE_CLOSED"))?
+            .generate_json_controlled(&request_json, &control)
             .map_err(map_error)
     }
     #[napi]

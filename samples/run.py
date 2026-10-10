@@ -14,6 +14,7 @@ parser.add_argument("--text", default="My package arrived broken and I need a re
 parser.add_argument(
     "--generate", action="store_true", help="Run the shared typed-field workflow in a native sample"
 )
+parser.add_argument("--generate-request", type=Path, help="Custom JSON request; implies --generate")
 parser.add_argument("--file", type=Path, help="Local media for vision/audio samples")
 parser.add_argument("--media", type=Path, help="Image/video input for the TypeScript or C# sample")
 parser.add_argument("--modality", choices=["image", "video", "audio"])
@@ -71,8 +72,12 @@ else:
     if args.media is None:
         command = executables[args.sample] + [
             str(args.model.resolve()),
-            "--generate" if args.generate else args.text,
+            "--generate" if args.generate or args.generate_request else args.text,
         ]
+        if args.generate_request:
+            if not args.generate_request.is_file():
+                parser.error("--generate-request must name an existing JSON file")
+            command.append(str(args.generate_request.resolve()))
     else:
         python = (
             ROOT

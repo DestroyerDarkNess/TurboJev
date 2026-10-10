@@ -9,7 +9,13 @@ use serde_json::{json, Value};
 use std::collections::HashSet;
 
 /// Maximum enum and permutation workload accepted before inference.
-pub const MAX_ENUM_VALUES: usize = 24;
+pub const MAX_ENUM_VALUES: usize = 512;
+/// Single-token control labels; larger sets require sequence/value scoring.
+pub const MAX_CONTROL_VALUES: usize = 26;
+
+#[path = "structured.rs"]
+mod structured;
+pub use structured::{ArrayField, MAX_ARRAY_ITEMS};
 /// Hard cap avoids accidentally requesting factorial model work.
 pub const MAX_PERMUTATIONS: usize = 720;
 
@@ -18,8 +24,11 @@ pub const MAX_PERMUTATIONS: usize = 720;
 #[serde(deny_unknown_fields)]
 pub struct GenerateRequest {
     /// Text, structured state, or the existing multimodal envelope.
-    #[serde(alias = "state")]
+    #[serde(default, alias = "state")]
     pub context: Value,
+    /// Inline base64 or data-URI images. Source loading belongs to the host.
+    #[serde(default)]
+    pub images: Vec<String>,
     /// Ordered field-name to field-schema map.
     #[serde(default)]
     pub questions: Option<IndexMap<String, Value>>,
@@ -44,6 +53,9 @@ pub struct GenerateRequest {
     /// Reproducible permutation sampling seed.
     #[serde(default)]
     pub seed: u64,
+    /// Zero chooses the most likely answer; positive values sample decisions.
+    #[serde(default)]
+    pub temperature: f64,
 }
 
 fn default_text_tokens() -> usize {
@@ -75,6 +87,12 @@ pub enum Thinking {
 #[derive(Debug, Clone)]
 pub struct Field {
     pub name: String,
+    pub path: Vec<String>,
+    pub dependency_groups: Vec<Vec<String>>,
+    pub gates: Vec<(String, Value)>,
+    pub descriptions: Vec<(Value, String)>,
+    pub levels: Vec<String>,
+    pub array: Option<ArrayField>,
     pub kind: FieldType,
     pub nullable: bool,
     pub instructions: String,
@@ -191,9 +209,44 @@ fn thinking(
 }
 
 impl GenerateRequest {
+    pub fn effective_context(&self) -> Result<Value, FieldError> {
+        if self.images.is_empty() {
+            return Ok(self.context.clone());
+        }
+        if self.context.get("contract").is_some() {
+            return Err(fail("images cannot be combined with a media envelope"));
+        }
+        let text = self.context.as_str().map(str::to_owned).unwrap_or_else(|| {
+            if self.context.is_null() {
+                String::new()
+            } else {
+                self.context.to_string()
+            }
+        });
+        let images: Vec<_> = self
+            .images
+            .iter()
+            .map(|image| {
+                if image.starts_with("data:image/") {
+                    image
+                        .split_once(";base64,")
+                        .map(|(_, bytes)| bytes.to_owned())
+                        .ok_or_else(|| fail("image data URI must use base64"))
+                } else if image.contains("://") {
+                    Err(fail("image URLs must be loaded and encoded by the host"))
+                } else {
+                    Ok(image.clone())
+                }
+            })
+            .collect::<Result<_, _>>()?;
+        let context = json!({"contract": "turbojev.media.v1", "text": text, "modality": "image", "images": images});
+        super::media::MediaEvidence::from_state(&context).map_err(fail)?;
+        Ok(context)
+    }
+
     /// Compile and validate the complete request before tokenization/inference.
     pub fn compile(&self) -> Result<Vec<Field>, FieldError> {
-        super::validate_state(&self.context).map_err(|e| fail(e.to_string()))?;
+        super::validate_state(&self.effective_context()?).map_err(|e| fail(e.to_string()))?;
         if !(1..=32768).contains(&self.text_max_tokens)
             || !(1..=32768).contains(&self.numeric_max_tokens)
         {
@@ -261,8 +314,13 @@ impl GenerateRequest {
         if properties.is_empty() || properties.len() > super::DEFAULT_MAX_QUESTIONS {
             return Err(fail("field count exceeds the supported range"));
         }
+        if !self.temperature.is_finite() || self.temperature < 0.0 {
+            return Err(fail("temperature must be finite and nonnegative"));
+        }
         let mut fields = Vec::new();
-        for (name, raw) in properties {
+        for expanded in structured::expand(self, &properties)? {
+            let name = expanded.name;
+            let raw = expanded.raw;
             if name.trim().is_empty() {
                 return Err(fail("field names must not be empty"));
             }
@@ -273,6 +331,8 @@ impl GenerateRequest {
                 if ![
                     "type",
                     "enum",
+                    "choices",
+                    "levels",
                     "instructions",
                     "description",
                     "depends_on",
@@ -319,6 +379,12 @@ impl GenerateRequest {
                 .unwrap_or_else(|| format!("Choose the value for {name:?}."));
             let mut field = Field {
                 name,
+                path: expanded.path,
+                dependency_groups: expanded.groups,
+                gates: expanded.gates,
+                descriptions: Vec::new(),
+                levels: Vec::new(),
+                array: expanded.array,
                 kind,
                 nullable,
                 instructions,
@@ -341,15 +407,44 @@ impl GenerateRequest {
                     self.numeric_max_tokens
                 },
             };
-            if let Some(values) = raw.get("enum") {
+            let described = if let Some(choices) = raw.get("choices") {
+                if raw.contains_key("enum") || raw.contains_key("levels") {
+                    return Err(fail("use exactly one of enum, choices or levels"));
+                }
+                Some(parse_choices(choices, false, &mut field.descriptions)?)
+            } else if let Some(levels) = raw.get("levels") {
+                if kind != FieldType::Number
+                    || nullable
+                    || raw.contains_key("enum")
+                    || raw.contains_key("permutations")
+                {
+                    return Err(fail(
+                        "levels require a nonnullable number without enum or permutations",
+                    ));
+                }
+                let values = parse_choices(levels, true, &mut field.descriptions)?;
+                if !(2..=MAX_CONTROL_VALUES).contains(&values.as_array().unwrap().len()) {
+                    return Err(fail("levels must contain 2 to 26 ordered labels"));
+                }
+                field.levels = values
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .map(|value| value.as_str().unwrap().to_owned())
+                    .collect();
+                Some(json!(values))
+            } else {
+                None
+            };
+            if let Some(values) = raw.get("enum").or(described.as_ref()) {
                 let values = values
                     .as_array()
                     .ok_or_else(|| fail("enum must be a list"))?;
                 if values.is_empty() || values.len() > MAX_ENUM_VALUES {
-                    return Err(fail("enum must contain 1 to 24 values"));
+                    return Err(fail("enum must contain 1 to 512 values"));
                 }
                 for (i, value) in values.iter().enumerate() {
-                    if !field.accepts_type(value)
+                    if (field.levels.is_empty() && !field.accepts_type(value))
                         || values[..i].iter().any(|v| same_value(v, value))
                     {
                         return Err(fail("enum has a duplicate or incorrectly typed value"));
@@ -366,10 +461,19 @@ impl GenerateRequest {
             if raw.contains_key("return_probabilities") && field.values.is_none() {
                 return Err(fail("probabilities require a finite enum or boolean"));
             }
-            if raw.contains_key("permutations") && !raw.contains_key("enum") {
-                return Err(fail("permutations require an explicit enum"));
+            if raw.contains_key("permutations") && field.values.is_none() {
+                return Err(fail("permutations require a finite enum or boolean"));
+            }
+            if field.return_probabilities
+                && !raw.contains_key("permutations")
+                && field.levels.is_empty()
+            {
+                field.permutations = json!("auto");
             }
             if let Some(values) = &field.values {
+                if values.len() > MAX_CONTROL_VALUES && field.permutations == "auto" {
+                    field.permutations = json!(1);
+                }
                 permutation_count(&field.permutations, values.len())?;
             }
             if let Some(deps) = raw.get("depends_on") {
@@ -435,6 +539,14 @@ impl GenerateRequest {
                 }
                 field.thinking = thinking(selected, level, budget)?;
             }
+            for group in &field.dependency_groups {
+                for dependency in group {
+                    if !field.depends_on.contains(dependency) {
+                        field.depends_on.push(dependency.clone());
+                    }
+                }
+            }
+            field.when = field.gates.iter().cloned().collect();
             fields.push(field);
         }
         for field in &fields {
@@ -443,12 +555,55 @@ impl GenerateRequest {
                     return Err(fail("unknown or self dependency"));
                 }
             }
-            for (parent, test) in &field.when {
+            for (parent, test) in &field.gates {
                 validate_condition(fields.iter().find(|f| &f.name == parent).unwrap(), test)?;
             }
         }
         dependency_layers(&fields)?;
+        if fields.len() > super::DEFAULT_MAX_QUESTIONS {
+            return Err(fail("expanded field count exceeds 256"));
+        }
         Ok(fields)
+    }
+}
+
+/// Compile ordinary JSON Schema without loading a model or touching a tokenizer.
+pub fn compile_json_schema(schema: Value) -> Result<Vec<Field>, FieldError> {
+    let request: GenerateRequest = serde_json::from_value(json!({
+        "context": "Schema compilation", "schema": schema,
+    }))
+    .map_err(|error| fail(error.to_string()))?;
+    request.compile()
+}
+
+/// Language-neutral introspection of the compiled decisions and array workflows.
+pub fn compile_schema_json(input: &str) -> Result<String, FieldError> {
+    let schema = serde_json::from_str(input).map_err(|error| fail(error.to_string()))?;
+    let fields = compile_json_schema(schema)?;
+    let descriptions: Vec<_> = fields.iter().map(Field::describe).collect();
+    serde_json::to_string(&descriptions).map_err(|error| fail(error.to_string()))
+}
+
+impl Field {
+    pub fn describe(&self) -> Value {
+        let (thinking, budget) = match self.thinking {
+            Thinking::Disabled => (json!(false), Value::Null),
+            Thinking::Enabled(budget) => (json!(true), json!(budget)),
+            Thinking::Auto => (json!("auto"), Value::Null),
+        };
+        json!({
+            "name": self.name, "path": self.path, "question": self.instructions,
+            "output_schema": self.output_schema(), "choices": self.values,
+            "descriptions": self.descriptions, "levels": self.levels,
+            "permutations": self.permutations, "return_probabilities": self.return_probabilities,
+            "depends_on": self.depends_on, "dependency_groups": self.dependency_groups,
+            "when": self.gates, "thinking": thinking, "thinking_budget": budget,
+            "array": self.array.as_ref().map(|array| json!({
+                "items": array.items.iter().map(Field::describe).collect::<Vec<_>>(),
+                "item_object": array.item_object, "minItems": array.min_items,
+                "maxItems": array.max_items, "continue_from": array.continue_from,
+            })),
+        })
     }
 }
 
@@ -472,16 +627,42 @@ impl Field {
                 .is_none_or(|values| values.iter().any(|v| same_value(v, value)))
     }
     pub fn conditions_met(&self, answers: &IndexMap<String, Value>) -> bool {
-        self.when.iter().all(|(name, test)| {
-            answers
-                .get(name)
-                .is_some_and(|answer| condition_passes(answer, test))
+        self.conditions_with_confidence(answers, &IndexMap::new())
+    }
+    pub fn conditions_with_confidence(
+        &self,
+        answers: &IndexMap<String, Value>,
+        confidences: &IndexMap<String, f64>,
+    ) -> bool {
+        self.gates.iter().all(|(name, test)| {
+            let Some(answer) = answers.get(name) else {
+                return false;
+            };
+            if let Some(operators) = test.as_object() {
+                operators.iter().all(|(operator, operand)| {
+                    if operator == "confidence" {
+                        confidences
+                            .get(name)
+                            .is_some_and(|confidence| condition_passes(&json!(confidence), operand))
+                    } else {
+                        condition_passes(answer, &json!({operator: operand}))
+                    }
+                })
+            } else {
+                condition_passes(answer, test)
+            }
         })
     }
     pub fn output_schema(&self) -> Value {
+        if let Some(array) = &self.array {
+            return array.item_schema();
+        }
         let kind = serde_json::to_value(self.kind).expect("scalar field type serializes");
         let mut schema = json!({"type": if self.nullable { json!([kind, "null"]) } else { kind }});
         if let Some(values) = &self.values {
+            if !self.levels.is_empty() {
+                schema["type"] = json!("string");
+            }
             schema["enum"] = json!(values);
         }
         schema
@@ -489,12 +670,35 @@ impl Field {
 }
 
 fn validate_condition(source: &Field, test: &Value) -> Result<(), FieldError> {
+    if source.array.is_some() {
+        return Err(fail("conditions may only test scalar fields"));
+    }
     if let Some(operators) = test.as_object() {
         if operators.is_empty() {
             return Err(fail("empty condition"));
         }
         for (operator, operand) in operators {
             match operator.as_str() {
+                "confidence" => {
+                    if !source.return_probabilities {
+                        return Err(fail("confidence conditions require return_probabilities"));
+                    }
+                    let bounds = operand
+                        .as_object()
+                        .filter(|object| !object.is_empty())
+                        .ok_or_else(|| fail("confidence needs comparison bounds"))?;
+                    for (comparison, bound) in bounds {
+                        if !["gt", "gte", "lt", "lte"].contains(&comparison.as_str())
+                            || !bound
+                                .as_f64()
+                                .is_some_and(|number| (0.0..=1.0).contains(&number))
+                        {
+                            return Err(fail(
+                                "confidence bounds must use numeric comparisons between 0 and 1",
+                            ));
+                        }
+                    }
+                }
                 "gt" | "gte" | "lt" | "lte" => {
                     if !matches!(source.kind, FieldType::Integer | FieldType::Number)
                         || !operand.is_number()
@@ -533,7 +737,8 @@ fn validate_condition(source: &Field, test: &Value) -> Result<(), FieldError> {
 }
 
 fn condition_value_allowed(source: &Field, value: &Value) -> bool {
-    source.accepts(value)
+    source.levels.is_empty()
+        && source.accepts(value)
         && (source.values.is_some() || source.kind != FieldType::String || value.is_null())
 }
 
@@ -627,4 +832,48 @@ pub fn permutation_count(budget: &Value, count: usize) -> Result<usize, FieldErr
         return Err(fail("permutation budget exceeds 720"));
     }
     Ok(requested)
+}
+
+fn parse_choices(
+    raw: &Value,
+    levels: bool,
+    descriptions: &mut Vec<(Value, String)>,
+) -> Result<Value, FieldError> {
+    let entries = raw
+        .as_array()
+        .filter(|entries| !entries.is_empty())
+        .ok_or_else(|| fail("choices or levels must be a nonempty list"))?;
+    let value_key = if levels { "label" } else { "value" };
+    let mut values = Vec::new();
+    for entry in entries {
+        let entry = entry
+            .as_object()
+            .ok_or_else(|| fail("each choice or level must be an object"))?;
+        if entry
+            .keys()
+            .any(|key| key != value_key && key != "description")
+        {
+            return Err(fail("unknown choice or level keyword"));
+        }
+        let mut value = entry
+            .get(value_key)
+            .cloned()
+            .ok_or_else(|| fail("choice value or level label is missing"))?;
+        if levels {
+            value = json!(value
+                .as_str()
+                .filter(|label| !label.trim().is_empty())
+                .ok_or_else(|| fail("level label must be a nonempty string"))?
+                .trim());
+        }
+        if let Some(description) = entry.get("description") {
+            let description = description
+                .as_str()
+                .filter(|text| !text.trim().is_empty())
+                .ok_or_else(|| fail("description must be a nonempty string"))?;
+            descriptions.push((value.clone(), description.trim().to_owned()));
+        }
+        values.push(value);
+    }
+    Ok(json!(values))
 }

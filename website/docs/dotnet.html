@@ -6,7 +6,7 @@
     <title>.NET / C# — TurboJev</title>
     <meta name="description" content=".NET / C# documentation for TurboJev." />
     <link rel="icon" href="../favicon.svg" />
-    <link rel="stylesheet" href="../styles.css?v=8f2aa745090b" />
+    <link rel="stylesheet" href="../styles.css?v=eefd0e23bda9" />
   </head>
   <body class="docs-page">
     <a class="skip-link" href="#article">Skip to content</a>
@@ -32,6 +32,7 @@
           <a href="architecture.html">Architecture</a>
           <a href="api.html">Core API</a>
           <a href="fields.html">Typed fields</a>
+          <a href="cookbook.html">Cookbook</a>
           <p>Languages</p>
           <a href="rust.html">Rust</a>
           <a href="node.html">Node / TypeScript</a>
@@ -54,56 +55,81 @@
           <div class="language-heading">
             <div>
               <h1>.NET / C#</h1>
+
               <p>NuGet package with native assets for three Windows architectures.</p>
             </div>
+
             <a href="https://www.nuget.org/packages/TurboJev" target="_blank" rel="noreferrer"
               >NuGet ↗</a
             >
           </div>
+
           <div class="install-line">
             <code>dotnet add package TurboJev</code
             ><button class="copy-button" type="button">Copy</button>
           </div>
+
           <div class="code-block">
             <div class="code-toolbar">
               <span>Program.cs</span><button class="copy-button" type="button">Copy</button>
             </div>
+
             <pre class="language-csharp"><code class="language-csharp">using TurboJev;
+
 using System.Text.Json;
 
+
+
 await using var jev = await TurboJevEngine.LoadAsync(new {
+
     model = "./model.gguf", nGpuLayers = 0, nThreads = 4
+
 });
+
 var request = new { state = new { message = "My package arrived broken" }, questions = new { department = new { type = "choice", instructions = "Which department?", criteria = new { billing = "Payments", shipping = "Delivery", technical = "Product issue", other = "Other" } } } };
+
 var json = await jev.EvaluateJsonAsync(JsonSerializer.Serialize(request));
+
 Console.WriteLine(json);</code></pre>
           </div>
+
           <p class="source-link">
             The package carries win-x86, win-x64, and win-arm64 native assets.
           </p>
+
           <h2>Evaluate an image</h2>
+
           <p>
             Load a supported vision GGUF and its matching projector before sending image evidence.
           </p>
+
           <div class="code-block">
             <div class="code-toolbar">
               <span>LoadMedia.cs</span><button class="copy-button" type="button">Copy</button>
             </div>
+
             <pre
               class="language-csharp"
             ><code class="language-csharp">await using var engine = await TurboJevEngine.LoadAsync(new {
+
     model = &quot;./vision-model.gguf&quot;, mmproj = &quot;./matching-mmproj.gguf&quot;,
+
     device = &quot;cpu&quot;, nCtx = 8192, nSeqMax = 1
+
 });</code></pre>
           </div>
+
           <p>
             With a multimodal engine, serialize the portable request and call
+
             <code>EvaluateJsonAsync</code>:
           </p>
+
           <div class="code-block">
             <div class="code-toolbar">
               <span>Media.cs</span><button class="copy-button" type="button">Copy</button>
             </div>
+
             <pre class="language-csharp"><code class="language-csharp">using System.Text.Json;
 
 var request = new {
@@ -124,12 +150,16 @@ var request = new {
 Console.WriteLine(await engine.EvaluateJsonAsync(
     JsonSerializer.Serialize(request)));</code></pre>
           </div>
+
           <h2>Generate typed fields</h2>
+
           <p>Use the loaded engine and serialize the same portable request.</p>
+
           <div class="code-block">
             <div class="code-toolbar">
               <span>Fields.cs</span><button class="copy-button" type="button">Copy</button>
             </div>
+
             <pre class="language-csharp"><code class="language-csharp">var fields = new {
     context = &quot;Invoice total: 324.50 GBP. Payment is overdue.&quot;,
     questions = new {
@@ -143,9 +173,12 @@ Console.WriteLine(await engine.EvaluateJsonAsync(
 };
 Console.WriteLine(await jev.GenerateJsonAsync(JsonSerializer.Serialize(fields)));</code></pre>
           </div>
+
           <p>
             Load-time choice correction uses
+
             <code>execution = new { orderRobustness = "balanced" }</code>. Generated field enums use
+
             <code>permutations</code> independently. See <a href="fields.html">field options</a>.
           </p>
         </article>
@@ -179,6 +212,6 @@ Console.WriteLine(await jev.GenerateJsonAsync(JsonSerializer.Serialize(fields)))
       <div id="search-results" aria-live="polite"></div>
     </dialog>
     <script src="../vendor/prism/prism.js" defer></script>
-    <script src="../app.js?v=8f2aa745090b" defer></script>
+    <script src="../app.js?v=eefd0e23bda9" defer></script>
   </body>
 </html>

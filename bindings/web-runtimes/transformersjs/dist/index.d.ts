@@ -5,7 +5,9 @@ export interface TransformersRuntimeOptions {
     thinking?: boolean;
     progressCallback?: (p: unknown) => void;
 }
-export declare function createRuntime(): Promise<{
+export declare function createRuntime(dependencies?: {
+    loadTransformers?: () => Promise<any>;
+}): Promise<{
     initialize(input: TransformersRuntimeOptions): Promise<{
         name: string;
         model: string;

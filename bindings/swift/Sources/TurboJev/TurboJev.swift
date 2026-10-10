@@ -102,6 +102,16 @@ public final class TurboJevEngine {
             }
         }
     }
+    public static func compileSchema(_ schemaJSON: String) throws -> String {
+        var output: UnsafeMutablePointer<CChar>?
+        let status = schemaJSON.withCString { tj_compile_schema_json($0, &output) }
+        guard status == 0 else {
+            throw TurboJevError.native(code: String(cString: tj_last_error_code()), message: String(cString: tj_last_error_message()))
+        }
+        defer { tj_string_free(output) }
+        return output.map { String(cString: $0) } ?? ""
+    }
+
     public func generate(_ requestJSON: String) throws -> String {
         try call { engine, out in
             requestJSON.withCString { request in tj_engine_generate_json(engine, request, out) }

@@ -8,13 +8,12 @@ from turbojev import TurboJev
 model = sys.argv[1]
 message = sys.argv[2] if len(sys.argv) > 2 else "My package arrived broken."
 if message == "--generate":
-    request = json.loads(
-        Path(__file__)
-        .resolve()
-        .parents[1]
-        .joinpath("typed-fields/request.json")
-        .read_text(encoding="utf-8")
+    request_path = (
+        Path(sys.argv[3])
+        if len(sys.argv) > 3
+        else Path(__file__).resolve().parents[1] / "typed-fields/request.json"
     )
+    request = json.loads(request_path.read_text(encoding="utf-8"))
     with TurboJev.load(model, device="cpu", n_ctx=8192, n_seq_max=1, n_threads=4) as engine:
         print(json.dumps(engine.generate(request), indent=2))
     raise SystemExit(0)

@@ -6,9 +6,9 @@ and returns one score per candidate. The Rust/WASM engine validates the scores
 and creates the shared `EvaluationResponse`.
 
 The adapter sends the model's chat-formatted request to llama.cpp, constrains
-the next answer to `A`–`T` with grammar, and maps returned log-probabilities
+the next answer to `A`–`Z` with grammar, and maps returned log-probabilities
 back to the original candidate order. It does not contain model-specific token
-IDs. One inference call is made per decision task unless cyclic order correction
+IDs. One inference call is made per decision task unless a permutation budget or order correction
 is requested. Wllama 3.8.1 supplies
 llama.cpp's WebAssembly multimodal path: set `mmprojUrl` to the projector paired
 with the GGUF to enable supported image input. Video is passed as ordered
@@ -119,3 +119,28 @@ Copy the entire `src/` directory to `/llamacpp/`, including
 serve this adapter, TurboJev's generated WASM files, and the page
 over localhost or HTTPS. Model files are fetched from their URL and remain in
 the browser. Wllama 3.8.1 and its WASM binary are loaded from jsDelivr.
+
+## Structured SDK extension
+
+Source version 0.32.0 adds `generate` objects, arrays and ordered levels. Open values
+use Wllama JSON Schema grammar; the Rust core checks every decoded value and owns
+conditions, dependency scheduling, array continuation and duplicate stopping.
+`imageEvidence([page1, page2], text)` preserves image order. The selected GGUF and
+projector must accept those inputs.
+
+Finite fields up to 26 values use the verified letter codebook. For 27–512 values,
+provide a real full-continuation scorer through `runtime.useChoiceScorer(scorer)`
+or a module URL in `runtimeOptions.choiceScorerModuleUrl`. That module must export
+`createChoiceScorer(options)` and return an object with `maxChoices` (27–512) and
+`async score(task, {engine, model})`. The task contains the complete semantic value
+set and original evidence. Return `logits` in that same order, with one finite
+log-score for each complete value continuation. Do not return a selected `value`.
+Optional `input_tokens` records measured usage; omit it when unavailable. Report
+`generated_tokens` and `thinking` if the scorer produces model text. The adapter
+rejects missing scores, non-finite scores and a plugin-selected answer.
+
+There is no built-in large-value scorer in this Wllama adapter. Native GGUF and
+Transformers.js implement full text continuation scoring. Unsupported paths fail
+instead of substituting first-token scores. Browser `generate(request,
+{timeoutMs, signal})` cancellation is cooperative between runtime operations;
+queued operations on a loaded engine are serialized.

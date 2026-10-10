@@ -6,7 +6,7 @@
     <title>Decision design — TurboJev</title>
     <meta name="description" content="Decision design documentation for TurboJev." />
     <link rel="icon" href="../favicon.svg" />
-    <link rel="stylesheet" href="../styles.css?v=8f2aa745090b" />
+    <link rel="stylesheet" href="../styles.css?v=eefd0e23bda9" />
   </head>
   <body class="docs-page">
     <a class="skip-link" href="#article">Skip to content</a>
@@ -32,6 +32,7 @@
           <a href="architecture.html">Architecture</a>
           <a href="api.html">Core API</a>
           <a href="fields.html">Typed fields</a>
+          <a href="cookbook.html">Cookbook</a>
           <p>Languages</p>
           <a href="rust.html">Rust</a>
           <a href="node.html">Node / TypeScript</a>
@@ -53,27 +54,35 @@
         <section id="decisions" class="doc-section searchable">
           <div class="doc-section-body">
             <h1>Decision design</h1>
+
             <p>
               TurboJev executes the requested decision contract. Task accuracy depends on the
               checkpoint, instructions and evidence. A small model can route a clear message yet
               fail navigation or coordinate arithmetic.
             </p>
+
             <h3>Build the request</h3>
+
             <ol>
               <li>State the facts needed for the decision; remove redundant prose.</li>
+
               <li>
                 Ask one precise question with meaningful candidate keys and distinct descriptions.
               </li>
+
               <li>
                 Keep every candidate visible; use an ordered score only when its sequence defines a
                 real scale.
               </li>
+
               <li>
                 Handle required safety and legality rules in the application, and disclose that
                 policy.
               </li>
             </ol>
+
             <h3>Perception and policy</h3>
+
             <p>
               A game can expose raw coordinates or derive sensor facts such as nearby obstacles.
               Disclose derived observations as perception assistance. If a demo claims
@@ -81,7 +90,9 @@
               collisions as failures. A host-computed path or a substituted move must not be counted
               as an AI decision.
             </p>
+
             <h3>Measure quality and speed together</h3>
+
             <p>
               Test known answers, failure cases and different candidate orders with the exact model,
               quantization, device and runtime you will ship. Separate download, load, preprocessing
@@ -89,8 +100,10 @@
               added evaluations help your task. Thinking generates tokens and adds latency; it is
               not automatically more accurate.
             </p>
+
             <p>
               Use <code>evals/run.py</code> for recorded numeric and JevBench evaluations, and
+
               <code>scripts/validate-real-option-order.mjs</code> for the real option-order probe.
               Record request, output, model provenance, errors and latency; never reuse another
               engine's published scores as TurboJev evidence.
@@ -127,6 +140,6 @@
       <div id="search-results" aria-live="polite"></div>
     </dialog>
     <script src="../vendor/prism/prism.js" defer></script>
-    <script src="../app.js?v=8f2aa745090b" defer></script>
+    <script src="../app.js?v=eefd0e23bda9" defer></script>
   </body>
 </html>

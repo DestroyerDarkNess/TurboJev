@@ -6,7 +6,7 @@
     <title>Node / TypeScript — TurboJev</title>
     <meta name="description" content="Node / TypeScript documentation for TurboJev." />
     <link rel="icon" href="../favicon.svg" />
-    <link rel="stylesheet" href="../styles.css?v=8f2aa745090b" />
+    <link rel="stylesheet" href="../styles.css?v=eefd0e23bda9" />
   </head>
   <body class="docs-page">
     <a class="skip-link" href="#article">Skip to content</a>
@@ -32,6 +32,7 @@
           <a href="architecture.html">Architecture</a>
           <a href="api.html">Core API</a>
           <a href="fields.html">Typed fields</a>
+          <a href="cookbook.html">Cookbook</a>
           <p>Languages</p>
           <a href="rust.html">Rust</a>
           <a aria-current="page" href="node.html">Node / TypeScript</a>
@@ -54,48 +55,77 @@
           <div class="language-heading">
             <div>
               <h1>Node / TypeScript</h1>
+
               <p>Worker-backed native calls with typed results and clean async shutdown.</p>
             </div>
+
             <a href="https://www.npmjs.com/package/@turbojev/node" target="_blank" rel="noreferrer"
               >npm ↗</a
             >
           </div>
+
           <div class="install-line">
             <code>npm install @turbojev/node</code
             ><button class="copy-button" type="button">Copy</button>
           </div>
+
           <div class="code-block">
             <div class="code-toolbar">
               <span>decision.ts</span><button class="copy-button" type="button">Copy</button>
             </div>
+
             <pre
               class="language-typescript"
             ><code class="language-typescript">import { TurboJev } from "@turbojev/node";
 
+
+
 const jev = await TurboJev.load({ model: "./model.gguf", nGpuLayers: 0, nThreads: 4 });
+
 try {
+
   const result = await jev.evaluate({
+
     state: { message: "My package arrived broken." },
+
     questions: {
+
       department: {
+
         type: "choice",
+
         instructions: "Which department should handle this?",
+
         criteria: {
+
           billing: "Payments",
+
           shipping: "Delivery",
+
           technical: "Product issue",
+
           other: "Other",
+
         },
+
       },
+
     },
+
   });
+
   console.log(result.answers.department);
+
 } finally {
+
   await jev.close();
+
 }</code></pre>
           </div>
+
           <p class="source-link">
             Text and media source:
+
             <a
               href="https://github.com/DestroyerDarkNess/TurboJev/blob/main/samples/TurboJev-TS-node/src/main.ts"
               target="_blank"
@@ -103,15 +133,19 @@ try {
               >TS sample ↗</a
             >
           </p>
+
           <h2>Evaluate an image</h2>
+
           <p>
             Load a supported vision GGUF and its matching projector. Both are inputs to the same
             native host; no external Python worker is required on this path.
           </p>
+
           <div class="code-block">
             <div class="code-toolbar">
               <span>load-media.ts</span><button class="copy-button" type="button">Copy</button>
             </div>
+
             <pre
               class="language-typescript"
             ><code class="language-typescript">const engine = await TurboJev.load({
@@ -122,14 +156,18 @@ try {
   nSeqMax: 1,
 });</code></pre>
           </div>
+
           <p>
             Once the engine is configured with that runtime, pass the same media envelope to
+
             <code>evaluate</code>:
           </p>
+
           <div class="code-block">
             <div class="code-toolbar">
               <span>media.ts</span><button class="copy-button" type="button">Copy</button>
             </div>
+
             <pre
               class="language-typescript"
             ><code class="language-typescript">import { readFile } from "node:fs/promises";
@@ -150,15 +188,19 @@ const result = await engine.evaluate({
 });
 console.log(result.answers.scene);</code></pre>
           </div>
+
           <h2>Generate typed fields</h2>
+
           <p>
             Call inside the same engine lifecycle shown above. A skipped field is absent; it is not
             a null value.
           </p>
+
           <div class="code-block">
             <div class="code-toolbar">
               <span>fields.ts</span><button class="copy-button" type="button">Copy</button>
             </div>
+
             <pre
               class="language-typescript"
             ><code class="language-typescript">const response = await jev.generate({
@@ -179,10 +221,12 @@ console.log(result.answers.scene);</code></pre>
 });
 console.log(response.result, response.skipped, response.usage);</code></pre>
           </div>
+
           <p>
             For unordered routing, configure
             <code>execution: {orderRobustness: "balanced"}</code> at load time. For finite generated
             fields, use their own <code>permutations</code> setting. See
+
             <a href="fields.html">all field options</a> and
             <a href="ordering.html">ordering costs</a>.
           </p>
@@ -217,6 +261,6 @@ console.log(response.result, response.skipped, response.usage);</code></pre>
       <div id="search-results" aria-live="polite"></div>
     </dialog>
     <script src="../vendor/prism/prism.js" defer></script>
-    <script src="../app.js?v=8f2aa745090b" defer></script>
+    <script src="../app.js?v=eefd0e23bda9" defer></script>
   </body>
 </html>

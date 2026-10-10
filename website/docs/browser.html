@@ -6,7 +6,7 @@
     <title>Browser / WASM — TurboJev</title>
     <meta name="description" content="Browser / WASM documentation for TurboJev." />
     <link rel="icon" href="../favicon.svg" />
-    <link rel="stylesheet" href="../styles.css?v=8f2aa745090b" />
+    <link rel="stylesheet" href="../styles.css?v=eefd0e23bda9" />
   </head>
   <body class="docs-page">
     <a class="skip-link" href="#article">Skip to content</a>
@@ -32,6 +32,7 @@
           <a href="architecture.html">Architecture</a>
           <a href="api.html">Core API</a>
           <a href="fields.html">Typed fields</a>
+          <a href="cookbook.html">Cookbook</a>
           <p>Languages</p>
           <a href="rust.html">Rust</a>
           <a href="node.html">Node / TypeScript</a>
@@ -54,12 +55,15 @@
           <div class="language-heading">
             <div>
               <h1>Browser / WASM</h1>
+
               <p>Run locally in a web worker with optional WebGPU.</p>
             </div>
+
             <a href="https://www.npmjs.com/package/@turbojev/web" target="_blank" rel="noreferrer"
               >npm ↗</a
             >
           </div>
+
           <div class="install-line">
             <code>npm install @turbojev/web @turbojev/wasm @turbojev/runtime-llamacpp-wasm</code
             ><button class="copy-button" type="button">Copy</button>
@@ -97,79 +101,112 @@ const result = await jev.evaluate({
 console.log(result.answers.route);
 await jev.close();</code></pre>
           </div>
+
           <p class="source-link">
             Included vanilla studio: <code>python samples/build.py web</code>.
           </p>
+
           <h2>Try the browser playground</h2>
+
           <p>
             The <a href="../index.html#playground">playground</a> runs real inference in a worker.
             Select the input type before loading a model. Unload the current model to change it.
             Downloads start only when you press Load.
           </p>
+
           <h3>Model selection</h3>
+
           <div class="table-scroll">
             <table class="model-table">
               <thead>
                 <tr>
                   <th>Input</th>
+
                   <th>Models</th>
+
                   <th>Method</th>
                 </tr>
               </thead>
+
               <tbody>
                 <tr>
                   <td>Text · ONNX</td>
+
                   <td>Qwen2.5 0.5B, Qwen3 0.6B</td>
+
                   <td>Transformers.js candidate-token logits</td>
                 </tr>
+
                 <tr>
                   <td>Text · GGUF</td>
+
                   <td>Qwen3 0.6B Q8_0</td>
+
                   <td>llama.cpp WASM constrained-answer log-probabilities</td>
                 </tr>
+
                 <tr>
                   <td>Image</td>
+
                   <td>CLIP B/32, CLIP B/16</td>
+
                   <td>Image–text similarity</td>
                 </tr>
+
                 <tr>
                   <td>Image · GGUF</td>
+
                   <td>LFM2-VL 450M Q4_0 + mmproj</td>
+
                   <td>llama.cpp WASM mtmd image input</td>
                 </tr>
+
                 <tr>
                   <td>Audio</td>
+
                   <td>CLAP HTSAT</td>
+
                   <td>Sound–text similarity</td>
                 </tr>
+
                 <tr>
                   <td>Audio · GGUF</td>
+
                   <td>LFM2 Audio 1.5B Q8_0 + mmproj</td>
+
                   <td>
                     Wllama mtmd audio input; real Node/WASM probe passed, browser qualification
                     pending
                   </td>
                 </tr>
+
                 <tr>
                   <td>Video</td>
+
                   <td>CLIP or LFM2-VL GGUF</td>
+
                   <td>Four ordered, timestamped frames; no audio track</td>
                 </tr>
               </tbody>
             </table>
           </div>
+
           <h3>Media limits</h3>
+
           <p>
             Files must be at most 24 MB. Audio is mixed to mono at 48 kHz and must be 10 seconds or
             shorter. Video must be 60 seconds or shorter; the llama.cpp path sends four ordered,
             timestamped frames to mtmd. This does not guarantee temporal understanding and ignores
             the audio track. Small models can return incorrect decisions.
           </p>
+
           <h3>Runtime assets</h3>
+
           <p>
             The package supplies the worker bridge. The example uses matching published 0.31.0 WASM
             and GGUF adapter assets from jsDelivr. Use a bundler that emits the package worker on
             your own origin; if serving plain HTML, host the package worker locally and set
+
             <code>workerUrl</code>. You can host the WASM and adapter assets yourself instead. The
             repository includes Transformers.js and llama.cpp WASM adapters. The llama.cpp adapter
             loads a matching mmproj for supported image models and passes video as ordered,
@@ -180,28 +217,37 @@ await jev.close();</code></pre>
             prompt text. Wllama 3.8.1 reserves workers for audio preprocessing. A real LFM2 Audio
             probe passed four decisions through the adapter and Rust core in Node/WASM; the
             corrected browser page still requires a fresh run. The playground offers
-            <code>none</code>, <code>cyclic</code> and <code>balanced</code> ordering for choice
-            questions, including media. Corrections add real model evaluations; none is the default.
-            The local site uses <code>py website/serve.py</code> to set WebAssembly threading
-            headers. Select the llama.cpp runtime and a GGUF model in the playground; the browser
-            loads the model locally from Hugging Face. The <code>samples/build.py web</code> command
-            prepares the TurboJev WASM assets.
+            <code>none</code>, <code>cyclic</code> and
+
+            <code>balanced</code> ordering for choice questions, including media. Corrections add
+            real model evaluations; none is the default. The local site uses
+
+            <code>py website/serve.py</code> to set WebAssembly threading headers. Select the
+            llama.cpp runtime and a GGUF model in the playground; the browser loads the model
+            locally from Hugging Face. The <code>samples/build.py web</code> command prepares the
+            TurboJev WASM assets.
           </p>
+
           <h3>Troubleshooting</h3>
+
           <p>
             If WebGPU is unavailable, select CPU. If initialization runs out of memory, unload the
             model and try a smaller GGUF quantization. Cancel terminates the worker. Model downloads
             may take several minutes and require enough browser memory.
           </p>
+
           <h2>Generate typed fields</h2>
+
           <p>
             Use the same loaded client. The request and response follow the portable workflow
             contract.
           </p>
+
           <div class="code-block">
             <div class="code-toolbar">
               <span>fields.js</span><button class="copy-button" type="button">Copy</button>
             </div>
+
             <pre
               class="language-javascript"
             ><code class="language-javascript">const response = await jev.generate({
@@ -222,12 +268,15 @@ await jev.close();</code></pre>
 });
 console.log(response.result, response.skipped, response.usage);</code></pre>
           </div>
+
           <p>
             The GGUF browser adapter uses JSON Schema grammar for open scalar values.
             Transformers.js validates bounded greedy output afterward. Neither browser adapter
             supports thinking; the request above disables it explicitly. Generated enums use their
             own
+
             <code>permutations</code>, independent of load-time <code>orderRobustness</code>. See
+
             <a href="fields.html">field capabilities</a>.
           </p>
         </article>
@@ -261,6 +310,6 @@ console.log(response.result, response.skipped, response.usage);</code></pre>
       <div id="search-results" aria-live="polite"></div>
     </dialog>
     <script src="../vendor/prism/prism.js" defer></script>
-    <script src="../app.js?v=8f2aa745090b" defer></script>
+    <script src="../app.js?v=eefd0e23bda9" defer></script>
   </body>
 </html>

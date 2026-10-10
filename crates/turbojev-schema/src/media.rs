@@ -31,6 +31,9 @@ pub struct MediaEvidence {
     /// Encoded image/audio bytes. Video uses ordered decoded frames below.
     #[serde(default, skip_serializing_if = "String::is_empty")]
     pub base64: String,
+    /// Multiple still images in caller order; use instead of the single payload.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub images: Vec<String>,
     /// Ordered RGB image frames for video. Containers such as MP4 must be
     /// decoded by the host; TurboJev passes these frames to llama.cpp mtmd.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
@@ -80,6 +83,19 @@ impl MediaEvidence {
         let media: Self = serde_json::from_value(state.clone()).map_err(|e| e.to_string())?;
         const MAX_BASE64_CHARS: usize = 32 * 1024 * 1024;
         match &media.modality {
+            Modality::Image if !media.images.is_empty() => {
+                if !media.base64.is_empty()
+                    || !media.frames.is_empty()
+                    || media.images.len() > 32
+                    || media.images.iter().any(String::is_empty)
+                    || media.images.iter().map(String::len).sum::<usize>() > MAX_BASE64_CHARS
+                {
+                    return Err(
+                        "image lists require 1..32 bounded images without base64 or video frames"
+                            .into(),
+                    );
+                }
+            }
             Modality::Image | Modality::Audio => {
                 if media.base64.is_empty() || media.base64.len() > MAX_BASE64_CHARS {
                     return Err("image/audio base64 must contain 1..33554432 characters".into());
@@ -87,8 +103,14 @@ impl MediaEvidence {
                 if !media.frames.is_empty() {
                     return Err("frames are only valid for video modality".into());
                 }
+                if !media.images.is_empty() {
+                    return Err("images are only valid for image modality".into());
+                }
             }
             Modality::Video => {
+                if !media.images.is_empty() {
+                    return Err("video uses timestamped frames rather than images".into());
+                }
                 if !media.base64.is_empty() {
                     return Err(
                         "video containers are not decoded by TurboJev; provide timestamped frames"

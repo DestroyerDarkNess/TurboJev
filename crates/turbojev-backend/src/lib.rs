@@ -270,6 +270,10 @@ pub struct FieldTask {
     pub thinking: bool,
     pub thinking_budget: usize,
     pub max_tokens: usize,
+    #[serde(default)]
+    pub temperature: f64,
+    #[serde(default)]
+    pub seed: u64,
 }
 
 impl FieldTask {

@@ -1,0 +1,605 @@
+{
+  "source_version": "0.32.0",
+  "registry_published_by_this_task": false,
+  "recorded_at_utc": "2026-10-10T17:00:17.003887+00:00",
+  "host": {
+    "os": "Windows-11-10.0.26100-SP0",
+    "architecture": "AMD64",
+    "device": "cpu",
+    "inference_threads": 4
+  },
+  "model": {
+    "file": "Qwen3-0.6B-Q4_K_M.gguf",
+    "sha256": "9acfc1e001311f34b4252001b626f2e466d592a42065f66571bff3790d4e1b14"
+  },
+  "gates": {
+    "rust_workspace": {
+      "passed": true,
+      "tests": 180,
+      "command": "cargo test --workspace --exclude turbojev-node --exclude turbojev-python --exclude turbojev-jni --locked"
+    },
+    "rust_new_structured_tests": {
+      "core": 15,
+      "schema": 7,
+      "included_in_workspace_count": true
+    },
+    "clippy": {
+      "passed": true,
+      "command": "cargo clippy --workspace --all-targets --locked -- -D warnings",
+      "final_core_recheck_passed": true
+    },
+    "rust_format": {
+      "passed": true,
+      "command": "cargo fmt --all -- --check"
+    },
+    "web_tests": {
+      "passed": true,
+      "tests": 31,
+      "command": "node --test bindings/web/test/*.test.mjs bindings/web-runtimes/llamacpp-wasm/test/*.test.mjs bindings/web-runtimes/transformersjs/test/*.test.mjs"
+    },
+    "python_contract": {
+      "passed": true,
+      "command": "python scripts/validate-sdk-bindings.py",
+      "real_gguf_age_extraction_and_in_flight_cancellation_also_passed": true
+    },
+    "node_contract": {
+      "passed": true,
+      "command": "node scripts/validate-sdk-node.mjs .artifacts/sdk-evolution/native/turbojev.node"
+    },
+    "dotnet_contract": {
+      "passed": true,
+      "command": "dotnet run --project tests/e2e/dotnet-sdk -p:TurboJevTestNativeRoot=D:/Projects/TurboJev/.artifacts/sdk-evolution/native -vquiet"
+    },
+    "wasm_contract": {
+      "passed": true,
+      "command": "node scripts/validate-fields-wasm-contract.mjs website/vendor/wasm",
+      "fixture_scorer_not_model_accuracy": true
+    },
+    "python_lint": {
+      "passed": true,
+      "command": "python -m ruff check bindings/python/turbojev scripts/validate-sdk-bindings.py scripts/validate-sdk-evolution.py"
+    },
+    "website": {
+      "passed": true,
+      "documentation_pages": 17,
+      "local_generated_links_resolve": true,
+      "python_cookbook_snippets_parse": 6,
+      "cookbook_search_verified_in_browser": "continue_from returns Fields and Cookbook"
+    },
+    "release_preflight": {
+      "passed": true,
+      "command": "python scripts/release_preflight.py --tag v0.32.0"
+    }
+  },
+  "final_contract_artifact_sha256": {
+    "windows_x64_capi": "fc01383dddb2056e4353c84b37d128e31940bb9b03bab4ed4c09bf059c8f5dc3",
+    "windows_x64_llama_shim": "e362967e1636850a1619ebb1e33df6ea9156df64bee261e294aaac75c6208fe2",
+    "windows_x64_node": "897df9efc4227cb466b9a797bfba0bfe5c95f3920752a8c526b1bc87166c1d9d",
+    "windows_x64_python": "1464ab325c22cfd497eb206dcbbe3b5dfc966fd550c738f9328c2efe64e5da85",
+    "wasm_rust_core": "481d2eae78535a4e40489a75991479646059dc5cc86a6e3c41f74a8914f6c2d4"
+  },
+  "real_native": {
+    "contract_cases_passed": 7,
+    "exact_answer_cases_scored": 4,
+    "exact_answer_cases_matched": 4,
+    "unscored_answer_cases": ["described_choice", "ordinal", "large_enum"],
+    "config": {
+      "model": "Qwen3-0.6B-Q4_K_M.gguf",
+      "device": "cpu",
+      "nCtx": 8192,
+      "nSeqMax": 1,
+      "nThreads": 4,
+      "nThreadsBatch": 4
+    },
+    "records": [
+      {
+        "case": "nested",
+        "response": {
+          "result": {
+            "person": {
+              "name": "Ada",
+              "age": 37
+            }
+          },
+          "thinking": {},
+          "thinking_effort": {},
+          "skipped": [],
+          "usage": {
+            "decisions": 2,
+            "input_tokens": 152,
+            "generated_tokens": 13
+          }
+        },
+        "contract_passed": true,
+        "answer_matched": true,
+        "seconds": 4.2172
+      },
+      {
+        "case": "described_choice",
+        "response": {
+          "result": {
+            "team": {
+              "value": "outage",
+              "confidence": 0.9997128449017056,
+              "probability": 0.9998564224508528,
+              "probabilities": {
+                "outage": 0.9998564224508528,
+                "billing": 0.00014357754914727167
+              },
+              "distribution": [
+                {
+                  "value": "outage",
+                  "probability": 0.9998564224508528
+                },
+                {
+                  "value": "billing",
+                  "probability": 0.00014357754914727167
+                }
+              ]
+            }
+          },
+          "thinking": {},
+          "thinking_effort": {},
+          "skipped": [],
+          "usage": {
+            "decisions": 1,
+            "input_tokens": 91,
+            "generated_tokens": 0
+          }
+        },
+        "contract_passed": true,
+        "answer_matched": null,
+        "seconds": 1.3546
+      },
+      {
+        "case": "scalar_array",
+        "response": {
+          "result": {
+            "skills": ["Rust", "Python"]
+          },
+          "thinking": {},
+          "thinking_effort": {},
+          "skipped": [],
+          "usage": {
+            "decisions": 1,
+            "input_tokens": 241,
+            "generated_tokens": 13
+          }
+        },
+        "contract_passed": true,
+        "answer_matched": true,
+        "seconds": 7.4009
+      },
+      {
+        "case": "object_array",
+        "response": {
+          "result": {
+            "rows": [
+              {
+                "item": "Apple",
+                "quantity": 3
+              }
+            ]
+          },
+          "thinking": {},
+          "thinking_effort": {},
+          "skipped": [],
+          "usage": {
+            "decisions": 1,
+            "input_tokens": 171,
+            "generated_tokens": 15
+          }
+        },
+        "contract_passed": true,
+        "answer_matched": true,
+        "seconds": 3.7049
+      },
+      {
+        "case": "continuation",
+        "response": {
+          "result": {
+            "skills": ["Rust", "Python"]
+          },
+          "thinking": {},
+          "thinking_effort": {},
+          "skipped": [],
+          "usage": {
+            "decisions": 1,
+            "input_tokens": 120,
+            "generated_tokens": 6
+          }
+        },
+        "contract_passed": true,
+        "answer_matched": true,
+        "seconds": 2.1618
+      },
+      {
+        "case": "ordinal",
+        "response": {
+          "result": {
+            "tone": {
+              "value": 1.9999983329685282,
+              "confidence": 0.9999974994527925,
+              "probability": 0.9999984356540863,
+              "probabilities": {
+                "0": 1.026855580031968e-7,
+                "1": 1.4616603557006004e-6,
+                "2": 0.9999984356540863
+              },
+              "distribution": [
+                {
+                  "value": "calm",
+                  "probability": 1.026855580031968e-7
+                },
+                {
+                  "value": "annoyed",
+                  "probability": 1.4616603557006004e-6
+                },
+                {
+                  "value": "furious",
+                  "probability": 0.9999984356540863
+                }
+              ]
+            }
+          },
+          "thinking": {},
+          "thinking_effort": {},
+          "skipped": [],
+          "usage": {
+            "decisions": 1,
+            "input_tokens": 87,
+            "generated_tokens": 0
+          }
+        },
+        "contract_passed": true,
+        "answer_matched": null,
+        "seconds": 1.1744
+      },
+      {
+        "case": "large_enum",
+        "response": {
+          "result": {
+            "code": {
+              "value": "category_17",
+              "confidence": 0.9998513139474522,
+              "probability": 0.9998559603865943,
+              "probabilities": {
+                "category_0": 1.537720967760852e-6,
+                "category_1": 4.0827585915208116e-5,
+                "category_2": 2.9795244410483924e-7,
+                "category_3": 2.292456474682558e-6,
+                "category_4": 6.581478602903245e-7,
+                "category_5": 1.2343797730595848e-7,
+                "category_6": 9.908423012059809e-8,
+                "category_7": 1.5073079696624582e-7,
+                "category_8": 2.3299956745297286e-7,
+                "category_9": 1.1875624730154136e-7,
+                "category_10": 5.63064254064414e-6,
+                "category_11": 4.672750216777754e-6,
+                "category_12": 2.560216562840357e-6,
+                "category_13": 3.6516500357991153e-6,
+                "category_14": 4.964884588876487e-6,
+                "category_15": 1.3492609579173375e-5,
+                "category_16": 1.3213001623794514e-5,
+                "category_17": 0.9998559603865943,
+                "category_18": 1.572744218413383e-5,
+                "category_19": 1.1348763866239006e-6,
+                "category_20": 8.97584760535819e-7,
+                "category_21": 3.056226643864614e-7,
+                "category_22": 8.481062276955606e-7,
+                "category_23": 1.9475614583537336e-6,
+                "category_24": 3.835358224690176e-6,
+                "category_25": 3.7848230572076957e-6,
+                "category_26": 6.950087778999729e-7,
+                "category_27": 7.409277962275631e-6,
+                "category_28": 2.328406409482774e-6,
+                "category_29": 7.293774275139077e-8,
+                "category_30": 8.407622286984447e-6,
+                "category_31": 2.120357633905488e-6
+              },
+              "distribution": [
+                {
+                  "value": "category_0",
+                  "probability": 1.537720967760852e-6
+                },
+                {
+                  "value": "category_1",
+                  "probability": 4.0827585915208116e-5
+                },
+                {
+                  "value": "category_2",
+                  "probability": 2.9795244410483924e-7
+                },
+                {
+                  "value": "category_3",
+                  "probability": 2.292456474682558e-6
+                },
+                {
+                  "value": "category_4",
+                  "probability": 6.581478602903245e-7
+                },
+                {
+                  "value": "category_5",
+                  "probability": 1.2343797730595848e-7
+                },
+                {
+                  "value": "category_6",
+                  "probability": 9.908423012059809e-8
+                },
+                {
+                  "value": "category_7",
+                  "probability": 1.5073079696624582e-7
+                },
+                {
+                  "value": "category_8",
+                  "probability": 2.3299956745297286e-7
+                },
+                {
+                  "value": "category_9",
+                  "probability": 1.1875624730154136e-7
+                },
+                {
+                  "value": "category_10",
+                  "probability": 5.63064254064414e-6
+                },
+                {
+                  "value": "category_11",
+                  "probability": 4.672750216777754e-6
+                },
+                {
+                  "value": "category_12",
+                  "probability": 2.560216562840357e-6
+                },
+                {
+                  "value": "category_13",
+                  "probability": 3.6516500357991153e-6
+                },
+                {
+                  "value": "category_14",
+                  "probability": 4.964884588876487e-6
+                },
+                {
+                  "value": "category_15",
+                  "probability": 1.3492609579173375e-5
+                },
+                {
+                  "value": "category_16",
+                  "probability": 1.3213001623794514e-5
+                },
+                {
+                  "value": "category_17",
+                  "probability": 0.9998559603865943
+                },
+                {
+                  "value": "category_18",
+                  "probability": 1.572744218413383e-5
+                },
+                {
+                  "value": "category_19",
+                  "probability": 1.1348763866239006e-6
+                },
+                {
+                  "value": "category_20",
+                  "probability": 8.97584760535819e-7
+                },
+                {
+                  "value": "category_21",
+                  "probability": 3.056226643864614e-7
+                },
+                {
+                  "value": "category_22",
+                  "probability": 8.481062276955606e-7
+                },
+                {
+                  "value": "category_23",
+                  "probability": 1.9475614583537336e-6
+                },
+                {
+                  "value": "category_24",
+                  "probability": 3.835358224690176e-6
+                },
+                {
+                  "value": "category_25",
+                  "probability": 3.7848230572076957e-6
+                },
+                {
+                  "value": "category_26",
+                  "probability": 6.950087778999729e-7
+                },
+                {
+                  "value": "category_27",
+                  "probability": 7.409277962275631e-6
+                },
+                {
+                  "value": "category_28",
+                  "probability": 2.328406409482774e-6
+                },
+                {
+                  "value": "category_29",
+                  "probability": 7.293774275139077e-8
+                },
+                {
+                  "value": "category_30",
+                  "probability": 8.407622286984447e-6
+                },
+                {
+                  "value": "category_31",
+                  "probability": 2.120357633905488e-6
+                }
+              ]
+            }
+          },
+          "thinking": {},
+          "thinking_effort": {},
+          "skipped": [],
+          "usage": {
+            "decisions": 1,
+            "input_tokens": 217,
+            "generated_tokens": 0
+          }
+        },
+        "contract_passed": true,
+        "answer_matched": null,
+        "seconds": 9.7165
+      }
+    ]
+  },
+  "real_cpu_wasm": {
+    "host": "Real Node CPU WASM, not browser API qualification",
+    "wllama": "3.8.1",
+    "model": "Qwen3-0.6B-Q4_K_M.gguf",
+    "results": [
+      {
+        "id": "structured",
+        "request": {
+          "context": "Customer Ana is 37 years old. Tags: red, blue. Do not invent other tags.",
+          "questions": {
+            "customer": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "instructions": "Extract the customer's name."
+                },
+                "age": {
+                  "type": "integer",
+                  "instructions": "Extract the customer's age."
+                }
+              }
+            },
+            "tags": {
+              "type": "array",
+              "instructions": "Return only the explicitly stated tags, then stop.",
+              "items": {
+                "type": "string"
+              },
+              "maxItems": 2
+            }
+          }
+        },
+        "response": {
+          "result": {
+            "customer": {
+              "name": "Ana",
+              "age": 37
+            },
+            "tags": []
+          },
+          "thinking": {},
+          "thinking_effort": {},
+          "skipped": [],
+          "usage": {
+            "decisions": 3,
+            "input_tokens": 328,
+            "generated_tokens": 25
+          }
+        },
+        "expected": {
+          "customer": {
+            "name": "Ana",
+            "age": 37
+          },
+          "tags": ["red", "blue"]
+        },
+        "matched": false,
+        "seconds": 64.66249049999999
+      }
+    ],
+    "qualification": "Contract executed with actual WASM inference; tag extraction accuracy failed. This does not qualify browser hardware, seeded sampling or image accuracy.",
+    "tested_core_digest_was_not_recorded": true
+  },
+  "prefix_comparison": {
+    "reference": {
+      "seconds": [10.288021599990316],
+      "mean_seconds": 10.288021599990316,
+      "execution": {
+        "prefix_reuse": "none",
+        "scheduling": "serial",
+        "parallel_task_limit": 1,
+        "projection": "full-vocabulary"
+      },
+      "answers": {
+        "team": {
+          "type": "choice",
+          "choice": "outage",
+          "confidence": 0.9955321078181831,
+          "probabilities": {
+            "outage": 0.9955321078181831,
+            "billing": 0.004467892181816841
+          }
+        },
+        "urgent": {
+          "type": "noul",
+          "noul": 0.9648482971299148
+        }
+      },
+      "input_tokens": 173,
+      "cached_tokens": null
+    },
+    "shared_prefix": {
+      "seconds": [11.963626599987037],
+      "mean_seconds": 11.963626599987037,
+      "execution": {
+        "prefix_reuse": "shared",
+        "scheduling": "serial",
+        "parallel_task_limit": 1,
+        "projection": "full-vocabulary"
+      },
+      "answers": {
+        "team": {
+          "type": "choice",
+          "choice": "outage",
+          "confidence": 0.9970706245132851,
+          "probabilities": {
+            "outage": 0.9970706245132851,
+            "billing": 0.002929375486714897
+          }
+        },
+        "urgent": {
+          "type": "noul",
+          "noul": 0.8752748345025275
+        }
+      },
+      "input_tokens": 132,
+      "cached_tokens": null
+    },
+    "answers_equal": false,
+    "parity": {
+      "categorical_values_equal": true,
+      "max_absolute_numeric_difference": 0.0895734626273873,
+      "absolute_tolerance": 1e-5,
+      "qualified": false
+    },
+    "speedup": 0.8599417170042287,
+    "request": {
+      "state": "Everything is down and our biggest client has a demo at noon.",
+      "questions": {
+        "team": {
+          "type": "choice",
+          "instructions": "Which team should handle it?",
+          "criteria": {
+            "outage": "Service down",
+            "billing": "Charges and refunds"
+          },
+          "orderRobustness": "none"
+        },
+        "urgent": {
+          "type": "noul",
+          "instructions": "Does the customer need a reply within the hour?",
+          "orderRobustness": "none"
+        }
+      }
+    },
+    "qualification": "Numerical parity failed. Timing is one sample per plan after warm-up, during concurrent compilation; no general speed improvement is claimed."
+  },
+  "limits": [
+    "Windows x64 native builds were exercised; Windows x86/ARM64, Linux/macOS, Android and Swift/iOS were not qualified by this task.",
+    "512 is a schema limit, not measured 512-class accuracy. Actual native large-enum validation used 32 options.",
+    "ONNX full-sequence scoring has tensor/continuation regression coverage, not a real ONNX accuracy benchmark in this report.",
+    "GGUF/WASM enums above 26 need an explicit value-scorer plugin. No private hosted TypeLLM scorer or weights are included.",
+    "Image-list order has adapter contract coverage; these new multi-image cookbook workflows have not been vision-accuracy qualified.",
+    "SGLang HTTP transports, server pooling and remote radix-cache management are vendor integrations, not bundled native TurboJev features.",
+    "Cancellation is cooperative between model operations. It does not forcibly interrupt an in-flight native prefill/decode.",
+    "Fixture binding tests verify API contracts and must not be cited as model intelligence."
+  ]
+}

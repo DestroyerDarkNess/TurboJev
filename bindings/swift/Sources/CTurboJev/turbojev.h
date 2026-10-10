@@ -8,6 +8,14 @@ extern "C" {
 #endif
 
 typedef struct tj_engine tj_engine;
+typedef struct tj_generation_control tj_generation_control;
+/* timeout_ms < 0 disables the deadline. Cancellation is cooperative between model operations.
+ * A control can be cancelled from any thread. Keep it alive until generation and cancel return. */
+int32_t tj_generation_control_open(int64_t timeout_ms, tj_generation_control **out_control);
+void tj_generation_control_cancel(const tj_generation_control *control);
+void tj_generation_control_free(tj_generation_control *control);
+int32_t tj_engine_generate_json_controlled(tj_engine *engine, const char *request_json,
+                                        const tj_generation_control *control, char **out_json);
 
 enum {
   TJ_OK = 0,
@@ -18,6 +26,9 @@ enum {
 };
 
 uint32_t tj_abi_version(void);
+int32_t tj_candidate_softmax_json(const char *input_json, char **out_json);
+/* No engine is needed; free the returned string with tj_string_free. */
+int32_t tj_compile_schema_json(const char *schema_json, char **out_json);
 int32_t tj_engine_open_json(const char *options_json, tj_engine **out_engine);
 int32_t tj_engine_evaluate_json(tj_engine *engine, const char *request_json, char **out_json);
 int32_t tj_engine_generate_json(tj_engine *engine, const char *request_json, char **out_json);

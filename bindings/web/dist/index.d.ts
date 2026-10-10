@@ -1,4 +1,6 @@
-export { TurboJevRemote, mediaEvidence, videoFrameEvidence } from "./remote.js";
+export type { GenerateRequest, GenerateResponse, FieldSchema, ScalarField, ObjectField, ArrayField, ProbabilityAnswer, CompiledDecision, JsonValue, ScalarValue, } from "./fields.js";
+import type { GenerateRequest, GenerateResponse, CompiledDecision } from "./fields.js";
+export { TurboJevRemote, imageEvidence, mediaEvidence, videoFrameEvidence } from "./remote.js";
 export type { MediaEvidence, MediaModality, VideoFrame, VideoFrameInput } from "./remote.js";
 export interface BrowserRuntimeDescriptor {
     name: string;
@@ -44,9 +46,9 @@ export interface WebLoadOptions {
     model: string;
     runtimeModuleUrl: string;
     wasmModuleUrl: string;
-    runtimeOptions?: unknown; /** Defaults to none; balanced costs K layouts (2K for odd K). */
-    orderRobustness?: "none" | "cyclic" | "balanced"; /** Legacy alias; orderRobustness takes precedence. */
-    cyclicOrderRobustness?: boolean;
+    runtimeOptions?: unknown;
+    /** Defaults to none; balanced costs K layouts (2K for odd K). */ orderRobustness?: "none" | "cyclic" | "balanced";
+    /** Legacy alias; orderRobustness takes precedence. */ cyclicOrderRobustness?: boolean;
     prompt?: {
         profile?: string;
         systemInstruction?: string;
@@ -59,7 +61,12 @@ export declare class TurboJevWeb {
     private constructor();
     static load(options: WebLoadOptions): Promise<TurboJevWeb>;
     evaluate(request: Record<string, unknown>): Promise<unknown>;
-    generate(request: Record<string, unknown>): Promise<unknown>;
+    candidateSoftmax(logits: Record<string, number>, temperature?: number): Promise<Record<string, number>>;
+    compileSchema(schema: Record<string, unknown>): Promise<CompiledDecision[]>;
+    generate(request: GenerateRequest, options?: {
+        timeoutMs?: number;
+        signal?: AbortSignal;
+    }): Promise<GenerateResponse>;
     evaluateCompatible(profile: string, request: Record<string, unknown>): Promise<unknown>;
     info(): Promise<unknown>;
     close(): Promise<void>;

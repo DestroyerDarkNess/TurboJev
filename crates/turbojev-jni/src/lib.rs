@@ -161,3 +161,21 @@ pub extern "system" fn Java_ai_turbojev_NativeBridge_close(
         drop(Box::from_raw(p));
     }
 }
+
+#[no_mangle]
+pub extern "system" fn Java_ai_turbojev_NativeBridge_compileSchema(
+    mut env: JNIEnv<'_>,
+    _: JClass<'_>,
+    schema: JString<'_>,
+) -> jstring {
+    let Some(schema) = read(&mut env, schema) else {
+        return std::ptr::null_mut();
+    };
+    match NativeSession::compile_schema_json(&schema) {
+        Ok(value) => out(&mut env, value),
+        Err(error) => {
+            throw(&mut env, error.to_string());
+            std::ptr::null_mut()
+        }
+    }
+}
