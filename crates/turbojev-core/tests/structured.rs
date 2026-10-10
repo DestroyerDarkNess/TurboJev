@@ -442,19 +442,37 @@ fn dice_layout_averaging_remaps_scores_to_faces_before_sampling() {
             request.mode = Some(turbojev_schema::fields::DecodingMode::Sample);
             request.seed = seed;
             let mut calls = 0;
+            let mut expected = std::collections::HashMap::<String, f64>::new();
             let response = run(Generation::new(request).unwrap(), |task| {
                 calls += 1;
                 assert_eq!(task.temperature, 1.0);
+                // Deliberately position-biased scorer: permutation averaging must
+                // attach this mass to the face at that position in each layout.
                 let mut output = choose(task, json!("one"));
-                output.logits.fill(0.0); // Known uniform fixture; not a model accuracy assertion.
+                output.logits.fill(0.0);
+                output.logits[0] = 2.0;
+                let denominator = 2.0_f64.exp() + 5.0;
+                for (position, value) in task.values.as_ref().unwrap().iter().enumerate() {
+                    let mass = if position == 0 { 2.0_f64.exp() } else { 1.0 } / denominator;
+                    *expected
+                        .entry(value.as_str().unwrap().to_owned())
+                        .or_default() += mass;
+                }
                 output
             });
             let roll = &response.result["roll"];
             assert!(labels.iter().any(|face| roll["value"] == *face));
             let probabilities = roll["probabilities"].as_object().unwrap();
-            assert!(probabilities
-                .values()
-                .all(|p| (p.as_f64().unwrap() - 1.0 / 6.0).abs() < 1e-12));
+            for (face, mass) in &expected {
+                assert!(
+                    (probabilities[face].as_f64().unwrap() - mass / calls as f64).abs() < 1e-12
+                );
+            }
+            if budget == json!("auto") || budget == json!("all") {
+                assert!(probabilities
+                    .values()
+                    .all(|p| (p.as_f64().unwrap() - 1.0 / 6.0).abs() < 1e-12));
+            }
             assert_eq!(
                 calls,
                 match budget {
