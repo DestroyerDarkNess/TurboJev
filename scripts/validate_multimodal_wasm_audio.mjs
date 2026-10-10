@@ -5,7 +5,6 @@ import { createRequire } from 'node:module';
 import { pathToFileURL, fileURLToPath } from 'node:url';
 import { createRuntime } from '../bindings/web-runtimes/llamacpp-wasm/src/index.js';
 import { reserveMediaWorkers } from '../bindings/web-runtimes/llamacpp-wasm/src/media-worker-pool.js';
-import * as core from '../website/vendor/wasm/turbojev_wasm.js';
 
 // This runs the real llama.cpp/mtmd WASM binary, adapter and Rust core in Node.
 // It validates CPU inference; it does not emulate or qualify browser APIs.
@@ -26,7 +25,12 @@ const base = path.resolve(option('--wllama', '.cache/wllama-3.8.1/package'));
 if (JSON.parse(fs.readFileSync(`${base}/package.json`)).version !== '3.8.1') throw new Error('This harness requires Wllama 3.8.1');
 const modelPath = path.resolve(option('--model', '.cache/real-validation/multimodal/lfm2-audio/LFM2-Audio-1.5B-Q8_0.gguf'));
 const projectorPath = textAudit ? null : path.resolve(option('--mmproj', '.cache/real-validation/multimodal/lfm2-audio/mmproj-LFM2-Audio-1.5B-Q8_0.gguf'));
-const corePath = path.resolve(option('--core', 'website/vendor/wasm/turbojev_wasm_bg.wasm'));
+const corePath = path.resolve(option('--core', '.artifacts/wasm-tests/turbojev_wasm_bg.wasm'));
+const coreModulePath = path.join(path.dirname(corePath), 'turbojev_wasm.js');
+if (!fs.existsSync(coreModulePath) || !fs.existsSync(corePath)) {
+  throw new Error('Prepare the WASM core with scripts/prepare-wasm-tests.ps1, or pass --core PATH_TO_WASM.');
+}
+const core = await import(pathToFileURL(coreModulePath));
 const outputPath = path.resolve(option('--output', '.cache/multimodal-validation/audio-wasm-node.json'));
 fs.mkdirSync(path.dirname(outputPath), { recursive: true });
 const scratch = path.resolve('.cache/wasm-audio-node');

@@ -1,5 +1,4 @@
 # Runtime bundles and third-party sources retain their distribution format.
-website/vendor/
 **/node_modules/
 **/dist/
 **/bin/

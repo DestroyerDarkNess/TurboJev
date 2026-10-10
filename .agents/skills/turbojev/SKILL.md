@@ -89,6 +89,7 @@ For model-controlled games, disclose whether the state is raw coordinates or der
 ## Choose the right runtime
 
 - **Native text inference:** use the llama.cpp adapter for GGUF models it can load. CPU is the normal default. GPU is opt-in; an unsupported GPU request should surface the runtime error, not silently change devices.
+- **Published GPU assets:** the Windows x64 native package includes Vulkan support; published x86 and ARM64 native builds are CPU-only. Architecture coverage does not imply GPU coverage on every target.
 - **Node/TypeScript, Python, C, and .NET:** these bindings expose the shared native host. Their package or binary must match the target OS, CPU architecture, and language ABI. Check actual release assets before promising x86, x64, or ARM64 support.
 - **Rust:** compose the core crate with the runtime adapter the application selects; adding the core crate alone does not provide GGUF inference.
 - **Browser/WASM:** choose a supported browser runtime, such as Transformers.js with ONNX or the llama.cpp WASM path with compatible GGUF. Browser hardware, memory, model-format, tokenizer, and template constraints apply.
@@ -1703,6 +1704,15 @@ TypeScript examples passed type checking. The C# example compiled against NuGet
 0.33.0, the Rust example passed `cargo check` against registry 0.33.0, and the C
 example passed strict C11 syntax checks. Rust final native linking and Android/
 Swift execution were not checked in this documentation update.
+
+Browser validation artifacts are independent of any landing page. From the SDK
+repository root, run `scripts/prepare-wasm-tests.ps1` to build the test core under
+ignored `.artifacts/wasm-tests/`, then
+`python scripts/serve-browser-tests.py --port 4176` to serve the repository with
+COOP/COEP headers. The audio page is
+`/tests/e2e/browser-gguf-audio.html`; it still requires its real model/projector.
+The Node audio harness accepts `--core PATH_TO_WASM` with matching generated
+JavaScript alongside it. Preparing artifacts is not a passed model test.
 
 ### Complete configuration reference
 

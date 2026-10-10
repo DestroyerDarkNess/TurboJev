@@ -19,25 +19,33 @@ preprocessing. The adapter reserves those workers independently of `nThreads`;
 the requested inference thread count is preserved.
 
 ```js
-import { TurboJevWeb } from '@turbojev/web';
+import { TurboJevWeb } from "@turbojev/web";
 
 const engine = await TurboJevWeb.load({
-  model: 'Qwen3 0.6B Q4_K_M',
-  runtimeModuleUrl: '/llamacpp/index.js',
-  wasmModuleUrl: '/turbojev_wasm.js',
+  model: "Qwen3 0.6B Q4_K_M",
+  runtimeModuleUrl: "/llamacpp/index.js",
+  wasmModuleUrl: "/turbojev_wasm.js",
   runtimeOptions: {
-    modelUrl: 'https://huggingface.co/Qwen/Qwen3-0.6B-GGUF/resolve/1208e45d782fe18602c5eaf10e5758d5b0f24c03/Qwen3-0.6B-Q4_K_M.gguf',
-    device: 'wasm', // use 'webgpu' to request GPU execution
+    modelUrl:
+      "https://huggingface.co/Qwen/Qwen3-0.6B-GGUF/resolve/1208e45d782fe18602c5eaf10e5758d5b0f24c03/Qwen3-0.6B-Q4_K_M.gguf",
+    device: "wasm", // use 'webgpu' to request GPU execution
   },
 });
 
 const result = await engine.evaluate({
-  state: { message: 'My package arrived broken' },
-  questions: { department: {
-    type: 'choice',
-    instructions: 'Which department should handle this message?',
-    criteria: { billing: 'Billing', shipping: 'Shipping', technical: 'Technical', other: 'Other' },
-  } },
+  state: { message: "My package arrived broken" },
+  questions: {
+    department: {
+      type: "choice",
+      instructions: "Which department should handle this message?",
+      criteria: {
+        billing: "Billing",
+        shipping: "Shipping",
+        technical: "Technical",
+        other: "Other",
+      },
+    },
+  },
 });
 await engine.close();
 ```
@@ -47,27 +55,31 @@ loading:
 
 ```js
 const engine = await TurboJevWeb.load({
-  model: 'LFM2-VL 450M Q4_0',
-  runtimeModuleUrl: '/llamacpp/index.js',
-  wasmModuleUrl: '/turbojev_wasm.js',
+  model: "LFM2-VL 450M Q4_0",
+  runtimeModuleUrl: "/llamacpp/index.js",
+  wasmModuleUrl: "/turbojev_wasm.js",
   runtimeOptions: {
-    modelUrl: 'https://huggingface.co/runanywhere/LFM2-VL-450M-GGUF/resolve/main/LFM2-VL-450M-Q4_0.gguf',
-    mmprojUrl: 'https://huggingface.co/runanywhere/LFM2-VL-450M-GGUF/resolve/main/mmproj-LFM2-VL-450M-Q8_0.gguf',
-    modality: 'image',
-    device: 'wasm',
+    modelUrl:
+      "https://huggingface.co/runanywhere/LFM2-VL-450M-GGUF/resolve/main/LFM2-VL-450M-Q4_0.gguf",
+    mmprojUrl:
+      "https://huggingface.co/runanywhere/LFM2-VL-450M-GGUF/resolve/main/mmproj-LFM2-VL-450M-Q8_0.gguf",
+    modality: "image",
+    device: "wasm",
   },
 });
 
-import { mediaEvidence } from '@turbojev/web';
+import { mediaEvidence } from "@turbojev/web";
 
-const evidence = await mediaEvidence(imageFile, 'image', 'Read the traffic sign.');
+const evidence = await mediaEvidence(imageFile, "image", "Read the traffic sign.");
 const result = await engine.evaluate({
   state: evidence,
-  questions: { sign: {
-    type: 'choice',
-    instructions: 'Which sign is visible?',
-    criteria: { stop: 'A stop sign', yield: 'A yield sign' },
-  } },
+  questions: {
+    sign: {
+      type: "choice",
+      instructions: "Which sign is visible?",
+      criteria: { stop: "A stop sign", yield: "A yield sign" },
+    },
+  },
 });
 ```
 
@@ -75,21 +87,33 @@ For spoken-command decisions, load the matching LFM2 Audio GGUF and projector:
 
 ```js
 const engine = await TurboJevWeb.load({
-  model: 'LFM2-Audio-1.5B-Q8_0',
-  runtimeModuleUrl: '/llamacpp/index.js',
-  wasmModuleUrl: '/turbojev_wasm.js',
+  model: "LFM2-Audio-1.5B-Q8_0",
+  runtimeModuleUrl: "/llamacpp/index.js",
+  wasmModuleUrl: "/turbojev_wasm.js",
   cyclicOrderRobustness: true, // Optional: one evaluation per choice; false is one pass.
   runtimeOptions: {
-    modelUrl: 'https://huggingface.co/ggml-org/LFM2-Audio-1.5B-GGUF/resolve/main/LFM2-Audio-1.5B-Q8_0.gguf',
-    mmprojUrl: 'https://huggingface.co/ggml-org/LFM2-Audio-1.5B-GGUF/resolve/main/mmproj-LFM2-Audio-1.5B-Q8_0.gguf',
-    modality: 'audio', device: 'wasm', nThreads: 4, jinja: true, warmup: false,
+    modelUrl:
+      "https://huggingface.co/ggml-org/LFM2-Audio-1.5B-GGUF/resolve/main/LFM2-Audio-1.5B-Q8_0.gguf",
+    mmprojUrl:
+      "https://huggingface.co/ggml-org/LFM2-Audio-1.5B-GGUF/resolve/main/mmproj-LFM2-Audio-1.5B-Q8_0.gguf",
+    modality: "audio",
+    device: "wasm",
+    nThreads: 4,
+    jinja: true,
+    warmup: false,
   },
 });
-const state = await mediaEvidence(audioFile, 'audio');
-const result = await engine.evaluate({ state, questions: { command: {
-  type: 'choice', instructions: 'Which command does the speaker say?',
-  criteria: { on: 'Turn on the light', off: 'Turn off the light' },
-} } });
+const state = await mediaEvidence(audioFile, "audio");
+const result = await engine.evaluate({
+  state,
+  questions: {
+    command: {
+      type: "choice",
+      instructions: "Which command does the speaker say?",
+      criteria: { on: "Turn on the light", off: "Turn off the light" },
+    },
+  },
+});
 await engine.close();
 ```
 
@@ -108,7 +132,7 @@ completes. These flags do not guarantee that a model's chat template accepts
 multimodal content blocks. Evaluation returns
 `MODEL_PROMPT_FORMAT_UNSUPPORTED` when Wllama cannot format that model's media
 prompt. Set `jinja` or pass `chatTemplate` when an image model requires a
-different template. The repository's `py website/serve.py` development server
+different template. The repository's `py scripts/serve-browser-tests.py` test server
 sets COOP/COEP headers for browser WebAssembly threading; they do not by
 themselves qualify the audio path. The
 `@turbojev/web` media helpers encode input bytes but do not decode compressed

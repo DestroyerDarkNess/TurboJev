@@ -177,7 +177,7 @@ Run `cargo test --workspace --locked` and the browser runtime tests. `evals/run.
 
 ## Language examples and migration
 
-The website language guides include `evaluate` and `generate` examples for Rust, Node/TypeScript, Python, C, .NET, browser/WASM, Android and Swift. Their source is maintained in `website/src/docs-content.html` and generated into separate pages by `node website/build.mjs`.
+The self-contained [TurboJev skill](../.agents/skills/turbojev/SKILL.md) includes installation, configuration, and `evaluate` / `generate` examples for Rust, Node/TypeScript, Python, C, .NET, browser/WASM, Android and Swift. It is maintained directly as Markdown and includes the complete request catalogue inline.
 
 When migrating an application, keep the two response contracts distinct: `evaluate` returns `answers`; `generate` returns `result`, `skipped` and `usage`. A skipped conditional field is absent, while a nullable field can contain actual JSON null. Use a stable semantic key for each choice, and preserve the original criterion order for a score. The load-time `execution.orderRobustness` option changes `evaluate` choices only; generated enums use their own per-field `permutations`.
 
@@ -222,7 +222,6 @@ vision model and matching projector remain required; no text-only fallback is si
 The [0.6.9 port matrix](TYPELLM_0_6_9_PORT.md) distinguishes features, runtime limits and
 
 vendor-specific SGLang transports from the portable SDK.
-
 
 ## Dice, sampling, and numeric limits
 

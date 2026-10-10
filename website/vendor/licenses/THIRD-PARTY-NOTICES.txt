@@ -1,8 +1,0 @@
-The browser demo uses these third-party components:
-
-- Transformers.js 4.3.0, bundled in runtime.js, Apache-2.0. See TRANSFORMERS-LICENSE.
-- ONNX Runtime Web 1.31.0-dev.20260914-8d85527a0, loaded from jsDelivr, MIT.
-- TurboJev Web/WASM assets are part of this repository and licensed Apache-2.0.
-
-The ONNX Runtime Web files are fetched from the pinned jsDelivr URL in runtime.js.
-The demo also fetches model files from Hugging Face after the visitor selects Load.

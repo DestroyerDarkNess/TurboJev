@@ -17,8 +17,11 @@ All bindings use `evaluate` with the same media evidence:
     "base64": "<base64-encoded-media>"
   },
   "questions": {
-    "scene": {"type":"choice", "instructions":"What is shown?",
-              "criteria":{"cat":"A cat", "dog":"A dog"}}
+    "scene": {
+      "type": "choice",
+      "instructions": "What is shown?",
+      "criteria": { "cat": "A cat", "dog": "A dog" }
+    }
   }
 }
 ```
@@ -38,13 +41,16 @@ plain-text choices, use the typed `evaluate` request.
     "text": "Compare the start and end of the clip.",
     "modality": "video",
     "frames": [
-      {"timestamp_ms": 0, "base64": "<first-frame>"},
-      {"timestamp_ms": 1200, "base64": "<later-frame>"}
+      { "timestamp_ms": 0, "base64": "<first-frame>" },
+      { "timestamp_ms": 1200, "base64": "<later-frame>" }
     ]
   },
   "questions": {
-    "change": {"type":"choice", "instructions":"What changed?",
-               "criteria":{"arrived":"An object arrived", "same":"The scene stayed the same"}}
+    "change": {
+      "type": "choice",
+      "instructions": "What changed?",
+      "criteria": { "arrived": "An object arrived", "same": "The scene stayed the same" }
+    }
   }
 }
 ```
@@ -60,9 +66,12 @@ native worker protocol with an application-selected executable:
 
 ```json
 {
-  "model":"application-selected-model",
-  "worker":{"program":"/absolute/path/to/my-scorer",
-            "args":["--model","/absolute/path/to/model"], "timeoutSeconds":300}
+  "model": "application-selected-model",
+  "worker": {
+    "program": "/absolute/path/to/my-scorer",
+    "args": ["--model", "/absolute/path/to/model"],
+    "timeoutSeconds": 300
+  }
 }
 ```
 
@@ -71,7 +80,7 @@ support. No shell is used. The executable is configured only at load time.
 It starts once per session and first emits:
 
 ```json
-{"contract":"turbojev.scorer.v1","modalities":["text","image"]}
+{ "contract": "turbojev.scorer.v1", "modalities": ["text", "image"] }
 ```
 
 It then receives one serialized `DecisionBatch` per input line, and returns one
@@ -103,7 +112,11 @@ return a promise. The batch contains original `state` and `tasks`, each with
 returns unnormalized logits or comparable log-scores, **not probabilities**:
 
 ```json
-{"model":"application-selected-model","scores":[{"id":"scene","logits":[0.4,1.2]}],"metrics":{}}
+{
+  "model": "application-selected-model",
+  "scores": [{ "id": "scene", "logits": [0.4, 1.2] }],
+  "metrics": {}
+}
 ```
 
 Rust checks task/candidate alignment and creates choice/noul/score responses.
@@ -130,7 +143,7 @@ thread count. Audio requires cross-origin isolation and fails early without it.
 `cyclicOrderRobustness` applies to media decision runtimes as well as text.
 The standalone real-WASM runner exercises the adapter and compiled Rust core in
 Node with LFM2 Audio; that is separate from browser qualification. The
-repository's `py website/serve.py` sets COOP/COEP headers for WebAssembly
+repository's `py scripts/serve-browser-tests.py` sets COOP/COEP headers for WebAssembly
 threading; those headers alone do not qualify audio inference.
 
 ## Native GGUF with llama.cpp
@@ -138,7 +151,7 @@ threading; those headers alone do not qualify audio inference.
 The native loader accepts an optional `mmproj` path alongside the main GGUF:
 
 ```json
-{"model":"/models/model.gguf","mmproj":"/models/mmproj-model.gguf"}
+{ "model": "/models/model.gguf", "mmproj": "/models/mmproj-model.gguf" }
 ```
 
 `mmproj` is a normal load option in the Node and Python APIs; C, C#, Android,

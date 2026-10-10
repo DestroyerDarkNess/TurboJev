@@ -1,230 +1,295 @@
-<div align="center">
-
 # TurboJev
 
-### Typed decisions from local open-weight models
+**Typed decisions and structured generation with local open-weight models.**
 
-**Turn text, structured state, images, audio, or video into a typed decision with auditable probabilities.**
+[Documentation](.agents/skills/turbojev/SKILL.md) · [Samples](samples/README.md) · [Demos](https://github.com/DestroyerDarkNess/TurboJev.Demos) · [Evaluations](evals/README.md)
 
-[Website and docs](website/) · [Samples](samples/README.md) · [TurboJev skill](.agents/skills/turbojev/SKILL.md) · [Decision design](docs/DECISION_DESIGN.md) · [Architecture](docs/ARCHITECTURE.md) · [Multimodal input](docs/MULTIMODAL.md) · [Order robustness](docs/ORDER_ROBUSTNESS.md)
+TurboJev turns context and questions into typed answers. Use it to route support
+tickets, assess urgency, extract invoice fields, or build workflows where one
+answer determines the next question. It runs compatible models locally through
+llama.cpp or a browser runtime, with no mandatory hosted service or telemetry.
 
-[![License](https://img.shields.io/badge/license-Apache--2.0-green.svg)](LICENSE)
-[![Rust](https://img.shields.io/badge/core-Rust-dea584.svg)](https://www.rust-lang.org/)
-[![Local inference](https://img.shields.io/badge/inference-local-2563eb.svg)](docs/PORTABILITY.md)
-[![GitHub Actions](https://github.com/DestroyerDarkNess/TurboJev/actions/workflows/ci.yml/badge.svg)](https://github.com/DestroyerDarkNess/TurboJev/actions/workflows/ci.yml)
+The decision engine is written in Rust. Python, JavaScript, TypeScript, C#, C,
+and browser bindings share its validation, schemas and response contracts.
+Android and Swift integrations are available as source bindings.
 
-</div>
+## Install
 
-```text
-state + typed questions → candidate scores → probabilities → typed answers
-```
+| Language             | Package                                                                    |
+| -------------------- | -------------------------------------------------------------------------- |
+| Python               | `python -m pip install --upgrade turbojev`                                 |
+| Node.js / TypeScript | `npm install @turbojev/node`                                               |
+| C# / .NET            | `dotnet add package TurboJev`                                              |
+| Rust                 | `cargo add turbojev`                                                       |
+| Browser              | `npm install @turbojev/web @turbojev/wasm @turbojev/runtime-llamacpp-wasm` |
 
-TurboJev is a Rust-first decision layer for applications that need a model to
-choose, route, assess, or approve. It scores the allowed candidates directly
-and returns structured `choice`, `noul`, and `score` answers. The optimized
-path does not ask a model to generate JSON and does not rely on parsing a
-natural-language reply.
+Published native packages include Windows x86, x64 and ARM64 libraries. Use a
+package matching your process architecture. Rust source and browser WASM are
+portable; native Linux/macOS packages are not currently published.
 
-It runs locally with open-weight models, keeps inference and decision semantics
-separate, and exposes the same contract through Rust, Node/TypeScript, Python,
-C, .NET, and browser/WASM hosts.
+The Rust core does not load models on its own. Add
+`turbojev-runtime-llamacpp` with its `ffi` feature and provide the matching native
+shim for GGUF inference. C links the C ABI library; Android and Swift need native
+libraries built for their targets. The [self-contained SDK guide](.agents/skills/turbojev/SKILL.md)
+includes installation and examples for every binding, including browser CDN use.
 
-For extraction and dependent workflows, `generate` also supports JSON-typed
-strings, integers, decimals, booleans, nullable/described enums, nested objects,
-bounded arrays, ordinal scales, confidence gates and dependencies,
-per-field reasoning and optional probability averaging across option orders.
-Unrestricted values use bounded model generation; finite decisions keep direct
-candidate scoring. See [typed fields](docs/TYPED_FIELDS.md) and the
-[real-model evals](evals/README.md) for the contract and runtime limits.
-The [cookbook](docs/COOKBOOK.md) covers continuation, hierarchical routing and
-category discovery; the [TypeLLM 0.6.9 port matrix](docs/TYPELLM_0_6_9_PORT.md) records
-feature equivalents and validation.
+## Quick start
 
-## Get a real model running
-
-The fastest path is one of the runnable samples. It builds the native libraries,
-downloads a small verified GGUF model, then runs the same local model through
-four language bindings.
-
-```powershell
-py samples/build.py native --download-model
-py samples/run.py ts
-py samples/run.py python
-py samples/run.py csharp
-py samples/run.py rust
-```
-
-On Linux or macOS, use `python` in place of `py`. See the complete
-[samples guide](samples/README.md), including architecture selection and the
-browser-only JavaScript example.
-
-## Ask a typed question
+Download a compatible text GGUF to `model.gguf`, then ask a bounded question:
 
 ```python
 from turbojev import TurboJev
 
-with TurboJev.load("./model.gguf") as jev:
-    result = jev.evaluate({
-        "state": {"message": "My package arrived broken."},
-        "questions": {"department": {"type": "choice", "instructions": "Which department should handle this?", "criteria": {"billing": "Payments", "shipping": "Delivery", "technical": "Product issue", "other": "Other"}}},
-    })["answers"]["department"]
+with TurboJev.load("model.gguf", device="cpu") as client:
+    response = client.generate(
+        context="My package arrived broken. Please send a replacement.",
+        questions={
+            "team": {
+                "type": "string",
+                "instructions": "Which team should handle this request?",
+                "choices": [
+                    {"value": "shipping", "description": "Delivery damage or replacement"},
+                    {"value": "billing", "description": "Payments, charges or refunds"},
+                    {"value": "technical", "description": "Software bugs or outages"},
+                ],
+                "return_probabilities": True,
+                "permutations": 1,
+            },
+            "urgent": {
+                "type": "boolean",
+                "instructions": "Does this require a reply within the hour?",
+            },
+        },
+    )
 
-print(result["choice"])
-print(result["probabilities"])
+print(response["result"]["team"]["value"])
+print(response["result"]["team"]["distribution"])
+print(response["result"]["urgent"])
+print(response["usage"])
 ```
 
-Native runtimes use CPU by default. To request GPU offload, set `device="gpu"`
-in Python or `device: "gpu"` in Node/.NET load options. The Windows x64 native
-package includes Vulkan support; x86 and ARM64 are CPU-only. A GPU request
-fails with the runtime error if no supported GPU backend or device is available.
+Finite fields score permitted answers. Open text and numeric fields generate
+bounded values. The SDK validates output types; the model remains responsible
+for the answer's meaning. Invalid or unsupported outputs raise errors.
 
-Use `evaluate` when one state needs several typed decisions at once:
+## Output types
 
-```json
-{
-  "state": { "message": "My package arrived broken.", "customerTier": "plus" },
-  "questions": {
-    "route": {
-      "type": "choice",
-      "instructions": "Which team should handle this?",
-      "criteria": {
-        "billing": "Payments, invoices, or refunds",
-        "shipping": "Delivery, damage, or replacement",
-        "technical": "Product or application problem"
-      }
-    },
-    "urgent": {
-      "type": "noul",
-      "instructions": "Does this need urgent human intervention?"
-    },
-    "resolution": {
-      "type": "score",
-      "instructions": "How complete is the proposed resolution?",
-      "criteria": ["Not started", "Partly resolved", "Resolved"]
-    }
-  }
-}
+| Output           | Field definition                                                                        | Returned value                        |
+| ---------------- | --------------------------------------------------------------------------------------- | ------------------------------------- |
+| Text             | `{"type": "string"}`                                                                    | String                                |
+| Integer          | `{"type": "integer"}`                                                                   | Integer                               |
+| Number           | `{"type": "number"}`                                                                    | Number                                |
+| Boolean          | `{"type": "boolean"}`                                                                   | Boolean                               |
+| Nullable value   | `{"type": ["string", "null"]}`                                                          | Value or actual null                  |
+| Enum             | `{"type": "string", "enum": ["meal", "travel"]}`                                        | One permitted value                   |
+| Described choice | `{"type": "string", "choices": [{"value": "billing", "description": "Payments"}, ...]}` | One permitted value                   |
+| Ordered score    | `{"type": "number", "levels": [{"label": "low"}, {"label": "high"}]}`                   | Probability-weighted zero-based index |
+| Object           | `{"type": "object", "properties": {...}}`                                               | Object                                |
+| Array            | `{"type": "array", "items": {...}, "maxItems": 10}`                                     | Bounded array                         |
+
+Numeric enums are unordered choices. Ordered `levels` preserve the original
+scale and can return fractional scores. Schemas support nested objects and
+top-level arrays of scalars or objects; arrays inside objects and nested arrays
+are not supported. This is a defined JSON Schema subset.
+
+Use `questions` for a field map or `schema` for an object schema, never both.
+See [typed fields](docs/TYPED_FIELDS.md) for the complete contract.
+
+## Dependencies and conditional fields
+
+Declare `depends_on` when a field needs previous answers. Use `when` to omit a
+field unless its condition holds:
+
+```python
+with TurboJev.load("model.gguf") as client:
+    response = client.generate(
+        context="Payments are failing after this morning's deployment.",
+        questions={
+            "category": {
+                "type": "string",
+                "enum": ["incident", "billing", "feature_request"],
+                "instructions": "What kind of request is this?",
+            },
+            "severity": {
+                "type": "string",
+                "enum": ["low", "medium", "high"],
+                "instructions": "Assess the incident severity.",
+                "when": {"category": "incident"},
+            },
+            "page_on_call": {
+                "type": "boolean",
+                "instructions": "Should the on-call engineer be paged?",
+                "depends_on": ["severity"],
+            },
+        },
+    )
+
+print(response["result"])
+print(response["skipped"])
 ```
 
-The response preserves each question's type, candidate distribution, selected
-answer, zero-generation usage, execution path, and calibration provenance.
+Conditions support equality, membership, numeric comparisons and confidence
+bounds. Skipped fields are absent from `result` and listed in `skipped`; they
+are distinct from an actual null answer. Dependencies are validated for unknown
+fields and cycles. Fields currently execute serially in dependency order.
 
-## Why TurboJev
+## Probabilities and option ordering
 
-| Need                        | TurboJev approach                                                              |
-| --------------------------- | ------------------------------------------------------------------------------ |
-| Route a request             | `choice` returns a stable named option and its full distribution.              |
-| Gate an action              | `noul` represents a typed yes/no decision without string parsing.              |
-| Evaluate a state            | `score` returns an ordered, expected-value assessment.                         |
-| Avoid output parsing        | Backends score candidates; TurboJev owns validation and response construction. |
-| Keep data local             | Local inference is supported with no mandatory telemetry or service.           |
-| Use one contract everywhere | Native bindings and browser/WASM share the same decision schema.               |
-| Bring a new model           | Implement a small scoring adapter instead of rewriting decision logic.         |
+`return_probabilities` adds the selected value, its probability, a confidence
+statistic and the full typed distribution. These are conditional scores over
+the supplied answers, not automatically calibrated confidence.
 
-### Stable option ordering when order is irrelevant
+`permutations` controls extra model evaluations for unordered fields:
 
-Many models favor the first or last presented option. For unordered `choice`
-questions, opt into balanced order robustness:
+- `1`: one pass in the supplied order.
+- `"auto"`: canonical balanced layouts; K passes for even K, 2K for odd K.
+- A positive integer: that many distinct sampled layouts, capped by the number available.
+- `"all"`: every layout, subject to a 720-evaluation limit.
 
-```json
-{
-  "model": "./model.gguf",
-  "execution": { "orderRobustness": "balanced" }
-}
+Small unordered probability fields default to automatic averaging. Large enums
+and ordinal levels default to one pass. Averaging costs real inference time and
+does not guarantee a correct answer. Ordered scores keep their scale order.
+
+```python
+from turbojev import Dice
+
+with TurboJev.load("model.gguf") as client:
+    response = client.generate(
+        context="A single roll of a fair six-sided die.",
+        questions={"roll": Dice(permutations=1).to_schema()},
+        temperature=1,
+        seed=42,
+    )
+
+print(response["result"]["roll"])
 ```
 
-TurboJev evaluates canonical layouts that balance option positions and neighbours,
-calibrates each layout once, and averages probabilities by original key. With K
-choices this costs K evaluations for even K, or 2K for odd K. `none` remains the
-single-pass default; `cyclic` retains its original cyclic logit averaging. The response
-records both the active policy and the actual number of model evaluations.
-The feature applies to choice questions in `evaluate`; it deliberately leaves
-ordered scores and boolean decisions unchanged. Read the [full contract and
-cost model](docs/ORDER_ROBUSTNESS.md).
+Positive temperature enables sampling; the default selects the most likely
+answer. `Dice` uses the model's distribution and does not force fairness.
+See [order robustness](docs/ORDER_ROBUSTNESS.md) and [calibration](docs/CALIBRATION.md).
 
-### Calibrated confidence is explicit
+## Thinking
 
-A softmax distribution is useful for ranking but is not automatically a
-calibrated probability. TurboJev keeps calibration separate from inference and
-records whether a fitted calibration profile was used. This lets applications
-set thresholds based on evidence instead of treating every high model score as
-a guarantee. See [calibration tooling](docs/CALIBRATION.md).
+Thinking is off by default. Native text GGUF inference can generate reasoning
+before a field's answer using `thinking=True`, `thinking_budget`, or
+`thinking_effort` (`none`, `low`, `medium`, `high`). Set `thinking="auto"` to let
+the model select effort as an additional decision. Fields can override the
+request policy.
 
-## Text and multimodal models
+Reasoning adds tokens and latency. It requires a compatible model and enough
+context; unfinished reasoning raises an error. Built-in browser runtimes and
+native multimodal reasoning currently report unsupported mode errors.
+Actual reasoning and selected effort appear in `thinking` and `thinking_effort`.
 
-Text models can use the built-in llama.cpp/GGUF route or a custom runtime
-adapter. For models that accept media, TurboJev carries a model-independent
-envelope for text, image, audio, and video evidence. The selected runtime owns
-the processor and candidate scoring; TurboJev still validates the input and
-produces the same typed response.
+## Images, audio and video
 
-The repository includes local CPU examples for:
+Use a compatible multimodal model and its matching projector. For GGUF image
+extraction:
 
-- [SmolVLM2](samples/TurboJev-SmolVLM2/README.md) image and short-video decisions.
-- [LFM2.5-Audio](samples/TurboJev-LFM-Audio/README.md) spoken-intent decisions.
+```python
+from pathlib import Path
 
-The generic protocol does not claim that every GGUF, ONNX, or safetensors model
-is multimodal. Runtime support is declared by the adapter and documented in
-[multimodal compatibility](docs/MULTIMODAL.md).
+with TurboJev.load(
+    "vision.gguf",
+    mmproj="mmproj.gguf",
+    device="cpu",
+    n_ctx=8192,
+) as client:
+    response = client.generate(
+        context="Read the attached receipt.",
+        images=[Path("receipt.png")],
+        questions={
+            "merchant": {"type": "string", "instructions": "Extract the merchant name."},
+            "total": {"type": "number", "instructions": "Extract the printed total."},
+        },
+    )
 
-## Pick your host
+print(response["result"])
+```
 
-| Host                 | Starting point                                  | Runtime path                |
-| -------------------- | ----------------------------------------------- | --------------------------- |
-| Rust                 | [Rust sample](samples/TurboJev-rust)            | Rust crates + llama.cpp     |
-| Node / TypeScript    | [Node sample](samples/TurboJev-TS-node)         | Node-API + llama.cpp        |
-| Python               | [Python sample](samples/TurboJev-Python)        | PyO3 + llama.cpp or worker  |
-| C / .NET             | [C# sample](samples/TurboJev-csharp-NET)        | Stable C ABI + P/Invoke     |
-| Browser              | [Vanilla JS sample](samples/TurboJev-js-native) | Rust/WASM + Transformers.js |
-| Custom model runtime | [Adapter contract](docs/ARCHITECTURE.md)        | Candidate-scoring backend   |
+Python accepts image paths, bytes, base64/data URIs and PIL-like images.
+Other bindings use the same base64 JSON contract; browser helpers encode
+Files/Blobs. Audio uses an audio-capable checkpoint and projector. Video evidence
+is an ordered sequence of timestamped image frames, decoded by the application.
+TurboJev does not require external ffmpeg/ffprobe executables.
 
-## Built for evidence, not opaque claims
+The current OCR demos use Qwen3.5-2B with its vision projector. Text demos use
+QJev3.5-0.8B v19c Q8_0; that decision-trained checkpoint is not the OCR model or
+a general extraction/reasoning recommendation. See [multimodal input](docs/MULTIMODAL.md)
+and [measured validation](docs/MULTIMODAL_VALIDATION.md).
 
-The Windows validation run used a real small GGUF model with complete response
-parity across Node/TypeScript, Python, C, and .NET, including typed answers and
-the zero-generation invariant. The multimodal SmolVLM2 CPU sample also has a
-recorded real image/video validation run. Reproduce the commands and inspect the
-limits in [Windows validation](docs/WINDOWS_VALIDATION.md) and [multimodal
-validation](docs/MULTIMODAL_VALIDATION.md).
+## Direct typed decisions
 
-TurboJev keeps an independent reference path and treats runtime optimizations as
-capabilities that require parity evidence. It does not advertise cross-request
-fusion merely because a runtime can batch tokens.
+`evaluate` provides the original Jev-style `choice`, `noul` and ordered `score`
+contracts over one state:
 
-## Design commitments
+```python
+with TurboJev.load("model.gguf") as client:
+    response = client.evaluate({
+        "state": "Everything is down and our client demo starts at noon.",
+        "questions": {
+            "team": {
+                "type": "choice",
+                "instructions": "Which team should handle it?",
+                "criteria": {
+                    "outage": "Service unavailable",
+                    "billing": "Charges and refunds",
+                    "feature": "Requests and how-to",
+                },
+            },
+            "urgent": {
+                "type": "noul",
+                "instructions": "Does this require a reply within the hour?",
+            },
+            "tone": {
+                "type": "score",
+                "instructions": "How upset is the customer?",
+                "criteria": ["calm", "annoyed", "furious"],
+            },
+        },
+    })
 
-- **Portable core:** semantic logic has no operating-system, filesystem,
-  network, hardware, tokenizer, or model dependency.
-- **Truthful runtime boundaries:** adapters use the real model template and
-  tokenizer; they never invent candidate token IDs.
-- **Local by default:** no mandatory hosted service and no mandatory telemetry.
-- **Typed output:** model backends return scores; TurboJev validates, normalizes,
-  calibrates, and builds one canonical response.
-- **Open integration:** custom runtimes and model families plug into the scoring
-  contract without forking the decision engine.
+print(response["answers"])
+```
 
-## Documentation
+Direct scoring generates no answer tokens unless reasoning is enabled.
+Its load-time `orderRobustness` policy is separate from `generate.permutations`;
+`none` is the single-pass default. Compatibility profiles translate supported
+TypeSafe-style and AI SDK wire formats without substituting their models.
 
-- [Language guides and API reference](website/docs/quickstart.html)
-- [Typed fields, dependencies and conditions](docs/TYPED_FIELDS.md)
-- [Self-contained TurboJev skill](.agents/skills/turbojev/SKILL.md)
-- [Decision design](docs/DECISION_DESIGN.md)
-- [Architecture](docs/ARCHITECTURE.md)
-- [Samples and build commands](samples/README.md)
-- [Multimodal input contract](docs/MULTIMODAL.md)
-- [Candidate-order robustness](docs/ORDER_ROBUSTNESS.md)
-- [Calibration tooling](docs/CALIBRATION.md)
-- [Runtime qualification](docs/RUNTIME_QUALIFICATION.md)
-- [Testing and validation](docs/TESTING.md)
-- [Release and package publishing](docs/RELEASING.md)
+## Models and execution
+
+Native GGUF inference uses the bundled llama.cpp runtime. A text checkpoint must
+have an architecture, tokenizer and prompt template supported by that build.
+Loading a GGUF does not reproduce a specialized model's custom head, scorer or
+training prompt automatically.
+
+CPU is the default. Explicit GPU selection reports an error if the requested
+backend/device is unavailable. The Windows x64 package includes Vulkan support;
+the published x86 and ARM64 native builds are CPU-only. Browser applications can
+choose GGUF through llama.cpp/WASM or supported ONNX through Transformers.js,
+with explicit WebGPU selection where supported.
+
+Keep models loaded for repeated requests. Prefix reuse and other optimizations
+depend on runtime capabilities and numerical qualification; structured generation
+does not promise parallel field execution. Timeouts and cancellation are
+cooperative between model operations. Failed generation retains known usage.
+
+## Documentation and examples
+
+- [Complete SDK skill](.agents/skills/turbojev/SKILL.md): installation, APIs, configuration and examples for every language, all in one file.
+- [Cookbook](docs/COOKBOOK.md): routing, extraction, dependencies and continuation.
+- [Samples](samples/README.md): applications built from this repository.
+- [Standalone demos](https://github.com/DestroyerDarkNess/TurboJev.Demos): applications using published packages and CDN assets.
+- [Decision design](docs/DECISION_DESIGN.md): prompts, option descriptions and honest model-controlled decisions.
+- [Architecture](docs/ARCHITECTURE.md): portable Rust core, runtimes and bindings.
+- [Evaluations](evals/README.md): reproducible task sets and real-model runs.
+- [Testing](docs/TESTING.md): contracts, fixtures and validation limits.
+
+Published assets and actual inference are different checks. Windows x86/x64/ARM64
+assets were verified; real-model execution was checked on Windows x64. Those
+results do not establish accuracy for every model, modality or architecture.
 
 ## License
 
-TurboJev is available under the [Apache License 2.0](LICENSE), which permits
-commercial use and redistribution subject to its terms.
-
-
-The schema API also includes `Dice` helpers, explicit argmax/sample modes,
-plain-decimal digit limits, transitive dependency evidence and partial usage on
-failed generation. See [typed fields](docs/TYPED_FIELDS.md) and the
-[fair-die recipe](samples/typed-fields/dice.json) for reproducible examples.
+[Apache License 2.0](LICENSE).

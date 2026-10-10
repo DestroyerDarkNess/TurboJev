@@ -149,7 +149,8 @@ the same LFM2 model and projector under
 with the isolation headers required for threaded WebAssembly:
 
 ```powershell
-py website/serve.py --root . --port 4176
+.\scripts\prepare-wasm-tests.ps1
+py scripts/serve-browser-tests.py --port 4176
 ```
 
 Open `http://127.0.0.1:4176/tests/e2e/browser-gguf-audio.html`. The page loads
@@ -157,6 +158,12 @@ the model locally, evaluates both tracked WAV fixtures in normal and reversed
 candidate order, and displays `RESULT`/`PASS` or `ERROR` lines. It enables cyclic
 order handling. This browser test has not yet been run; browser audio remains
 experimental until its real result is recorded here.
+
+The test core is generated under ignored `.artifacts/wasm-tests/`; it no longer
+depends on landing-page assets. For Node, the audio harness uses that same
+directory by default. Pass `--core PATH_TO_WASM` to test another generated core
+with its matching `turbojev_wasm.js` alongside it. Historical validation reports
+retain the artifact paths used at the time they were recorded.
 
 ## Real GGUF audio in WASM: Node, Windows x64, CPU
 
@@ -175,12 +182,12 @@ This preserves the requested `nThreads` instead of increasing inference threads
 to hide the worker shortage. Audio now rejects missing cross-origin isolation
 before model loading.
 
-| Recording | Candidate order | Answer | Conditional probability | Evaluation time |
-| --- | --- | --- | --- | --- |
-| Turn on the light | Normal | on | 0.8250 | 123.81 s |
-| Turn on the light | Reversed | on | 0.8250 | 109.82 s |
-| Turn off the light | Normal | off | 0.7823 | 103.89 s |
-| Turn off the light | Reversed | off | 0.7823 | 87.76 s |
+| Recording          | Candidate order | Answer | Conditional probability | Evaluation time |
+| ------------------ | --------------- | ------ | ----------------------- | --------------- |
+| Turn on the light  | Normal          | on     | 0.8250                  | 123.81 s        |
+| Turn on the light  | Reversed        | on     | 0.8250                  | 109.82 s        |
+| Turn off the light | Normal          | off    | 0.7823                  | 103.89 s        |
+| Turn off the light | Reversed        | off    | 0.7823                  | 87.76 s         |
 
 All four typed responses reported two cyclic evaluations and zero generated
 tokens in the shared response contract. Candidate probabilities were identical

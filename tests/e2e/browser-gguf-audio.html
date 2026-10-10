@@ -37,7 +37,11 @@
 <pre id="status">Starting…</pre>
 <script type="module">
 import { createRuntime } from '../../bindings/web-runtimes/llamacpp-wasm/src/index.js?v=audio-workers-v2';
-import * as wasm from '/website/vendor/wasm/turbojev_wasm.js?v=audio-workers-v2';
+const coreUrl = new URL(
+  new URLSearchParams(location.search).get('core') || '/.artifacts/wasm-tests/turbojev_wasm.js',
+  location.href,
+);
+const wasm = await import(coreUrl.href);
 
 const output = document.querySelector('#status');
 const loadCard = document.querySelector('.load-card');
@@ -184,7 +188,7 @@ try {
   finishDownloadProgress(descriptor.modalities);
   mark(`runtime loaded; modalities=${descriptor.modalities.join(',')}`);
   await wasm.default({
-    module_or_path: `${location.origin}/website/vendor/wasm/turbojev_wasm_bg.wasm?v=audio-workers-v2`,
+    module_or_path: new URL('./turbojev_wasm_bg.wasm', coreUrl),
   });
   engine = new wasm.WasmEngine(runtime, JSON.stringify(descriptor), undefined, true);
 
