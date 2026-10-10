@@ -1,8 +1,8 @@
 {
-  "model": "C:\\Users\\Administrator\\.cache\\turbojev\\Qwen3-0.6B-Q4_K_M.gguf",
+  "model": "<model-cache>/Qwen3-0.6B-Q4_K_M.gguf",
   "sha256": "9acfc1e001311f34b4252001b626f2e466d592a42065f66571bff3790d4e1b14",
   "config": {
-    "model": "C:\\Users\\Administrator\\.cache\\turbojev\\Qwen3-0.6B-Q4_K_M.gguf",
+    "model": "<model-cache>/Qwen3-0.6B-Q4_K_M.gguf",
     "device": "cpu",
     "nGpuLayers": 0,
     "nThreads": 4,
@@ -11,7 +11,7 @@
       "orderRobustness": "none"
     }
   },
-  "library": "D:\\Projects\\TurboJev\\target\\release\\turbojev_capi.dll",
+  "library": "<repo>/target\\release\\turbojev_capi.dll",
   "correct": 20,
   "total": 24,
   "records": [

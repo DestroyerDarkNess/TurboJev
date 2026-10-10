@@ -1,8 +1,8 @@
 {
-  "model": "C:\\Users\\Administrator\\.cache\\turbojev\\Qwen3.5-2B-Q4_K_M.gguf",
+  "model": "<model-cache>/Qwen3.5-2B-Q4_K_M.gguf",
   "model_sha256": "aaf42c8b7c3cab2bf3d69c355048d4a0ee9973d48f16c731c0520ee914699223",
   "config": {
-    "model": "C:\\Users\\Administrator\\.cache\\turbojev\\Qwen3.5-2B-Q4_K_M.gguf",
+    "model": "<model-cache>/Qwen3.5-2B-Q4_K_M.gguf",
     "device": "cpu",
     "nCtx": 4096,
     "nBatch": 512,
@@ -279,7 +279,7 @@
         "inference_total_s": 97.66393020000032,
         "order_robustness": "none",
         "end_reason": "model hit a wall",
-        "trace": "D:\\Projects\\TurboJev\\docs\\validation\\snake-grid-qwen35-2b-grid-game.jsonl",
+        "trace": "<repo>/docs\\validation\\snake-grid-qwen35-2b-grid-game.jsonl",
         "latency_mean_ms": 16277.321700000055,
         "latency_median_ms": 14238.92005000016,
         "latency_p95_ms": 25060.040399999707,

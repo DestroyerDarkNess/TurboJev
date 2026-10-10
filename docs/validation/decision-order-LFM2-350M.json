@@ -1,8 +1,8 @@
 {
-  "model": "C:\\Users\\Administrator\\.cache\\turbojev\\LFM2-350M-Q4_K_M.gguf",
+  "model": "<model-cache>/LFM2-350M-Q4_K_M.gguf",
   "sha256": "a4d000c7064bd3b2e42c6845836286a899a4e79cf1791da1a6797b58d575957d",
   "config": {
-    "model": "C:\\Users\\Administrator\\.cache\\turbojev\\LFM2-350M-Q4_K_M.gguf",
+    "model": "<model-cache>/LFM2-350M-Q4_K_M.gguf",
     "device": "cpu",
     "nGpuLayers": 0,
     "nThreads": 4,
@@ -15,7 +15,7 @@
       "orderRobustness": "none"
     }
   },
-  "library": "D:\\Projects\\TurboJev\\target\\release\\turbojev_capi.dll",
+  "library": "<repo>/target\\release\\turbojev_capi.dll",
   "correct": 21,
   "total": 24,
   "records": [

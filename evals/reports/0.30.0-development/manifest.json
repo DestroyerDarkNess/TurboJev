@@ -1,15 +1,15 @@
 {
   "source": {
     "kind": "unpublished-native-build",
-    "library": "D:\\Projects\\TurboJev\\target\\release\\turbojev_capi.dll",
+    "library": "<repo>/target\\release\\turbojev_capi.dll",
     "sha256": "a3cfbbbd2c590e82249d16ddc56df7ea32c751a1ce4ae386f07ac49586203b7c"
   },
   "model": {
-    "path": "C:\\Users\\Administrator\\.cache\\turbojev\\Qwen3-0.6B-Q4_K_M.gguf",
+    "path": "<model-cache>/Qwen3-0.6B-Q4_K_M.gguf",
     "sha256": "9acfc1e001311f34b4252001b626f2e466d592a42065f66571bff3790d4e1b14"
   },
   "config": {
-    "model": "C:\\Users\\Administrator\\.cache\\turbojev\\Qwen3-0.6B-Q4_K_M.gguf",
+    "model": "<model-cache>/Qwen3-0.6B-Q4_K_M.gguf",
     "device": "cpu",
     "nCtx": 8192,
     "nSeqMax": 1,
@@ -42,17 +42,17 @@
   "relocated_libraries": [
     {
       "kind": "unpublished-native-build",
-      "library": "D:\\Projects\\TurboJev\\.cache\\fields-eval-runtime\\turbojev_capi.dll",
+      "library": "<repo>/.cache\\fields-eval-runtime\\turbojev_capi.dll",
       "sha256": "a3cfbbbd2c590e82249d16ddc56df7ea32c751a1ce4ae386f07ac49586203b7c"
     },
     {
       "kind": "unpublished-native-build",
-      "library": "D:\\Projects\\TurboJev\\.cache\\fields-eval-runtime\\turbojev_capi.dll",
+      "library": "<repo>/.cache\\fields-eval-runtime\\turbojev_capi.dll",
       "sha256": "a3cfbbbd2c590e82249d16ddc56df7ea32c751a1ce4ae386f07ac49586203b7c"
     },
     {
       "kind": "unpublished-native-build",
-      "library": "D:\\Projects\\TurboJev\\.cache\\fields-eval-runtime\\turbojev_capi.dll",
+      "library": "<repo>/.cache\\fields-eval-runtime\\turbojev_capi.dll",
       "sha256": "a3cfbbbd2c590e82249d16ddc56df7ea32c751a1ce4ae386f07ac49586203b7c"
     }
   ]

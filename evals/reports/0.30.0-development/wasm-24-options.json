@@ -1,7 +1,7 @@
 {
   "host": "Real Node CPU WASM, not browser API qualification",
   "wllama": "3.8.1",
-  "model": "C:\\Users\\Administrator\\.cache\\turbojev\\Qwen3-0.6B-Q4_K_M.gguf",
+  "model": "<model-cache>/Qwen3-0.6B-Q4_K_M.gguf",
   "results": [
     {
       "id": "24_candidates",

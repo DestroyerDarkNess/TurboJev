@@ -1,6 +1,6 @@
 {
   "version": "0.31.0",
-  "model": "C:/Users/Administrator/.cache/turbojev/Qwen3-0.6B-Q4_K_M.gguf",
+  "model": "$env:USERPROFILE/.cache/turbojev/Qwen3-0.6B-Q4_K_M.gguf",
   "model_sha256": "9acfc1e001311f34b4252001b626f2e466d592a42065f66571bff3790d4e1b14",
   "native_sha256": "227aa3e7bfc047b014b013e395fcfccc786a4ddcc326b728442c2213a2435db5",
   "device": "cpu",

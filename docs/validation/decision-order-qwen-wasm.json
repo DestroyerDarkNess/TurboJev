@@ -1,7 +1,7 @@
 {
   "host": "Node CPU WASM, not browser",
   "wllama": "3.8.1",
-  "model": "C:\\Users\\Administrator\\.cache\\turbojev\\Qwen3-0.6B-Q4_K_M.gguf",
+  "model": "<model-cache>/Qwen3-0.6B-Q4_K_M.gguf",
   "results": [
     {
       "order": [

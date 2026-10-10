@@ -30,11 +30,11 @@ With the source and native build produced by the local 0.29.2 release:
 ```powershell
 python -m pip install --index-url https://pypi.org/simple turbojev==0.29.2
 cmake -S scripts/native-decision-audit -B .cache/direct-decision-build -A x64 `
-  -DLLAMA_SOURCE=D:/Projects/TurboJev/.cache/real-validation/llama.cpp `
-  -DLLAMA_BUILD=D:/Projects/TurboJev/artifacts/llama-build/win-x64
+  -DLLAMA_SOURCE=<repo>/.cache/real-validation/llama.cpp `
+  -DLLAMA_BUILD=<repo>/artifacts/llama-build/win-x64
 cmake --build .cache/direct-decision-build --config Release
 python scripts/compare_direct_decisions.py `
-  --model C:/Users/Administrator/.cache/turbojev/Qwen3-0.6B-Q4_K_M.gguf `
+  --model $env:USERPROFILE/.cache/turbojev/Qwen3-0.6B-Q4_K_M.gguf `
   --direct .cache/direct-decision-build/Release/direct_decision.exe `
   --output docs/validation/direct-vs-turbojev-qwen-0292.json
 ```

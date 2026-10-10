@@ -1,6 +1,6 @@
 {
   "config": {
-    "model": "C:\\Users\\Administrator\\.cache\\turbojev\\Qwen3-0.6B-Q4_K_M.gguf",
+    "model": "<model-cache>/Qwen3-0.6B-Q4_K_M.gguf",
     "device": "gpu",
     "nCtx": 8192,
     "nSeqMax": 1,

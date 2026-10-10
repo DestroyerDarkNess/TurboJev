@@ -1,8 +1,8 @@
 {
-  "model": "C:\\Users\\Administrator\\.cache\\turbojev\\Qwen3-0.6B-Q4_K_M.gguf",
+  "model": "<model-cache>/Qwen3-0.6B-Q4_K_M.gguf",
   "model_sha256": "9acfc1e001311f34b4252001b626f2e466d592a42065f66571bff3790d4e1b14",
   "config": {
-    "model": "C:\\Users\\Administrator\\.cache\\turbojev\\Qwen3-0.6B-Q4_K_M.gguf",
+    "model": "<model-cache>/Qwen3-0.6B-Q4_K_M.gguf",
     "device": "cpu",
     "nCtx": 4096,
     "nBatch": 512,
@@ -279,7 +279,7 @@
         "inference_total_s": 170.23112960000435,
         "order_robustness": "none",
         "end_reason": "model hit a wall",
-        "trace": "D:\\Projects\\TurboJev\\docs\\validation\\snake-observations-qwen06-observations-game.jsonl",
+        "trace": "<repo>/docs\\validation\\snake-observations-qwen06-observations-game.jsonl",
         "latency_mean_ms": 28371.85493333406,
         "latency_median_ms": 27377.655900001628,
         "latency_p95_ms": 32406.651900000725,

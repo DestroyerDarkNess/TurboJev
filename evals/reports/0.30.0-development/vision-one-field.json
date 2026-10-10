@@ -1,7 +1,7 @@
 {
   "config": {
-    "model": "C:\\Users\\Administrator\\.cache\\turbojev\\Qwen3.5-2B-Q4_K_M.gguf",
-    "mmproj": "C:\\Users\\Administrator\\.cache\\turbojev\\Qwen3.5-2B-mmproj-F16.gguf",
+    "model": "<model-cache>/Qwen3.5-2B-Q4_K_M.gguf",
+    "mmproj": "<model-cache>/Qwen3.5-2B-mmproj-F16.gguf",
     "device": "gpu",
     "nCtx": 8192,
     "nSeqMax": 1,

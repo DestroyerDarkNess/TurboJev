@@ -48,7 +48,7 @@
     },
     "dotnet_contract": {
       "passed": true,
-      "command": "dotnet run --project tests/e2e/dotnet-sdk -p:TurboJevTestNativeRoot=D:/Projects/TurboJev/.artifacts/sdk-evolution/native -vquiet"
+      "command": "dotnet run --project tests/e2e/dotnet-sdk -p:TurboJevTestNativeRoot=<repo>/.artifacts/sdk-evolution/native -vquiet"
     },
     "wasm_contract": {
       "passed": true,

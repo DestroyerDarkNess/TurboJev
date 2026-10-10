@@ -1,7 +1,7 @@
 {
   "turbojev_version": "0.29.2",
   "package_source": "PyPI; no local engine override",
-  "model": "C:\\Users\\Administrator\\.cache\\turbojev\\Qwen3-0.6B-Q4_K_M.gguf",
+  "model": "<model-cache>/Qwen3-0.6B-Q4_K_M.gguf",
   "model_sha256": "9acfc1e001311f34b4252001b626f2e466d592a42065f66571bff3790d4e1b14",
   "runtime_info": {
     "contract": "turbojev.host-native.v1",
@@ -16,7 +16,7 @@
     "modalities": [
       "text"
     ],
-    "model": "C:\\Users\\Administrator\\.cache\\turbojev\\Qwen3-0.6B-Q4_K_M.gguf",
+    "model": "<model-cache>/Qwen3-0.6B-Q4_K_M.gguf",
     "runtime": "llama.cpp",
     "runtimeQualificationId": null
   },
