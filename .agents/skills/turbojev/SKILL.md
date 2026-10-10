@@ -1342,7 +1342,11 @@ console.log(
 ### C# / .NET
 
 Assign the catalogue to a raw string `casesJson`. Requires C# 11+ for raw strings;
-the SDK package targets its documented .NET version. Read the JSON elements rather
+the published 0.33.0 SDK targets .NET 8. The next NuGet release adds `net48`
+and `netstandard2.0` assemblies for Framework 4.8, .NET Core 3.1 and .NET
+5–7. .NET 8 and newer select the `net8.0` assembly. Language syntax and runtime
+targets are separate: older C# projects can call the same SDK without raw strings,
+top-level statements or `await using`. Read the JSON elements rather
 than assuming probability answers or nested objects are plain scalars:
 
 ```csharp
@@ -1397,6 +1401,66 @@ Console.WriteLine(receipt.Result["total"].GetRawText());
 `GenerateJsonAsync` has both a simple overload and a controlled overload with
 `TimeSpan?` and `CancellationToken`. `await using` calls `DisposeAsync` and releases
 the affinity worker. Do not invoke a nonexistent .NET `InfoAsync` method.
+
+For a .NET Framework 4.8 application, install the next NuGet release once it is
+published with `Install-Package TurboJev` in Visual Studio's Package Manager
+Console. Do not expect these added targets in 0.33.0. Use `PackageReference`;
+its package targets copy the bundled Windows x86/x64/ARM64 native directories
+to the output, and the SDK loads the directory matching the process architecture.
+Deploy those directories along with the managed assemblies and dependencies.
+An x86 application loads x86 DLLs even on Windows x64. Framework ARM64 support
+requires an ARM64-capable Framework runtime (4.8.1); DLL presence alone is not
+an execution test. Native Linux/macOS assets are not published.
+
+The following method also works with traditional C# syntax. For a UI application,
+await it from the event handler so inference does not block the UI:
+
+```csharp
+using System;
+using System.Threading.Tasks;
+using TurboJev;
+
+public static class TicketDemo
+{
+    public static async Task RunAsync()
+    {
+        using (var client = await TurboJevEngine.LoadAsync(new
+        {
+            model = "model.gguf",
+            device = "cpu",
+            nThreads = 4
+        }))
+        {
+            var response = await client.GenerateAsync(new
+            {
+                context = "Payments are failing after today's deployment.",
+                questions = new
+                {
+                    team = new
+                    {
+                        type = "string",
+                        instructions = "Which team should handle this?",
+                        @enum = new[] { "outage", "billing", "feature" },
+                        permutations = 1
+                    }
+                }
+            });
+            Console.WriteLine(response.Result["team"].GetString());
+        }
+    }
+}
+```
+
+The next SDK implements both `IDisposable` and `IAsyncDisposable`; `using` and
+`await using` release the same native affinity worker. For Framework applications,
+NuGet supplies `System.Text.Json` and `Microsoft.Bcl.AsyncInterfaces` dependencies.
+Enable automatic assembly binding redirects for executable Framework projects.
+Older framework availability does not extend Microsoft's support lifecycle for
+that runtime. Preserve any runtime errors instead of switching architectures.
+Core 2.x and 3.0 are blocked by a transitive dependency's build target and are
+not supported. Core 3.1 and .NET 5 are locally qualified legacy configurations;
+System.Text.Json 8 emits a support warning for them. Do not suppress that warning
+or present them as Microsoft-supported dependency configurations.
 
 ### Rust
 

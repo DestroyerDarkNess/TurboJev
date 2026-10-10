@@ -154,6 +154,19 @@ jobs:
         working-directory: bindings/python
         run: pytest -q
 
+  dotnet-binding:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Build all managed compatibility targets
+        run: dotnet build bindings/dotnet/TurboJev/TurboJev.csproj -c Release
+
   swift-binding:
     runs-on: macos-latest
     steps:

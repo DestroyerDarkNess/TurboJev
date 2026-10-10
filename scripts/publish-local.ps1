@@ -475,6 +475,7 @@ function Publish-NuGet {
         Invoke-Tool "python" @("scripts/download_model.py", "--plan", "tests/e2e/final-plan.json")
     }
     Invoke-Tool "pwsh" @("-NoProfile", "-File", "scripts/smoke-nuget-package.ps1", $package.FullName, $realModel)
+    Invoke-Tool "pwsh" @("-NoProfile", "-File", "scripts/smoke-dotnet-compat.ps1", "-PackagePath", $package.FullName, "-ModelPath", $realModel)
 
     foreach ($package in Get-ChildItem -LiteralPath $output -Filter "*.nupkg") {
         $arguments = @("nuget", "push", $package.FullName, "--api-key", $env:NUGET_API_KEY, "--source", "https://api.nuget.org/v3/index.json", "--skip-duplicate")

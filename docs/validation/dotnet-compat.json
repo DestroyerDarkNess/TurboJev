@@ -1,0 +1,213 @@
+{
+  "records": [
+    {
+      "target": ".NETFramework,Version=v4.8",
+      "sdk_target": ".NETFramework,Version=v4.8",
+      "runtime": ".NET Framework 4.8.9277.0",
+      "architecture": "X64",
+      "passed": true,
+      "contracts": [
+        "package_asset_selection",
+        "native_loading",
+        "schema",
+        "softmax",
+        "typed_records",
+        "dice",
+        "utf8",
+        "timeout",
+        "cancellation",
+        "sync_async_disposal",
+        "ui_context"
+      ],
+      "real_model": "Qwen3-0.6B-Q4_K_M.gguf",
+      "real_evaluation_ms": 1522,
+      "elapsed_ms": 3476
+    },
+    {
+      "target": ".NETCoreApp,Version=v3.1",
+      "sdk_target": ".NETStandard,Version=v2.0",
+      "runtime": ".NET Core 3.1.32",
+      "architecture": "X64",
+      "passed": true,
+      "contracts": [
+        "package_asset_selection",
+        "native_loading",
+        "schema",
+        "softmax",
+        "typed_records",
+        "dice",
+        "utf8",
+        "timeout",
+        "cancellation",
+        "sync_async_disposal",
+        "ui_context"
+      ],
+      "real_model": "Qwen3-0.6B-Q4_K_M.gguf",
+      "real_evaluation_ms": 1708,
+      "elapsed_ms": 4049
+    },
+    {
+      "target": ".NETCoreApp,Version=v5.0",
+      "sdk_target": ".NETStandard,Version=v2.0",
+      "runtime": ".NET 5.0.17",
+      "architecture": "X64",
+      "passed": true,
+      "contracts": [
+        "package_asset_selection",
+        "native_loading",
+        "schema",
+        "softmax",
+        "typed_records",
+        "dice",
+        "utf8",
+        "timeout",
+        "cancellation",
+        "sync_async_disposal",
+        "ui_context"
+      ],
+      "real_model": null,
+      "real_evaluation_ms": null,
+      "elapsed_ms": 416
+    },
+    {
+      "target": ".NETCoreApp,Version=v6.0",
+      "sdk_target": ".NETStandard,Version=v2.0",
+      "runtime": ".NET 6.0.36",
+      "architecture": "X64",
+      "passed": true,
+      "contracts": [
+        "package_asset_selection",
+        "native_loading",
+        "schema",
+        "softmax",
+        "typed_records",
+        "dice",
+        "utf8",
+        "timeout",
+        "cancellation",
+        "sync_async_disposal",
+        "ui_context"
+      ],
+      "real_model": null,
+      "real_evaluation_ms": null,
+      "elapsed_ms": 415
+    },
+    {
+      "target": ".NETCoreApp,Version=v7.0",
+      "sdk_target": ".NETStandard,Version=v2.0",
+      "runtime": ".NET 7.0.20",
+      "architecture": "X64",
+      "passed": true,
+      "contracts": [
+        "package_asset_selection",
+        "native_loading",
+        "schema",
+        "softmax",
+        "typed_records",
+        "dice",
+        "utf8",
+        "timeout",
+        "cancellation",
+        "sync_async_disposal",
+        "ui_context"
+      ],
+      "real_model": null,
+      "real_evaluation_ms": null,
+      "elapsed_ms": 373
+    },
+    {
+      "target": ".NETCoreApp,Version=v8.0",
+      "sdk_target": ".NETCoreApp,Version=v8.0",
+      "runtime": ".NET 8.0.17",
+      "architecture": "X64",
+      "passed": true,
+      "contracts": [
+        "package_asset_selection",
+        "native_loading",
+        "schema",
+        "softmax",
+        "typed_records",
+        "dice",
+        "utf8",
+        "timeout",
+        "cancellation",
+        "sync_async_disposal",
+        "ui_context"
+      ],
+      "real_model": "Qwen3-0.6B-Q4_K_M.gguf",
+      "real_evaluation_ms": 2603,
+      "elapsed_ms": 4006
+    },
+    {
+      "target": ".NETCoreApp,Version=v9.0",
+      "sdk_target": ".NETCoreApp,Version=v8.0",
+      "runtime": ".NET 9.0.7",
+      "architecture": "X64",
+      "passed": true,
+      "contracts": [
+        "package_asset_selection",
+        "native_loading",
+        "schema",
+        "softmax",
+        "typed_records",
+        "dice",
+        "utf8",
+        "timeout",
+        "cancellation",
+        "sync_async_disposal",
+        "ui_context"
+      ],
+      "real_model": null,
+      "real_evaluation_ms": null,
+      "elapsed_ms": 176
+    },
+    {
+      "target": ".NETCoreApp,Version=v10.0",
+      "sdk_target": ".NETCoreApp,Version=v8.0",
+      "runtime": ".NET 10.0.10",
+      "architecture": "X64",
+      "passed": true,
+      "contracts": [
+        "package_asset_selection",
+        "native_loading",
+        "schema",
+        "softmax",
+        "typed_records",
+        "dice",
+        "utf8",
+        "timeout",
+        "cancellation",
+        "sync_async_disposal",
+        "ui_context"
+      ],
+      "real_model": null,
+      "real_evaluation_ms": null,
+      "elapsed_ms": 171
+    },
+    {
+      "target": ".NETFramework,Version=v4.8",
+      "sdk_target": ".NETFramework,Version=v4.8",
+      "runtime": ".NET Framework 4.8.9277.0",
+      "architecture": "X86",
+      "passed": true,
+      "contracts": [
+        "package_asset_selection",
+        "native_loading",
+        "schema",
+        "softmax",
+        "typed_records",
+        "dice",
+        "utf8",
+        "timeout",
+        "cancellation",
+        "sync_async_disposal",
+        "ui_context"
+      ],
+      "real_model": null,
+      "real_evaluation_ms": null,
+      "elapsed_ms": 1388
+    }
+  ],
+  "package_version": "0.33.1-compat",
+  "package_sha256": "6b88c40076c0d6868150e2c3cd6464d78dd7112c8550cbc4906c5fdd823826aa"
+}

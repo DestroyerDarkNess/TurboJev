@@ -11,6 +11,12 @@ def main() -> int:
     with zipfile.ZipFile(package) as archive:
         files = {name.lower() for name in archive.namelist()}
     errors = []
+    for framework in ("netstandard2.0", "net48", "net8.0"):
+        if f"lib/{framework}/turbojev.dll" not in files:
+            errors.append(f"{framework}: missing managed SDK assembly")
+    for folder in ("build", "buildtransitive"):
+        if f"{folder}/turbojev.targets" not in files:
+            errors.append(f"{folder}: missing .NET Framework native asset deployment targets")
     for rid in ("win-x86", "win-x64", "win-arm64"):
         prefix = f"runtimes/{rid}/native/"
         runtime_dlls = {Path(name).name for name in files if name.startswith(prefix)}

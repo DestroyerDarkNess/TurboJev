@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- Multi-target the .NET SDK for .NET Standard 2.0, .NET Framework 4.8 and .NET 8; keep the same typed SDK and native runtime contracts across targets.
+- Copy packaged native runtime dependencies for .NET Framework and load the directory matching the running process without changing its PATH.
+- Add portable UTF-8 interop, synchronous disposal and context-independent SDK continuations for WinForms/WPF consumers.
+- Gate NuGet publishing on installed-package compatibility checks, including legacy .NET consumers, UTF-8, schema/result helpers, cancellation, disposal and real GGUF inference.
+
 ## 0.33.0
 
 - Add the Dice schema helper in Rust, Python, Node/browser and .NET, with a real fair-die example and explicit permutation costs.

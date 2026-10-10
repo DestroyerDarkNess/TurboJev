@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 from __future__ import annotations
-import json, py_compile
+import json, py_compile, re
 from pathlib import Path
 from jsonschema import Draft202012Validator
 ROOT=Path(__file__).resolve().parents[1]
@@ -61,9 +61,10 @@ for rel, versions in exact_cargo.items():
         assert version in cargo_text, f'{rel}: missing exact dependency pin {version}'
 
 dotnet_text=(ROOT/'bindings/dotnet/TurboJev/TurboJevEngine.cs').read_text()
-for snippet in ['catch {','queue.CompleteAdding()','thread.Join()','queue.Dispose()']:
+assert re.search(r'catch\s*\{', dotnet_text), '.NET load-failure cleanup missing catch block'
+for snippet in ['queue.CompleteAdding()','thread.Join()','queue.Dispose()']:
     assert snippet in dotnet_text, f'.NET load-failure cleanup missing {snippet}'
-assert 'finally {' in dotnet_text and 'failed native close' in dotnet_text, '.NET DisposeAsync must tear down its affinity worker even when native close fails'
+assert re.search(r'finally\s*\{', dotnet_text) and 'failed native close' in dotnet_text, '.NET DisposeAsync must tear down its affinity worker even when native close fails'
 
 workflow_text = (ROOT / '.github/workflows/real-e2e.yml').read_text()
 assert '--skip-workspace-gates' not in workflow_text, 'real E2E workflow must run locked workspace gates inside final orchestrator'

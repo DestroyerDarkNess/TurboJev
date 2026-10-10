@@ -11,7 +11,7 @@ GitHub trusted-publisher configurations alone do not authenticate local uploads.
 
 ## Prerequisites
 
-- Windows with Rust, Python 3.11 or newer, Node.js/npm, .NET 8, CMake 3.24+, and Git.
+- Windows with Rust, Python 3.11 or newer, Node.js/npm, .NET 10 SDK, .NET Framework 4.8 runtime, CMake 3.24+, and Git.
 - Visual Studio C++ x86/x64 and ARM64 build tools, Windows SDK, and LLVM tools.
 - npm membership and token write access to the `@turbojev` organization.
 - A verified email address on crates.io and publishing permission.
@@ -27,7 +27,9 @@ GitHub trusted-publisher configurations alone do not authenticate local uploads.
   stable ABI (Python 3.9+). Publishing tools use `artifacts/publish-tools` so they
   do not modify globally installed Python packages.
 - NuGet publishes one package containing native Windows runtime assets for
-  win-x86, win-x64, and win-arm64.
+  win-x86, win-x64, and win-arm64, plus managed assemblies for `netstandard2.0`,
+  `net48` and `net8.0`. These managed compatibility targets are included starting
+  with the next release after 0.33.0.
 - crates.io publishes source packages once. The facade's internal dependencies
   are published first. Cargo verifies each packaged crate before upload.
 
@@ -35,7 +37,21 @@ The publisher builds the pinned llama.cpp revision once per Windows target and
 enables the `llamacpp` feature for each native binding. The shim and llama.cpp
 runtime DLLs are bundled in npm packages, Python wheels, and NuGet runtime
 folders. This Windows matrix does not produce Linux or macOS binaries and does
-not execute x86 or ARM64 binaries on an x64 host.
+does not execute ARM64 binaries on an x64 host. The .NET compatibility gate also
+executes the Framework consumer as x86 on Windows x64.
+
+Before uploading NuGet, the publisher installs the actual packed artifact into
+isolated consumers targeting Framework 4.8, .NET Core 3.1 and .NET 5–10.
+It compiles every target, executes those with an installed runtime, and tests
+real GGUF inference in Framework 4.8, Core 3.1 and .NET 8. Missing legacy
+runtimes are reported as compile-only coverage. .NET 8 must be installed for
+the existing native package smoke test. To repeat the compatibility gate:
+
+```powershell
+pwsh -NoProfile -File scripts/smoke-dotnet-compat.ps1 `
+  -PackagePath artifacts/nuget/TurboJev.VERSION.nupkg `
+  -ModelPath path/to/model.gguf
+```
 
 ## Retry after a failure
 

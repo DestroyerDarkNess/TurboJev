@@ -3,7 +3,7 @@ using System.Text.Json;
 
 namespace TurboJev;
 
-public sealed class TurboJevEngine : IAsyncDisposable
+public sealed class TurboJevEngine : IAsyncDisposable, IDisposable
 {
     readonly BlockingCollection<Action> queue = new();
     readonly Thread thread;
@@ -33,15 +33,15 @@ public sealed class TurboJevEngine : IAsyncDisposable
 
     public static async Task<TurboJevEngine> LoadAsync(object options)
     {
-        var engine = new TurboJevEngine();
         var json = JsonSerializer.Serialize(options);
+        var engine = new TurboJevEngine();
         try
         {
             engine.handle = await Run(engine.queue, () =>
             {
                 Native.Check(Native.tj_engine_open_json(json, out var handle));
                 return handle;
-            });
+            }).ConfigureAwait(false);
             return engine;
         }
         catch
@@ -75,7 +75,7 @@ public sealed class TurboJevEngine : IAsyncDisposable
         using var registration = cancellationToken.Register(() => Native.tj_generation_control_cancel(control));
         try
         {
-            return await Run(queue, () => Call((out nint output) => Native.tj_engine_generate_json_controlled(handle, request, control, out output)));
+            return await Run(queue, () => Call((out nint output) => Native.tj_engine_generate_json_controlled(handle, request, control, out output))).ConfigureAwait(false);
         }
         finally
         {
@@ -87,7 +87,7 @@ public sealed class TurboJevEngine : IAsyncDisposable
 
     public async Task<Generation> GenerateAsync(object request, TimeSpan? timeout = null, CancellationToken cancellationToken = default)
     {
-        var response = await GenerateJsonAsync(JsonSerializer.Serialize(request), timeout, cancellationToken);
+        var response = await GenerateJsonAsync(JsonSerializer.Serialize(request), timeout, cancellationToken).ConfigureAwait(false);
         return JsonSerializer.Deserialize<Generation>(response)!;
     }
 
@@ -123,7 +123,7 @@ public sealed class TurboJevEngine : IAsyncDisposable
                 Native.Check(Native.tj_engine_close(handle));
                 handle = 0;
                 return 0;
-            });
+            }).ConfigureAwait(false);
         }
         finally
         {
@@ -134,4 +134,7 @@ public sealed class TurboJevEngine : IAsyncDisposable
             queue.Dispose();
         }
     }
+
+    /// <summary>Closes the native engine and its worker; usable with traditional using statements.</summary>
+    public void Dispose() => DisposeAsync().AsTask().GetAwaiter().GetResult();
 }
