@@ -39,6 +39,12 @@ not execute x86 or ARM64 binaries on an x64 host.
 
 ## Retry after a failure
 
+Cargo registry verification uses the installed `stable` Rust toolchain because
+dependency resolution during packaging can select crates using newer Rust
+editions than the workspace's pinned toolchain. To select another installed
+toolchain, set `$env:TURBOJEV_PUBLISH_TOOLCHAIN = '1.97.1'` before publishing.
+This changes the publication verifier, not the project's source toolchain.
+
 Select only the failed registry. Existing crate versions, npm versions and Python
 wheels are skipped; NuGet uses `--skip-duplicate`. A failed registry
 does not prevent the `all` option from attempting the remaining registries.

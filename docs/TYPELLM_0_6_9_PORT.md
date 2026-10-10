@@ -137,8 +137,8 @@ including failed accuracy/parity checks, are retained in
 [the SDK validation report](validation/sdk-evolution-0.32.0.json).
 
 Windows x64 validation does not certify Windows x86/ARM64, other operating
-systems, browser hardware or a model's vision accuracy. Registry demos keep
-using published packages; new APIs must not be advertised as already published.
+systems, browser hardware or a model's vision accuracy. Registry demos use
+0.33.0 from public package managers and CDNs.
 
 
 ## Dice, sampling, and numeric limits
@@ -247,3 +247,11 @@ retains its exact model and native binary hashes: 188 Rust tests, 10 real GGUF
 contract checks and 6/6 explicitly scored extraction answers. The fair-die result
 is intentionally not scored against a predetermined face or made uniform.
 These checks do not certify ARM64 execution or every model/runtime combination.
+
+
+Release 0.33.0 is published to npm, PyPI, NuGet and crates.io. The
+[public registry verification](validation/published-release-0.33.0.json) checks
+versions, checksums, the Cargo dependency closure and the three Windows native
+architectures. Installed-package demos retain real Qwen3 0.6B results in the
+separate demos repository. Native model execution was on Windows x64; browser
+model accuracy and cross-architecture execution are not certified by this release.

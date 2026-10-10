@@ -5,7 +5,7 @@ description: Use when installing, integrating, designing decisions for, or troub
 
 # TurboJev
 
-Help build applications with TurboJev's typed decision and structured workflow APIs. This guide describes the 0.33.0 source SDK (registry publication must be verified separately): `evaluate`, `generate`, balanced choice ordering, field dependencies, conditional omission, probability wrappers and bounded reasoning. Use the repository's current source and docs as the authority: package versions, platform assets, and runtime capabilities change. Do not repeat old README version numbers or claim validation that has not been run.
+Help build applications with TurboJev's typed decision and structured workflow APIs. This guide describes the 0.33.0 published SDK: `evaluate`, `generate`, balanced choice ordering, field dependencies, conditional omission, probability wrappers and bounded reasoning. Use the repository's current source and docs as the authority: package versions, platform assets, and runtime capabilities change. Do not repeat old README version numbers or claim validation that has not been run.
 
 This skill is self-contained: installation, contracts, options and limitations are included below. No external Markdown is required to follow it.
 
@@ -15,7 +15,7 @@ Identify the host language, target OS/architecture, model format, and intended i
 
 ## Install by language
 
-Published native 0.31.0 packages cover Windows x86/x64/ARM64. Browser WASM is architecture independent; Rust source can target other platforms with a compatible toolchain. This is not evidence of native Linux/macOS packages or testing on every architecture. Check release assets before promising other availability. These packages expose TurboJev's typed-decision API; they do not all include the same model runtime.
+Published native 0.33.0 packages cover Windows x86/x64/ARM64. Browser WASM is architecture independent; Rust source can target other platforms with a compatible toolchain. This is not evidence of native Linux/macOS packages or testing on every architecture. Check release assets before promising other availability. These packages expose TurboJev's typed-decision API; they do not all include the same model runtime.
 
 | Host                            | Install                                                                                               | What it provides                                                                                 |
 | ------------------------------- | ----------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
@@ -612,3 +612,8 @@ This flag is opt-in and can expose input data in logs. Native GGUF and the ONNX
 adapter capture their actual formatted text; GGUF/WASM rejects this flag explicitly
 because Wllama does not expose its final formatted prompt. Singleton enums need no
 model inference and therefore have no model prompt.
+
+
+Release 0.33.0 was checked against the public npm, PyPI, NuGet and crates.io
+registries. Windows x86/x64/ARM64 assets were verified; real-model execution
+was checked on Windows x64. Cross-compilation is not execution on ARM64 or x86.

@@ -6,18 +6,30 @@
     "invoice": {
       "type": "object",
       "properties": {
-        "merchant": { "type": "string", "instructions": "What is the merchant name?" },
-        "overdue": { "type": "boolean", "instructions": "Is payment overdue?" }
+        "merchant": {
+          "type": "string",
+          "instructions": "What is the merchant name?"
+        },
+        "overdue": {
+          "type": "boolean",
+          "instructions": "Is payment overdue?"
+        }
       }
     },
     "rows": {
       "type": "array",
-      "instructions": "Extract the invoice line items in order, without repeats.",
+      "instructions": "Read Current array (JSON). Extract the first source line item that is not already in that array. Preserve source order and never repeat a previous item.",
       "items": {
         "type": "object",
         "properties": {
-          "item": { "type": "string", "instructions": "What is the item name?" },
-          "quantity": { "type": "integer", "instructions": "How many units?" }
+          "item": {
+            "type": "string",
+            "instructions": "Name of the next line item not already in Current array (JSON)."
+          },
+          "quantity": {
+            "type": "integer",
+            "instructions": "Quantity of that same next line item, from the context."
+          }
         }
       },
       "minItems": 2,
@@ -27,9 +39,18 @@
       "type": "number",
       "instructions": "How urgently should overdue payment be handled?",
       "levels": [
-        { "label": "low", "description": "No deadline or overdue payment" },
-        { "label": "medium", "description": "Payment is overdue" },
-        { "label": "high", "description": "An immediate deadline or legal escalation" }
+        {
+          "label": "low",
+          "description": "No deadline or overdue payment"
+        },
+        {
+          "label": "medium",
+          "description": "Payment is overdue"
+        },
+        {
+          "label": "high",
+          "description": "An immediate deadline or legal escalation"
+        }
       ],
       "return_probabilities": true
     }

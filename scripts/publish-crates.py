@@ -11,6 +11,10 @@ import urllib.request
 
 ROOT = Path(__file__).resolve().parents[1]
 RETRY_STATE = ROOT / 'artifacts/crates-retry-at.txt'
+# Registry verification resolves dependencies independently of the workspace lock.
+# Use a current installed toolchain for dependencies adopting newer Rust editions.
+PUBLISH_ENV = {**os.environ,
+               'RUSTUP_TOOLCHAIN': os.environ.get('TURBOJEV_PUBLISH_TOOLCHAIN', 'stable')}
 
 
 def wait_for_registry():
@@ -24,7 +28,8 @@ def wait_for_registry():
 
 def main():
     metadata = json.loads(subprocess.check_output(
-        ['cargo', 'metadata', '--no-deps', '--format-version', '1', '--locked'], cwd=ROOT))
+        ['cargo', 'metadata', '--no-deps', '--format-version', '1', '--locked'],
+        cwd=ROOT, env=PUBLISH_ENV))
     packages = {p['name']: p for p in metadata['packages']}
     ordered, visited = [], set()
 
@@ -63,7 +68,7 @@ def main():
             result = subprocess.run(
                 ['cargo', 'publish', '--locked', '--allow-dirty', '-p', name],
                 cwd=ROOT, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                env={**os.environ, 'CARGO_TARGET_DIR': str(ROOT / 'target/publish-verify')})
+                env={**PUBLISH_ENV, 'CARGO_TARGET_DIR': str(ROOT / 'target/publish-verify')})
             print(result.stdout, flush=True)
             if result.returncode == 0:
                 break
