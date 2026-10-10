@@ -1,3 +1,4 @@
+export { Dice } from "./dice.js";
 export type {
   GenerateRequest,
   GenerateResponse,
@@ -64,6 +65,16 @@ export interface WebLoadOptions {
   prompt?: { profile?: string; systemInstruction?: string; bestMatchInstruction?: string };
   workerUrl?: string;
 }
+export class TurboJevWebError extends Error {
+  readonly usage?: GenerateResponse["usage"];
+  constructor(message: string) {
+    const [text, usage] = message.split("\nTURBOJEV_USAGE: ");
+    super(text);
+    this.name = "TurboJevWebError";
+    if (usage) this.usage = JSON.parse(usage);
+  }
+}
+
 export class TurboJevWeb {
   #worker: Worker;
   #id = 1;
@@ -76,7 +87,7 @@ export class TurboJevWeb {
       const p = this.#pending.get(data.id);
       if (!p) return;
       this.#pending.delete(data.id);
-      data.ok ? p.resolve(data.value) : p.reject(new Error(data.error));
+      data.ok ? p.resolve(data.value) : p.reject(new TurboJevWebError(data.error));
     };
     worker.onerror = (e) => {
       for (const p of this.#pending.values()) p.reject(e);
@@ -114,6 +125,13 @@ export class TurboJevWeb {
     request: GenerateRequest,
     options: { timeoutMs?: number; signal?: AbortSignal } = {},
   ): Promise<GenerateResponse> {
+    if (
+      request.seed === undefined &&
+      (request.mode === "sample" || (request.mode !== "argmax" && (request.temperature ?? 0) > 0))
+    ) {
+      const random = crypto.getRandomValues(new Uint32Array(1));
+      request = { ...request, seed: random[0] };
+    }
     return this.#call<GenerateResponse>("generate", { request }, options);
   }
   async evaluateCompatible(profile: string, request: Record<string, unknown>) {

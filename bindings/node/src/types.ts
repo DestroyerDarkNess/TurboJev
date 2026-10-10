@@ -106,6 +106,9 @@ export interface GenerateRequest {
   thinking_budget?: number;
   text_max_tokens?: number;
   numeric_max_tokens?: number;
+  numeric_max_digits?: number;
+  print_final_prompt?: boolean;
+  mode?: "argmax" | "sample";
   seed?: number;
   temperature?: number;
 }
@@ -117,6 +120,7 @@ export interface ProbabilityAnswer {
   distribution: Array<{ value: ScalarValue; probability: number }>;
 }
 export interface GenerateResponse {
+  prompts?: string[];
   result: Record<string, JsonValue | ProbabilityAnswer>;
   thinking: Record<string, string>;
   thinking_effort: Record<string, string>;

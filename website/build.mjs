@@ -2,11 +2,30 @@ import { readFile, writeFile, mkdir, copyFile } from "node:fs/promises";
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 import { createHash } from "node:crypto";
+import { dirname } from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 const require = createRequire(
   new URL("../samples/TurboJev-js-native/package.json", import.meta.url),
 );
-const { build } = require("esbuild");
+const { build: esbuild } = require("esbuild");
+async function build(options) {
+  // Emit in memory so Windows sharing errors use the same bounded retry policy.
+  const result = await esbuild({ ...options, write: false });
+  for (const output of result.outputFiles) {
+    await mkdir(dirname(output.path), { recursive: true });
+    for (let attempt = 0; ; attempt++) {
+      try {
+        await writeFile(output.path, output.contents);
+        break;
+      } catch (error) {
+        const transient = ["UNKNOWN", "EBUSY", "EPERM", "EACCES"].includes(error.code);
+        if (process.platform !== "win32" || !transient || attempt >= 7) throw error;
+        await delay(100 * (attempt + 1));
+      }
+    }
+  }
+  return result;
+}
 const prettier = require("prettier");
 const formatting = JSON.parse(
   await readFile(new URL("../.prettierrc.json", import.meta.url), "utf8"),

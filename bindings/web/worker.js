@@ -24,7 +24,6 @@ function controlledRuntime(runtime) {
       return async (...args) => {
         checkControl();
         const result = await value.apply(target, args);
-        checkControl();
         return result;
       };
     },
@@ -70,7 +69,11 @@ async function handleMessage({ data: { id, op, args } }) {
       try {
         checkControl();
         const result = JSON.parse(await engine.generate_json(JSON.stringify(args.request)));
-        checkControl();
+        try {
+          checkControl();
+        } catch (error) {
+          throw new Error(`${error.message}\nTURBOJEV_USAGE: ${JSON.stringify(result.usage)}`);
+        }
         return reply(id, true, result);
       } finally {
         activeControl = null;

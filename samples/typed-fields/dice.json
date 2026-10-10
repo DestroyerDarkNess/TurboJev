@@ -1,0 +1,15 @@
+{
+  "context": "A single roll of a fair die.",
+  "mode": "sample",
+  "temperature": 1,
+  "seed": 42,
+  "questions": {
+    "roll": {
+      "type": "string",
+      "instructions": "What number will come up on a single roll of a fair six-sided die?",
+      "enum": ["one", "two", "three", "four", "five", "six"],
+      "permutations": "auto",
+      "return_probabilities": true
+    }
+  }
+}

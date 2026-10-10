@@ -2033,6 +2033,14 @@ with TurboJev.load("invoice.gguf", device="cpu", n_ctx=8192, n_seq_max=1) as cli
       licenses; its published model results are not reused as TurboJev evidence.
     </p>
   </div>
+  <h3>Decoding and diagnostics</h3>
+  <p>
+    Generate accepts mode (argmax or sample), temperature, seed and numeric_max_digits (default 32).
+    Positive temperature alone enables sampling; explicit argmax stays greedy. Level distributions
+    use level names. Failed generation retains reported usage. The
+    <a href="cookbook.html#dice">Dice cookbook recipe</a> includes sampling, numeric limits and
+    runtime-specific prompt diagnostics.
+  </p>
 </section>
 
 <section id="ordering" class="doc-section searchable">

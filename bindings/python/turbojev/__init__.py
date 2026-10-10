@@ -9,6 +9,7 @@ from .schema import (
     ArrayField,
     Choice,
     Decision,
+    Dice,
     Generation,
     MAX_ARRAY_ITEMS,
     MAX_ENUM_CHOICES,
@@ -39,7 +40,10 @@ else:
 
 
 class TurboJevError(RuntimeError):
-    pass
+    def __init__(self, message: str):
+        text, separator, usage_json = message.partition("\nTURBOJEV_USAGE: ")
+        super().__init__(text)
+        self.usage = Usage(**json.loads(usage_json)) if separator else None
 
 
 class GenerationCancelled(TurboJevError):
@@ -147,8 +151,13 @@ class TurboJev:
             raise TypeError("pass timeout or control, not both")
         if timeout is not None or control is not None:
             active = control if control is not None else GenerationControl(timeout)
-            return json.loads(self._call("generate_json_controlled", wire, active._native))
-        return json.loads(self._call("generate_json", wire))
+            response = json.loads(self._call("generate_json_controlled", wire, active._native))
+        else:
+            response = json.loads(self._call("generate_json", wire))
+        if payload.get("print_final_prompt"):
+            for prompt in response.get("prompts", ()):
+                print(prompt)
+        return response
 
     def compile_schema(self, schema: Mapping[str, Any]) -> list[Decision | ArrayField]:
         from .schema import compile_json_schema
@@ -207,6 +216,7 @@ __all__ += [
     "ArrayField",
     "Choice",
     "Decision",
+    "Dice",
     "Generation",
     "MAX_ARRAY_ITEMS",
     "MAX_ENUM_CHOICES",

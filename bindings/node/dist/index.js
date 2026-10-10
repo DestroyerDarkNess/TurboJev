@@ -1,3 +1,4 @@
+export { Dice } from "./dice.js";
 import { Worker } from "node:worker_threads";
 import { loadNative } from "./native.js";
 import { resolveModel } from "./model.js";

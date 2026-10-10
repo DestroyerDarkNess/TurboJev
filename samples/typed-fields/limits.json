@@ -1,0 +1,9 @@
+{
+  "context": "Reference: 12345. Amount: 12.34.",
+  "numeric_max_digits": 5,
+  "mode": "argmax",
+  "questions": {
+    "reference": { "type": "integer", "instructions": "Extract the reference number." },
+    "amount": { "type": "number", "instructions": "Extract the amount." }
+  }
+}

@@ -27,3 +27,21 @@ python samples/run.py rust --generate-request samples/typed-fields/structured.js
 These use the checkout's build, so rebuild before running. Standalone registry demos keep
 using published packages until the new release. The cookbook in `docs/COOKBOOK.md` also
 covers dense-page continuation and large enums.
+
+
+## Fair die and decimal extraction
+
+Every native sample accepts these new requests after rebuilding:
+
+```powershell
+python samples/run.py python --generate-request samples/typed-fields/dice.json
+python samples/run.py ts --generate-request samples/typed-fields/dice.json
+python samples/run.py csharp --generate-request samples/typed-fields/dice.json
+python samples/run.py rust --generate-request samples/typed-fields/dice.json
+python samples/run.py python --generate-request samples/typed-fields/limits.json
+```
+
+Supply `--model` if your GGUF is outside the default cache. `dice.json` samples the
+model's measured six-face distribution; it does not fabricate uniform probabilities.
+`limits.json` bounds the total digits in each generated numeric value. Both use the
+same shared Rust semantics in every binding. See each response's `usage` for counts.

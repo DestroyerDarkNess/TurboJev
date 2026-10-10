@@ -1,6 +1,9 @@
 //! Shared workflow state machine. Hosts only perform the requested inference.
 
 use crate::{AsyncScoringBackend, Calibrator, ScoringBackend, TurboJevAsyncEngine, TurboJevEngine};
+#[path = "fields/numeric.rs"]
+mod numeric;
+
 use indexmap::IndexMap;
 use serde_json::{json, Value};
 use turbojev_backend::{BackendError, FieldOutput, FieldTask};
@@ -41,6 +44,9 @@ pub struct Generation {
 
 impl Generation {
     pub fn new(mut request: GenerateRequest) -> Result<Self, FieldError> {
+        let (mode, temperature) = request.decoding()?;
+        request.mode = Some(mode);
+        request.temperature = Some(temperature);
         request.context = request.effective_context()?;
         request.images.clear();
         let fields = request.compile()?;
@@ -71,6 +77,7 @@ impl Generation {
                 thinking_effort: IndexMap::new(),
                 skipped: Vec::new(),
                 usage: Default::default(),
+                prompts: Vec::new(),
             },
         })
     }
@@ -102,9 +109,11 @@ impl Generation {
                     name: field.name.clone(), state,
                     instructions: format!("How much reasoning does this question require? none: directly stated or obvious; low: one simple inference; medium: several steps; high: difficult multi-step reasoning. Question: {}. Output type: {}", field.instructions, field.output_schema()),
                     output_schema: json!({"type": "string", "enum": ["none", "low", "medium", "high"]}),
+                    grammar: None,
+                    capture_prompt: self.request.print_final_prompt,
                     values: Some(vec![json!("none"), json!("low"), json!("medium"), json!("high")]),
                     thinking: false, thinking_budget: 0, max_tokens: field.max_tokens,
-                    temperature: self.request.temperature, seed: self.request.seed,
+                    temperature: self.request.sampling_temperature(), seed: self.request.seed,
                 }));
             }
             if self.orders.is_empty() {
@@ -124,6 +133,8 @@ impl Generation {
                     described_question(field)
                 },
                 output_schema: field.output_schema(),
+                capture_prompt: self.request.print_final_prompt,
+                grammar: numeric::grammar(&field.output_schema(), self.request.numeric_max_digits),
                 values: field.values.as_ref().map(|values| {
                     self.orders[self.rotation]
                         .iter()
@@ -136,7 +147,7 @@ impl Generation {
                     _ => 0,
                 },
                 max_tokens: field.max_tokens,
-                temperature: self.request.temperature,
+                temperature: self.request.sampling_temperature(),
                 seed: self.request.seed,
             }));
         }
@@ -152,6 +163,9 @@ impl Generation {
             return self.accept_array(output, calibrator);
         }
         let field = &self.fields[self.order[self.position]];
+        if let Some(prompt) = &output.prompt {
+            self.response.prompts.push(prompt.clone());
+        }
         self.response.usage.generated_tokens += output.generated_tokens;
         if let Some(n) = output.input_tokens {
             self.input_known = true;
@@ -177,7 +191,13 @@ impl Generation {
                     "invalid thinking effort scores".into(),
                 ));
             }
-            let winner = argmax(&probabilities);
+            let probabilities =
+                tempered_probabilities(&probabilities, self.request.temperature.unwrap_or(0.0));
+            let winner = if self.request.samples() {
+                sample(&probabilities, &mut self.rng)
+            } else {
+                argmax(&probabilities)
+            };
             self.resolved_thinking = Some(
                 [
                     Thinking::Disabled,
@@ -206,7 +226,8 @@ impl Generation {
                     .probabilities(&output.logits)
                     .map_err(|e| BackendError::Inference(e.to_string()))?
             };
-            let probabilities = tempered_probabilities(&probabilities, self.request.temperature);
+            let probabilities =
+                tempered_probabilities(&probabilities, self.request.temperature.unwrap_or(0.0));
             for (position, &original) in self.orders[self.rotation].iter().enumerate() {
                 self.sums[original] += probabilities[position];
             }
@@ -229,7 +250,7 @@ impl Generation {
                     }
                 })
                 .expect("validated finite fields are nonempty");
-            let winner = if self.request.temperature > 0.0 && field.levels.is_empty() {
+            let winner = if self.request.samples() && field.levels.is_empty() {
                 sample(&self.sums, &mut self.rng)
             } else {
                 best
@@ -251,12 +272,9 @@ impl Generation {
                 let distribution: IndexMap<_, _> = values
                     .iter()
                     .zip(&self.sums)
-                    .enumerate()
-                    .map(|(index, (v, p))| {
+                    .map(|(v, p)| {
                         (
-                            if !field.levels.is_empty() {
-                                index.to_string()
-                            } else if let Some(s) = v.as_str() {
+                            if let Some(s) = v.as_str() {
                                 if field.nullable && s == "null" {
                                     v.to_string()
                                 } else {
@@ -287,6 +305,11 @@ impl Generation {
                     "generated value violates field schema".into(),
                 ));
             }
+            numeric::validate(
+                &value,
+                &field.output_schema(),
+                self.request.numeric_max_digits,
+            )?;
             self.result.insert(field.name.clone(), value.clone());
             value
         };
@@ -298,6 +321,18 @@ impl Generation {
         self.sums.clear();
         self.resolved_thinking = None;
         Ok(())
+    }
+
+    pub fn usage(&self) -> turbojev_schema::Usage {
+        let mut usage = self.response.usage.clone();
+        if let Some(child) = self.array.as_ref().and_then(|a| a.child.as_ref()) {
+            let child_usage = child.usage();
+            usage.generated_tokens += child_usage.generated_tokens;
+            if let Some(count) = child_usage.input_tokens {
+                *usage.input_tokens.get_or_insert(0) += count;
+            }
+        }
+        usage
     }
 
     pub fn finish(mut self) -> GenerateResponse {
@@ -356,6 +391,7 @@ impl Generation {
                     return Ok(Some(task));
                 }
                 let response = progress.child.take().unwrap().finish();
+                self.response.prompts.extend(response.prompts);
                 let value = response
                     .result
                     .get("item")
@@ -373,6 +409,12 @@ impl Generation {
                     self.input_known = true;
                     *self.response.usage.input_tokens.get_or_insert(0) += tokens;
                 }
+                numeric::validate(
+                    &value,
+                    &progress.specification.item_schema(),
+                    self.request.numeric_max_digits,
+                )
+                .map_err(|e| FieldError(e.to_string()))?;
                 self.commit_array_item(value)
                     .map_err(|error| FieldError(error.to_string()))?;
                 if self.array.is_none() {
@@ -409,11 +451,13 @@ impl Generation {
                     state: array_state,
                     instructions: "Should a new item be appended to the current array?".into(),
                     output_schema: json!({"type": "boolean"}),
+                    grammar: None,
+                    capture_prompt: self.request.print_final_prompt,
                     values: Some(vec![json!(true), json!(false)]),
                     thinking: false,
                     thinking_budget: 0,
                     max_tokens: self.request.numeric_max_tokens,
-                    temperature: self.request.temperature,
+                    temperature: self.request.sampling_temperature(),
                     seed: self.request.seed,
                 }));
             }
@@ -432,11 +476,16 @@ impl Generation {
                         instructions.join("\n")
                     ),
                     output_schema: progress.specification.item_schema(),
+                    capture_prompt: self.request.print_final_prompt,
+                    grammar: numeric::grammar(
+                        &progress.specification.item_schema(),
+                        self.request.numeric_max_digits,
+                    ),
                     values: None,
                     thinking: false,
                     thinking_budget: 0,
                     max_tokens: self.request.text_max_tokens,
-                    temperature: self.request.temperature,
+                    temperature: self.request.sampling_temperature(),
                     seed: self
                         .request
                         .seed
@@ -482,6 +531,9 @@ impl Generation {
         if let Some(child) = &mut progress.child {
             return child.accept(output, calibrator);
         }
+        if let Some(prompt) = &output.prompt {
+            self.response.prompts.push(prompt.clone());
+        }
         self.response.usage.generated_tokens += output.generated_tokens;
         if let Some(tokens) = output.input_tokens {
             self.input_known = true;
@@ -496,9 +548,12 @@ impl Generation {
             let probabilities = calibrator
                 .probabilities(&output.logits)
                 .map_err(|error| BackendError::Inference(error.to_string()))?;
-            let selected = if self.request.temperature > 0.0 {
+            let selected = if self.request.samples() {
                 sample(
-                    &tempered_probabilities(&probabilities, self.request.temperature),
+                    &tempered_probabilities(
+                        &probabilities,
+                        self.request.temperature.unwrap_or(0.0),
+                    ),
                     &mut self.rng,
                 )
             } else {
@@ -520,6 +575,11 @@ impl Generation {
         let value = output
             .value
             .ok_or_else(|| BackendError::Inference("missing array item".into()))?;
+        numeric::validate(
+            &value,
+            &progress.specification.item_schema(),
+            self.request.numeric_max_digits,
+        )?;
         self.commit_array_item(value)
     }
 
@@ -532,7 +592,7 @@ impl Generation {
             .items
             .iter()
             .any(|item| turbojev_schema::fields::same_value(item, &value));
-        if duplicate && self.request.temperature > 0.0 && progress.duplicate_retries < 2 {
+        if duplicate && self.request.samples() && progress.duplicate_retries < 2 {
             progress.duplicate_retries += 1;
             progress.approved = false;
             return Ok(());
@@ -615,14 +675,24 @@ fn dependency_state(
         return context.clone();
     }
     let mut answers = json!({});
-    for name in &field.depends_on {
-        if let Some(value) = results.get(name) {
-            let path = &fields
+    let mut visible = std::collections::HashSet::new();
+    let mut pending: Vec<_> = field.depends_on.iter().map(String::as_str).collect();
+    while let Some(name) = pending.pop() {
+        if visible.insert(name) {
+            let parent = fields
                 .iter()
-                .find(|field| &field.name == name)
-                .expect("checked dependency")
-                .path;
-            put_value(&mut answers, path, value.clone());
+                .find(|field| field.name == name)
+                .expect("checked dependency");
+            pending.extend(parent.depends_on.iter().map(String::as_str));
+        }
+    }
+    // Preserve schema order and expose ancestors, without leaking unrelated branches.
+    for parent in fields
+        .iter()
+        .filter(|parent| visible.contains(parent.name.as_str()))
+    {
+        if let Some(value) = results.get(&parent.name) {
+            put_value(&mut answers, &parent.path, value.clone());
         }
     }
     if context.get("contract").and_then(Value::as_str) == Some("turbojev.media.v1") {
@@ -796,26 +866,31 @@ impl<B: ScoringBackend, C: Calibrator> TurboJevEngine<B, C> {
         check()?;
         let mut generation =
             Generation::new(request).map_err(|e| BackendError::InvalidInput(e.to_string()))?;
-        while let Some(task) = generation
-            .next_task()
-            .map_err(|e| BackendError::InvalidInput(e.to_string()))?
-        {
+        let outcome = (|| -> Result<(), BackendError> {
+            while let Some(task) = generation
+                .next_task()
+                .map_err(|e| BackendError::InvalidInput(e.to_string()))?
+            {
+                check()?;
+                let output = if task.values.as_ref().is_some_and(|values| values.len() == 1) {
+                    FieldOutput {
+                        prompt: None,
+                        value: None,
+                        logits: vec![0.0],
+                        thinking: String::new(),
+                        input_tokens: Some(0),
+                        generated_tokens: 0,
+                    }
+                } else {
+                    self.backend.infer_field(&task)?
+                };
+                generation.accept(output, &self.calibrator)?;
+                check()?;
+            }
             check()?;
-            let output = if task.values.as_ref().is_some_and(|values| values.len() == 1) {
-                FieldOutput {
-                    value: None,
-                    logits: vec![0.0],
-                    thinking: String::new(),
-                    input_tokens: Some(0),
-                    generated_tokens: 0,
-                }
-            } else {
-                self.backend.infer_field(&task)?
-            };
-            check()?;
-            generation.accept(output, &self.calibrator)?;
-        }
-        check()?;
+            Ok(())
+        })();
+        outcome.map_err(|error| error.with_usage(generation.usage()))?;
         Ok(generation.finish())
     }
 }
@@ -827,23 +902,29 @@ impl<B: AsyncScoringBackend, C: Calibrator> TurboJevAsyncEngine<B, C> {
     ) -> Result<GenerateResponse, BackendError> {
         let mut generation =
             Generation::new(request).map_err(|e| BackendError::InvalidInput(e.to_string()))?;
-        while let Some(task) = generation
-            .next_task()
-            .map_err(|e| BackendError::InvalidInput(e.to_string()))?
-        {
-            let output = if task.values.as_ref().is_some_and(|values| values.len() == 1) {
-                FieldOutput {
-                    value: None,
-                    logits: vec![0.0],
-                    thinking: String::new(),
-                    input_tokens: Some(0),
-                    generated_tokens: 0,
-                }
-            } else {
-                self.backend.infer_field_async(&task).await?
-            };
-            generation.accept(output, &self.calibrator)?;
+        let outcome = async {
+            while let Some(task) = generation
+                .next_task()
+                .map_err(|e| BackendError::InvalidInput(e.to_string()))?
+            {
+                let output = if task.values.as_ref().is_some_and(|values| values.len() == 1) {
+                    FieldOutput {
+                        prompt: None,
+                        value: None,
+                        logits: vec![0.0],
+                        thinking: String::new(),
+                        input_tokens: Some(0),
+                        generated_tokens: 0,
+                    }
+                } else {
+                    self.backend.infer_field_async(&task).await?
+                };
+                generation.accept(output, &self.calibrator)?;
+            }
+            Ok::<(), BackendError>(())
         }
+        .await;
+        outcome.map_err(|error| error.with_usage(generation.usage()))?;
         Ok(generation.finish())
     }
 }

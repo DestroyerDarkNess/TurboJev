@@ -683,3 +683,20 @@ Because every candidate score is divided by the same `T > 0`, temperature scalin
 Decision-specialized checkpoints use `turbojev.specialized-model.v1` and are trained from `turbojev.specialized-training-recipe.v1`. The training objective is direct candidate-logit cross-entropy; no generated JSON/prose target is required. Recipes pin the base-model revision, tokenizer revision, prompt IR, renderer profile, candidate encoding, context limit, LoRA/QLoRA configuration, deterministic debiasing policy and data split identities.
 
 The four split ids `train`, `validation`, `calibration` and `benchmark` must be pairwise distinct. Calibration remains a separate held-out stage. A specialized manifest embeds `turbojev.decision-model.v1`; `ModelSpec.decision_contract` remains optional so Generic Mode is unchanged. Generic-vs-specialized evaluation uses one named benchmark suite and explicitly records accuracy, NLL, Brier, ECE, latency, peak memory, decisions/sec, candidate-order robustness and paraphrase robustness.
+
+
+### Structured decoding controls
+
+The generate contract accepts optional `mode` (`argmax` or `sample`),
+`temperature`, `seed`, `numeric_max_digits` (1–4096, default 32), and
+`print_final_prompt` (default false). Positive temperature alone implies sampling;
+explicit sample without temperature defaults to 1, and sample at zero is invalid.
+Explicit argmax remains greedy at positive temperature while probabilities are
+tempered. Ordinal levels preserve their original order and report expected indices;
+probability maps use their level labels. Finite sampling occurs after permutation
+averaging. Numeric enum constants are exempt from open numeric digit bounds.
+
+Dependency input includes the transitive ancestor closure, excluding unrelated
+branches. Failed generation retains reported partial usage. Optional response
+`prompts` contains actual formatted runtime inputs when the adapter exposes them.
+A diagnostic request must fail explicitly when that adapter cannot capture them.

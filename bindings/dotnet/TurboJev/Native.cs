@@ -1,4 +1,5 @@
 using System.Runtime.InteropServices;
+using System.Text.Json;
 
 namespace TurboJev;
 
@@ -46,7 +47,20 @@ internal static class Native
     }
 }
 
-public sealed class TurboJevException(string code, string message) : Exception(message)
+public sealed class TurboJevException : Exception
 {
-    public string Code { get; } = code;
+    public string Code { get; }
+    public JsonElement? Usage { get; }
+
+    public TurboJevException(string code, string message)
+        : base(message.Split("\nTURBOJEV_USAGE: ")[0])
+    {
+        Code = code;
+        var parts = message.Split("\nTURBOJEV_USAGE: ");
+        if (parts.Length > 1)
+        {
+            using var document = JsonDocument.Parse(parts[1]);
+            Usage = document.RootElement.Clone();
+        }
+    }
 }

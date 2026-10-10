@@ -6,7 +6,7 @@
     <title>Typed fields — TurboJev</title>
     <meta name="description" content="Typed fields documentation for TurboJev." />
     <link rel="icon" href="../favicon.svg" />
-    <link rel="stylesheet" href="../styles.css?v=eefd0e23bda9" />
+    <link rel="stylesheet" href="../styles.css?v=daad6bab75c6" />
   </head>
   <body class="docs-page">
     <a class="skip-link" href="#article">Skip to content</a>
@@ -709,6 +709,14 @@ with TurboJev.load("invoice.gguf", device="cpu", n_ctx=8192, n_seq_max=1) as cli
               evidence.
             </p>
           </div>
+          <h3>Decoding and diagnostics</h3>
+          <p>
+            Generate accepts mode (argmax or sample), temperature, seed and numeric_max_digits
+            (default 32). Positive temperature alone enables sampling; explicit argmax stays greedy.
+            Level distributions use level names. Failed generation retains reported usage. The
+            <a href="cookbook.html#dice">Dice cookbook recipe</a> includes sampling, numeric limits
+            and runtime-specific prompt diagnostics.
+          </p>
         </section>
         <nav class="page-turn" aria-label="Adjacent pages">
           <a href="api.html"><small>Previous</small>← Core API</a
@@ -740,6 +748,6 @@ with TurboJev.load("invoice.gguf", device="cpu", n_ctx=8192, n_seq_max=1) as cli
       <div id="search-results" aria-live="polite"></div>
     </dialog>
     <script src="../vendor/prism/prism.js" defer></script>
-    <script src="../app.js?v=eefd0e23bda9" defer></script>
+    <script src="../app.js?v=daad6bab75c6" defer></script>
   </body>
 </html>

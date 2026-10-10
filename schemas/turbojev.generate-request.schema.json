@@ -9,22 +9,52 @@
     {
       "oneOf": [
         {
-          "required": ["questions"],
+          "required": [
+            "questions"
+          ],
           "not": {
-            "required": ["schema"]
+            "required": [
+              "schema"
+            ]
           }
         },
         {
-          "required": ["schema"],
+          "required": [
+            "schema"
+          ],
           "not": {
-            "required": ["questions"]
+            "required": [
+              "questions"
+            ]
           }
         }
       ]
     },
     {
       "not": {
-        "required": ["context", "state"]
+        "required": [
+          "context",
+          "state"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "mode": {
+            "const": "sample"
+          }
+        },
+        "required": [
+          "mode"
+        ]
+      },
+      "then": {
+        "properties": {
+          "temperature": {
+            "exclusiveMinimum": 0
+          }
+        }
       }
     }
   ],
@@ -40,7 +70,10 @@
     },
     "schema": {
       "type": "object",
-      "required": ["type", "properties"],
+      "required": [
+        "type",
+        "properties"
+      ],
       "additionalProperties": false,
       "properties": {
         "type": {
@@ -72,11 +105,23 @@
       }
     },
     "thinking": {
-      "type": ["boolean", "string"],
-      "enum": [false, true, "auto"]
+      "type": [
+        "boolean",
+        "string"
+      ],
+      "enum": [
+        false,
+        true,
+        "auto"
+      ]
     },
     "thinking_effort": {
-      "enum": ["none", "low", "medium", "high"]
+      "enum": [
+        "none",
+        "low",
+        "medium",
+        "high"
+      ]
     },
     "thinking_budget": {
       "type": "integer",
@@ -108,9 +153,30 @@
       "description": "Base64 or image data URI strings. Hosts explicitly load paths/URLs."
     },
     "temperature": {
-      "type": "number",
+      "type": [
+        "number",
+        "null"
+      ],
       "minimum": 0,
-      "default": 0
+      "description": "Sample defaults to 1; otherwise defaults to 0. Explicit argmax never samples."
+    },
+    "mode": {
+      "enum": [
+        "argmax",
+        "sample",
+        null
+      ],
+      "description": "Explicit selection mode; positive temperature alone enables sampling."
+    },
+    "numeric_max_digits": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 4096,
+      "default": 32
+    },
+    "print_final_prompt": {
+      "type": "boolean",
+      "default": false
     }
   },
   "$defs": {
@@ -129,18 +195,31 @@
     },
     "scalar": {
       "type": "object",
-      "required": ["type"],
+      "required": [
+        "type"
+      ],
       "additionalProperties": false,
       "properties": {
         "type": {
           "oneOf": [
             {
-              "enum": ["string", "integer", "number", "boolean"]
+              "enum": [
+                "string",
+                "integer",
+                "number",
+                "boolean"
+              ]
             },
             {
               "type": "array",
               "items": {
-                "enum": ["string", "integer", "number", "boolean", "null"]
+                "enum": [
+                  "string",
+                  "integer",
+                  "number",
+                  "boolean",
+                  "null"
+                ]
               },
               "minItems": 2,
               "maxItems": 2,
@@ -157,7 +236,12 @@
           "maxItems": 512,
           "uniqueItems": true,
           "items": {
-            "type": ["string", "number", "boolean", "null"]
+            "type": [
+              "string",
+              "number",
+              "boolean",
+              "null"
+            ]
           }
         },
         "instructions": {
@@ -178,12 +262,22 @@
           "additionalProperties": {
             "oneOf": [
               {
-                "type": ["string", "number", "boolean", "null"]
+                "type": [
+                  "string",
+                  "number",
+                  "boolean",
+                  "null"
+                ]
               },
               {
                 "type": "array",
                 "items": {
-                  "type": ["string", "number", "boolean", "null"]
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "null"
+                  ]
                 }
               },
               {
@@ -194,17 +288,32 @@
                   "in": {
                     "type": "array",
                     "items": {
-                      "type": ["string", "number", "boolean", "null"]
+                      "type": [
+                        "string",
+                        "number",
+                        "boolean",
+                        "null"
+                      ]
                     }
                   },
                   "not_in": {
                     "type": "array",
                     "items": {
-                      "type": ["string", "number", "boolean", "null"]
+                      "type": [
+                        "string",
+                        "number",
+                        "boolean",
+                        "null"
+                      ]
                     }
                   },
                   "ne": {
-                    "type": ["string", "number", "boolean", "null"]
+                    "type": [
+                      "string",
+                      "number",
+                      "boolean",
+                      "null"
+                    ]
                   },
                   "gt": {
                     "type": "number"
@@ -260,16 +369,31 @@
               "minimum": 1
             },
             {
-              "enum": ["auto", "all"]
+              "enum": [
+                "auto",
+                "all"
+              ]
             }
           ]
         },
         "thinking": {
-          "type": ["boolean", "string"],
-          "enum": [false, true, "auto"]
+          "type": [
+            "boolean",
+            "string"
+          ],
+          "enum": [
+            false,
+            true,
+            "auto"
+          ]
         },
         "thinking_effort": {
-          "enum": ["none", "low", "medium", "high"]
+          "enum": [
+            "none",
+            "low",
+            "medium",
+            "high"
+          ]
         },
         "thinking_budget": {
           "type": "integer",
@@ -282,7 +406,9 @@
           "maxItems": 512,
           "items": {
             "type": "object",
-            "required": ["value"],
+            "required": [
+              "value"
+            ],
             "additionalProperties": false,
             "properties": {
               "value": {},
@@ -298,7 +424,9 @@
           "maxItems": 26,
           "items": {
             "type": "object",
-            "required": ["label"],
+            "required": [
+              "label"
+            ],
             "additionalProperties": false,
             "properties": {
               "label": {
@@ -315,7 +443,10 @@
     },
     "object": {
       "type": "object",
-      "required": ["type", "properties"],
+      "required": [
+        "type",
+        "properties"
+      ],
       "additionalProperties": false,
       "properties": {
         "type": {
@@ -356,12 +487,22 @@
           "additionalProperties": {
             "oneOf": [
               {
-                "type": ["string", "number", "boolean", "null"]
+                "type": [
+                  "string",
+                  "number",
+                  "boolean",
+                  "null"
+                ]
               },
               {
                 "type": "array",
                 "items": {
-                  "type": ["string", "number", "boolean", "null"]
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "null"
+                  ]
                 }
               },
               {
@@ -372,17 +513,32 @@
                   "in": {
                     "type": "array",
                     "items": {
-                      "type": ["string", "number", "boolean", "null"]
+                      "type": [
+                        "string",
+                        "number",
+                        "boolean",
+                        "null"
+                      ]
                     }
                   },
                   "not_in": {
                     "type": "array",
                     "items": {
-                      "type": ["string", "number", "boolean", "null"]
+                      "type": [
+                        "string",
+                        "number",
+                        "boolean",
+                        "null"
+                      ]
                     }
                   },
                   "ne": {
-                    "type": ["string", "number", "boolean", "null"]
+                    "type": [
+                      "string",
+                      "number",
+                      "boolean",
+                      "null"
+                    ]
                   },
                   "gt": {
                     "type": "number"
@@ -432,7 +588,10 @@
     },
     "array": {
       "type": "object",
-      "required": ["type", "items"],
+      "required": [
+        "type",
+        "items"
+      ],
       "additionalProperties": false,
       "properties": {
         "type": {
@@ -479,12 +638,22 @@
           "additionalProperties": {
             "oneOf": [
               {
-                "type": ["string", "number", "boolean", "null"]
+                "type": [
+                  "string",
+                  "number",
+                  "boolean",
+                  "null"
+                ]
               },
               {
                 "type": "array",
                 "items": {
-                  "type": ["string", "number", "boolean", "null"]
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "null"
+                  ]
                 }
               },
               {
@@ -495,17 +664,32 @@
                   "in": {
                     "type": "array",
                     "items": {
-                      "type": ["string", "number", "boolean", "null"]
+                      "type": [
+                        "string",
+                        "number",
+                        "boolean",
+                        "null"
+                      ]
                     }
                   },
                   "not_in": {
                     "type": "array",
                     "items": {
-                      "type": ["string", "number", "boolean", "null"]
+                      "type": [
+                        "string",
+                        "number",
+                        "boolean",
+                        "null"
+                      ]
                     }
                   },
                   "ne": {
-                    "type": ["string", "number", "boolean", "null"]
+                    "type": [
+                      "string",
+                      "number",
+                      "boolean",
+                      "null"
+                    ]
                   },
                   "gt": {
                     "type": "number"
@@ -556,19 +740,29 @@
   },
   "anyOf": [
     {
-      "required": ["context"],
+      "required": [
+        "context"
+      ],
       "not": {
-        "required": ["state"]
+        "required": [
+          "state"
+        ]
       }
     },
     {
-      "required": ["state"],
+      "required": [
+        "state"
+      ],
       "not": {
-        "required": ["context"]
+        "required": [
+          "context"
+        ]
       }
     },
     {
-      "required": ["images"],
+      "required": [
+        "images"
+      ],
       "properties": {
         "images": {
           "minItems": 1

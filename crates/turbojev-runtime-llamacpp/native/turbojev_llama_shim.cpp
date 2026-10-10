@@ -1143,7 +1143,9 @@ int32_t tj_llama_generate_field(tj_llama_runtime * runtime, const char * task_js
             set_error(error, error_capacity, "THINKING_UNSUPPORTED: model exposes no reasoning boundary"); return -1;
         }
         const auto object_schema = json{{"type", "object"}, {"properties", {{"value", task.at("output_schema")}}}, {"required", {"value"}}, {"additionalProperties", false}};
-        const auto grammar_text = json_schema_to_grammar(common_json::parse(object_schema.dump()), true);
+        const auto grammar_text = task.contains("grammar") && task["grammar"].is_string()
+            ? task["grammar"].get<std::string>()
+            : json_schema_to_grammar(common_json::parse(object_schema.dump()), true);
         std::unique_ptr<llama_sampler, decltype(&llama_sampler_free)> grammar(
             llama_sampler_init_grammar(runtime->vocab, grammar_text.c_str(), "root"), &llama_sampler_free);
         if (!grammar) { set_error(error, error_capacity, "failed to compile output grammar"); return -1; }
@@ -1224,7 +1226,8 @@ int32_t tj_llama_generate_field(tj_llama_runtime * runtime, const char * task_js
                 const auto parsed = json::parse(answer, nullptr, false);
                 if (!parsed.is_discarded() && parsed.is_object() && parsed.size() == 1 && parsed.contains("value")) {
                     runtime->field_result = json{{"value", parsed.at("value")}, {"logits", json::array()}, {"thinking", thought},
-                        {"input_tokens", media ? json(nullptr) : json(input_tokens)}, {"generated_tokens", thought_tokens + answer_tokens}}.dump();
+                        {"input_tokens", media ? json(nullptr) : json(input_tokens)}, {"generated_tokens", thought_tokens + answer_tokens},
+                        {"prompt", task.value("capture_prompt", false) ? json(chat.prompt) : json(nullptr)}}.dump();
                     return 0;
                 }
             } else {

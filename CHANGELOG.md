@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.33.0
+
+- Add the Dice schema helper in Rust, Python, Node/browser and .NET, with a real fair-die example and explicit permutation costs.
+- Add argmax/sample decoding compatibility, validated plain-decimal digit limits, and opt-in actual formatted input diagnostics.
+- Include transitive dependency answers while isolating unrelated branches, key ordinal distributions by level names, and accept equivalent integer condition operands.
+- Preserve reported partial usage on generation failure/cancellation; use fresh host entropy for sample requests without an explicit seed.
+- Expand contract tests, shared sample recipes, registry demos and self-contained SDK guidance.
+
 ## 0.32.0
 
 - Extend the Rust schema compiler with nested objects, inherited dependency gates, described choices, confidence conditions and ordered levels. Preserve JSON property order and distinguish normalized confidence from raw probability.

@@ -94,6 +94,7 @@ class Generation:
     thinking_effort: Mapping[str, str] = field(default_factory=dict)
     skipped: tuple[str, ...] = ()
     usage: Usage = field(default_factory=Usage)
+    prompts: tuple[str, ...] = ()
 
     @classmethod
     def from_response(cls, response: Mapping[str, Any]) -> Generation:
@@ -103,6 +104,7 @@ class Generation:
             thinking_effort=response["thinking_effort"],
             skipped=tuple(response["skipped"]),
             usage=Usage(**response["usage"]),
+            prompts=tuple(response.get("prompts", ())),
         )
 
 
@@ -221,3 +223,24 @@ def example_schema() -> dict[str, Any]:
             },
         },
     }
+
+
+@dataclass(frozen=True)
+class Dice:
+    """A six-face generate schema; this is not a random-number generator.
+
+    Use mode="sample" to draw from the model's measured distribution.
+    Permutation averaging reduces label-order bias; it does not force fairness.
+    """
+
+    permutations: int | str = "auto"
+    return_probabilities: bool = True
+
+    def to_schema(self) -> dict[str, Any]:
+        return {
+            "type": "string",
+            "enum": ["one", "two", "three", "four", "five", "six"],
+            "instructions": "What number will come up on a single roll of a fair six-sided die?",
+            "permutations": self.permutations,
+            "return_probabilities": self.return_probabilities,
+        }

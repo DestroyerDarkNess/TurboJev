@@ -1,3 +1,4 @@
+export { Dice } from "./dice.js";
 export type { GenerateRequest, GenerateResponse, FieldSchema, ScalarField, ObjectField, ArrayField, ProbabilityAnswer, CompiledDecision, JsonValue, ScalarValue, } from "./fields.js";
 import type { GenerateRequest, GenerateResponse, CompiledDecision } from "./fields.js";
 export { TurboJevRemote, imageEvidence, mediaEvidence, videoFrameEvidence } from "./remote.js";
@@ -55,6 +56,10 @@ export interface WebLoadOptions {
         bestMatchInstruction?: string;
     };
     workerUrl?: string;
+}
+export declare class TurboJevWebError extends Error {
+    readonly usage?: GenerateResponse["usage"];
+    constructor(message: string);
 }
 export declare class TurboJevWeb {
     #private;

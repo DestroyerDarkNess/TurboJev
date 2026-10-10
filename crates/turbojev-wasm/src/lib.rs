@@ -122,6 +122,7 @@ impl AsyncScoringBackend for BrowserBackend {
             }
             if task.values.as_ref().is_some_and(|v| v.len() == 1) {
                 return Ok(turbojev_backend::FieldOutput {
+                    prompt: None,
                     value: None,
                     logits: vec![0.0],
                     thinking: String::new(),

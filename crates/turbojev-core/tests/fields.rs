@@ -45,6 +45,7 @@ impl ScoringBackend for Model {
     fn infer_field(&self, task: &FieldTask) -> Result<FieldOutput, BackendError> {
         self.seen.borrow_mut().push(task.clone());
         Ok(FieldOutput {
+            prompt: None,
             value: if task.values.is_none() {
                 Some(if task.name == "text" {
                     json!("actual model text")
@@ -279,6 +280,7 @@ fn rotations_average_probabilities_rather_than_logits() {
         workflow
             .accept(
                 FieldOutput {
+                    prompt: None,
                     value: None,
                     logits,
                     thinking: String::new(),
@@ -305,6 +307,7 @@ fn dependencies_preserve_the_media_envelope() {
     generation
         .accept(
             FieldOutput {
+                prompt: None,
                 value: None,
                 logits: vec![2., 0.],
                 thinking: String::new(),
@@ -382,4 +385,27 @@ fn non_send_async_host_has_identical_workflow_semantics() {
         std::task::Poll::Ready(result) => assert_eq!(result.unwrap(), sync),
         std::task::Poll::Pending => panic!("Fixture futures should complete immediately"),
     }
+}
+
+#[test]
+fn cancelled_generation_keeps_completed_usage() {
+    let engine = TurboJevEngine::new(Model::default());
+    let mut checks = 0;
+    let error = engine
+        .generate_controlled(
+            request(json!({"a":{"type":"integer"},"b":{"type":"integer"}})),
+            || {
+                checks += 1;
+                if checks == 3 {
+                    Err(BackendError::Inference("cancelled".into()))
+                } else {
+                    Ok(())
+                }
+            },
+        )
+        .unwrap_err();
+    let usage = error.usage().unwrap();
+    assert_eq!(usage.input_tokens, Some(3));
+    assert_eq!(usage.generated_tokens, 1);
+    assert_eq!(usage.decisions, 1);
 }

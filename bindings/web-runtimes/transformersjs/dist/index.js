@@ -188,6 +188,7 @@ export async function createRuntime(dependencies = {}) {
                     throw new Error("Invalid generated field object");
                 return JSON.stringify({
                     value: answer.value,
+                    ...(task.capture_prompt ? { prompt: text } : {}),
                     logits: [],
                     thinking: "",
                     input_tokens: inputs.input_ids.data.length,

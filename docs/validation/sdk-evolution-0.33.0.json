@@ -1,0 +1,476 @@
+{
+  "config": {
+    "model": "C:\\Users\\Administrator\\.cache\\turbojev\\Qwen3-0.6B-Q4_K_M.gguf",
+    "device": "cpu",
+    "nCtx": 8192,
+    "nSeqMax": 1,
+    "nThreads": 4,
+    "nThreadsBatch": 4
+  },
+  "records": [
+    {
+      "case": "nested",
+      "response": {
+        "result": {
+          "person": {
+            "name": "Ada",
+            "age": 37
+          }
+        },
+        "thinking": {},
+        "thinking_effort": {},
+        "skipped": [],
+        "usage": {
+          "decisions": 2,
+          "input_tokens": 152,
+          "generated_tokens": 13
+        }
+      },
+      "contract_passed": true,
+      "answer_matched": true,
+      "seconds": 4.598
+    },
+    {
+      "case": "described_choice",
+      "response": {
+        "result": {
+          "team": {
+            "value": "outage",
+            "confidence": 0.9997128449017056,
+            "probability": 0.9998564224508528,
+            "probabilities": {
+              "outage": 0.9998564224508528,
+              "billing": 0.00014357754914727167
+            },
+            "distribution": [
+              {
+                "value": "outage",
+                "probability": 0.9998564224508528
+              },
+              {
+                "value": "billing",
+                "probability": 0.00014357754914727167
+              }
+            ]
+          }
+        },
+        "thinking": {},
+        "thinking_effort": {},
+        "skipped": [],
+        "usage": {
+          "decisions": 1,
+          "input_tokens": 91,
+          "generated_tokens": 0
+        }
+      },
+      "contract_passed": true,
+      "answer_matched": null,
+      "seconds": 2.8418
+    },
+    {
+      "case": "scalar_array",
+      "response": {
+        "result": {
+          "skills": [
+            "Rust",
+            "Python"
+          ]
+        },
+        "thinking": {},
+        "thinking_effort": {},
+        "skipped": [],
+        "usage": {
+          "decisions": 1,
+          "input_tokens": 241,
+          "generated_tokens": 13
+        }
+      },
+      "contract_passed": true,
+      "answer_matched": true,
+      "seconds": 4.7692
+    },
+    {
+      "case": "object_array",
+      "response": {
+        "result": {
+          "rows": [
+            {
+              "item": "Apple",
+              "quantity": 3
+            }
+          ]
+        },
+        "thinking": {},
+        "thinking_effort": {},
+        "skipped": [],
+        "usage": {
+          "decisions": 1,
+          "input_tokens": 171,
+          "generated_tokens": 15
+        }
+      },
+      "contract_passed": true,
+      "answer_matched": true,
+      "seconds": 3.6952
+    },
+    {
+      "case": "continuation",
+      "response": {
+        "result": {
+          "skills": [
+            "Rust",
+            "Python"
+          ]
+        },
+        "thinking": {},
+        "thinking_effort": {},
+        "skipped": [],
+        "usage": {
+          "decisions": 1,
+          "input_tokens": 120,
+          "generated_tokens": 6
+        }
+      },
+      "contract_passed": true,
+      "answer_matched": true,
+      "seconds": 2.2248
+    },
+    {
+      "case": "ordinal",
+      "response": {
+        "result": {
+          "tone": {
+            "value": 1.9999983329685282,
+            "confidence": 0.9999974994527925,
+            "probability": 0.9999984356540863,
+            "probabilities": {
+              "calm": 1.026855580031968e-07,
+              "annoyed": 1.4616603557006004e-06,
+              "furious": 0.9999984356540863
+            },
+            "distribution": [
+              {
+                "value": "calm",
+                "probability": 1.026855580031968e-07
+              },
+              {
+                "value": "annoyed",
+                "probability": 1.4616603557006004e-06
+              },
+              {
+                "value": "furious",
+                "probability": 0.9999984356540863
+              }
+            ]
+          }
+        },
+        "thinking": {},
+        "thinking_effort": {},
+        "skipped": [],
+        "usage": {
+          "decisions": 1,
+          "input_tokens": 87,
+          "generated_tokens": 0
+        }
+      },
+      "contract_passed": true,
+      "answer_matched": null,
+      "seconds": 1.3937
+    },
+    {
+      "case": "large_enum",
+      "response": {
+        "result": {
+          "code": {
+            "value": "category_17",
+            "confidence": 0.9998513139474522,
+            "probability": 0.9998559603865943,
+            "probabilities": {
+              "category_0": 1.537720967760852e-06,
+              "category_1": 4.0827585915208116e-05,
+              "category_2": 2.9795244410483924e-07,
+              "category_3": 2.292456474682558e-06,
+              "category_4": 6.581478602903245e-07,
+              "category_5": 1.2343797730595848e-07,
+              "category_6": 9.908423012059809e-08,
+              "category_7": 1.5073079696624582e-07,
+              "category_8": 2.3299956745297286e-07,
+              "category_9": 1.1875624730154136e-07,
+              "category_10": 5.63064254064414e-06,
+              "category_11": 4.672750216777754e-06,
+              "category_12": 2.560216562840357e-06,
+              "category_13": 3.6516500357991153e-06,
+              "category_14": 4.964884588876487e-06,
+              "category_15": 1.3492609579173375e-05,
+              "category_16": 1.3213001623794514e-05,
+              "category_17": 0.9998559603865943,
+              "category_18": 1.572744218413383e-05,
+              "category_19": 1.1348763866239006e-06,
+              "category_20": 8.97584760535819e-07,
+              "category_21": 3.056226643864614e-07,
+              "category_22": 8.481062276955606e-07,
+              "category_23": 1.9475614583537336e-06,
+              "category_24": 3.835358224690176e-06,
+              "category_25": 3.7848230572076957e-06,
+              "category_26": 6.950087778999729e-07,
+              "category_27": 7.409277962275631e-06,
+              "category_28": 2.328406409482774e-06,
+              "category_29": 7.293774275139077e-08,
+              "category_30": 8.407622286984447e-06,
+              "category_31": 2.120357633905488e-06
+            },
+            "distribution": [
+              {
+                "value": "category_0",
+                "probability": 1.537720967760852e-06
+              },
+              {
+                "value": "category_1",
+                "probability": 4.0827585915208116e-05
+              },
+              {
+                "value": "category_2",
+                "probability": 2.9795244410483924e-07
+              },
+              {
+                "value": "category_3",
+                "probability": 2.292456474682558e-06
+              },
+              {
+                "value": "category_4",
+                "probability": 6.581478602903245e-07
+              },
+              {
+                "value": "category_5",
+                "probability": 1.2343797730595848e-07
+              },
+              {
+                "value": "category_6",
+                "probability": 9.908423012059809e-08
+              },
+              {
+                "value": "category_7",
+                "probability": 1.5073079696624582e-07
+              },
+              {
+                "value": "category_8",
+                "probability": 2.3299956745297286e-07
+              },
+              {
+                "value": "category_9",
+                "probability": 1.1875624730154136e-07
+              },
+              {
+                "value": "category_10",
+                "probability": 5.63064254064414e-06
+              },
+              {
+                "value": "category_11",
+                "probability": 4.672750216777754e-06
+              },
+              {
+                "value": "category_12",
+                "probability": 2.560216562840357e-06
+              },
+              {
+                "value": "category_13",
+                "probability": 3.6516500357991153e-06
+              },
+              {
+                "value": "category_14",
+                "probability": 4.964884588876487e-06
+              },
+              {
+                "value": "category_15",
+                "probability": 1.3492609579173375e-05
+              },
+              {
+                "value": "category_16",
+                "probability": 1.3213001623794514e-05
+              },
+              {
+                "value": "category_17",
+                "probability": 0.9998559603865943
+              },
+              {
+                "value": "category_18",
+                "probability": 1.572744218413383e-05
+              },
+              {
+                "value": "category_19",
+                "probability": 1.1348763866239006e-06
+              },
+              {
+                "value": "category_20",
+                "probability": 8.97584760535819e-07
+              },
+              {
+                "value": "category_21",
+                "probability": 3.056226643864614e-07
+              },
+              {
+                "value": "category_22",
+                "probability": 8.481062276955606e-07
+              },
+              {
+                "value": "category_23",
+                "probability": 1.9475614583537336e-06
+              },
+              {
+                "value": "category_24",
+                "probability": 3.835358224690176e-06
+              },
+              {
+                "value": "category_25",
+                "probability": 3.7848230572076957e-06
+              },
+              {
+                "value": "category_26",
+                "probability": 6.950087778999729e-07
+              },
+              {
+                "value": "category_27",
+                "probability": 7.409277962275631e-06
+              },
+              {
+                "value": "category_28",
+                "probability": 2.328406409482774e-06
+              },
+              {
+                "value": "category_29",
+                "probability": 7.293774275139077e-08
+              },
+              {
+                "value": "category_30",
+                "probability": 8.407622286984447e-06
+              },
+              {
+                "value": "category_31",
+                "probability": 2.120357633905488e-06
+              }
+            ]
+          }
+        },
+        "thinking": {},
+        "thinking_effort": {},
+        "skipped": [],
+        "usage": {
+          "decisions": 1,
+          "input_tokens": 217,
+          "generated_tokens": 0
+        }
+      },
+      "contract_passed": true,
+      "answer_matched": null,
+      "seconds": 6.9871
+    },
+    {
+      "case": "numeric_limits",
+      "response": {
+        "result": {
+          "reference": 12345,
+          "amount": 12.34
+        },
+        "thinking": {},
+        "thinking_effort": {},
+        "skipped": [],
+        "usage": {
+          "decisions": 2,
+          "input_tokens": 152,
+          "generated_tokens": 20
+        }
+      },
+      "contract_passed": true,
+      "answer_matched": true,
+      "seconds": 4.1448
+    },
+    {
+      "case": "dice_sample",
+      "response": {
+        "result": {
+          "roll": {
+            "value": "one",
+            "confidence": 0.1928925388303027,
+            "probability": 0.13859778446750756,
+            "probabilities": {
+              "one": 0.13859778446750756,
+              "two": 0.05512921776878113,
+              "three": 0.15751854703361046,
+              "four": 0.11504789419759824,
+              "five": 0.32741044902525224,
+              "six": 0.2062961075072504
+            },
+            "distribution": [
+              {
+                "value": "one",
+                "probability": 0.13859778446750756
+              },
+              {
+                "value": "two",
+                "probability": 0.05512921776878113
+              },
+              {
+                "value": "three",
+                "probability": 0.15751854703361046
+              },
+              {
+                "value": "four",
+                "probability": 0.11504789419759824
+              },
+              {
+                "value": "five",
+                "probability": 0.32741044902525224
+              },
+              {
+                "value": "six",
+                "probability": 0.2062961075072504
+              }
+            ]
+          }
+        },
+        "thinking": {},
+        "thinking_effort": {},
+        "skipped": [],
+        "usage": {
+          "decisions": 1,
+          "input_tokens": 648,
+          "generated_tokens": 0
+        }
+      },
+      "contract_passed": true,
+      "answer_matched": null,
+      "seconds": 24.3999
+    },
+    {
+      "case": "actual_prompt",
+      "response": {
+        "result": {
+          "n": 7
+        },
+        "thinking": {},
+        "thinking_effort": {},
+        "skipped": [],
+        "usage": {
+          "decisions": 1,
+          "input_tokens": 67,
+          "generated_tokens": 6
+        },
+        "prompts": [
+          "<|im_start|>system\nAnswer the requested field from the supplied evidence. Return only the requested JSON object.<|im_end|>\n<|im_start|>user\nState:\nThe number is 7.\n\nQuestion:\nExtract the stated number.\n\nReturn exactly one JSON object with the key value and this value schema: {\"type\":\"integer\"}<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n"
+        ]
+      },
+      "contract_passed": true,
+      "answer_matched": true,
+      "seconds": 5.231
+    }
+  ],
+  "version": "0.33.0",
+  "stage": "prepublication",
+  "library_sha256": "bbcd4a36c62e5cf520e7264ced9b2857d96455bb8445187ea5a899b686f695e7",
+  "shim_sha256": "9281e46083a6ddc74ce5c062a550a4e841032721d8e1b14b6ee01459d845e44e",
+  "model_sha256": "9acfc1e001311f34b4252001b626f2e466d592a42065f66571bff3790d4e1b14",
+  "contracts_passed": 10,
+  "accuracy_scored": 6,
+  "accuracy_matched": 6,
+  "rust_test_count": 188
+}

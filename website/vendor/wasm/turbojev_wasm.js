@@ -272,11 +272,11 @@ export function candidate_softmax_json(input) {
 }
 
 function __wbg_adapter_22(arg0, arg1, arg2) {
-    wasm.closure86_externref_shim(arg0, arg1, arg2);
+    wasm.closure87_externref_shim(arg0, arg1, arg2);
 }
 
 function __wbg_adapter_44(arg0, arg1, arg2, arg3) {
-    wasm.closure288_externref_shim(arg0, arg1, arg2, arg3);
+    wasm.closure300_externref_shim(arg0, arg1, arg2, arg3);
 }
 
 const WasmEngineFinalization = (typeof FinalizationRegistry === 'undefined')
@@ -481,8 +481,8 @@ function __wbg_get_imports() {
         const ret = false;
         return ret;
     };
-    imports.wbg.__wbindgen_closure_wrapper409 = function(arg0, arg1, arg2) {
-        const ret = makeMutClosure(arg0, arg1, 87, __wbg_adapter_22);
+    imports.wbg.__wbindgen_closure_wrapper421 = function(arg0, arg1, arg2) {
+        const ret = makeMutClosure(arg0, arg1, 88, __wbg_adapter_22);
         return ret;
     };
     imports.wbg.__wbindgen_debug_string = function(arg0, arg1) {

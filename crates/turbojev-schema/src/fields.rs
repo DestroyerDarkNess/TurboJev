@@ -19,6 +19,14 @@ pub use structured::{ArrayField, MAX_ARRAY_ITEMS};
 /// Hard cap avoids accidentally requesting factorial model work.
 pub const MAX_PERMUTATIONS: usize = 720;
 
+/// How finite decisions and open values are selected.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum DecodingMode {
+    Argmax,
+    Sample,
+}
+
 /// Request accepted by the additive `generate` API.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -50,16 +58,29 @@ pub struct GenerateRequest {
     /// Maximum generated tokens for a numeric field.
     #[serde(default = "default_numeric_tokens")]
     pub numeric_max_tokens: usize,
+    /// Maximum digits across the integer and fractional parts of an open number.
+    #[serde(default = "default_numeric_digits")]
+    pub numeric_max_digits: usize,
+    /// Capture the runtime-formatted input prompts for diagnostics.
+    #[serde(default)]
+    pub print_final_prompt: bool,
     /// Reproducible permutation sampling seed.
     #[serde(default)]
     pub seed: u64,
+    /// Optional compatibility override; temperature alone selects the mode otherwise.
+    #[serde(default)]
+    pub mode: Option<DecodingMode>,
     /// Zero chooses the most likely answer; positive values sample decisions.
     #[serde(default)]
-    pub temperature: f64,
+    pub temperature: Option<f64>,
 }
 
 fn default_text_tokens() -> usize {
     256
+}
+
+fn default_numeric_digits() -> usize {
+    32
 }
 fn default_numeric_tokens() -> usize {
     64
@@ -113,6 +134,8 @@ pub struct GenerateResponse {
     pub thinking_effort: IndexMap<String, String>,
     pub skipped: Vec<String>,
     pub usage: super::Usage,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub prompts: Vec<String>,
 }
 
 /// A schema or workflow error discovered before any model execution.
@@ -209,6 +232,42 @@ fn thinking(
 }
 
 impl GenerateRequest {
+    /// Resolve decoding without confusing omitted temperature with an explicit zero.
+    pub fn decoding(&self) -> Result<(DecodingMode, f64), FieldError> {
+        let temperature = self
+            .temperature
+            .unwrap_or(if self.mode == Some(DecodingMode::Sample) {
+                1.0
+            } else {
+                0.0
+            });
+        if !temperature.is_finite() || temperature < 0.0 {
+            return Err(fail("temperature must be finite and nonnegative"));
+        }
+        let mode = self.mode.unwrap_or(if temperature > 0.0 {
+            DecodingMode::Sample
+        } else {
+            DecodingMode::Argmax
+        });
+        if mode == DecodingMode::Sample && temperature == 0.0 {
+            return Err(fail("sample mode requires a positive temperature"));
+        }
+        Ok((mode, temperature))
+    }
+
+    pub fn samples(&self) -> bool {
+        self.decoding()
+            .is_ok_and(|(mode, _)| mode == DecodingMode::Sample)
+    }
+
+    pub fn sampling_temperature(&self) -> f64 {
+        if self.samples() {
+            self.temperature.unwrap_or(1.0)
+        } else {
+            0.0
+        }
+    }
+
     pub fn effective_context(&self) -> Result<Value, FieldError> {
         if self.images.is_empty() {
             return Ok(self.context.clone());
@@ -246,6 +305,10 @@ impl GenerateRequest {
 
     /// Compile and validate the complete request before tokenization/inference.
     pub fn compile(&self) -> Result<Vec<Field>, FieldError> {
+        self.decoding()?;
+        if !(1..=4096).contains(&self.numeric_max_digits) {
+            return Err(fail("numeric_max_digits must be between 1 and 4096"));
+        }
         super::validate_state(&self.effective_context()?).map_err(|e| fail(e.to_string()))?;
         if !(1..=32768).contains(&self.text_max_tokens)
             || !(1..=32768).contains(&self.numeric_max_tokens)
@@ -313,9 +376,6 @@ impl GenerateRequest {
         };
         if properties.is_empty() || properties.len() > super::DEFAULT_MAX_QUESTIONS {
             return Err(fail("field count exceeds the supported range"));
-        }
-        if !self.temperature.is_finite() || self.temperature < 0.0 {
-            return Err(fail("temperature must be finite and nonnegative"));
         }
         let mut fields = Vec::new();
         for expanded in structured::expand(self, &properties)? {
@@ -737,8 +797,17 @@ fn validate_condition(source: &Field, test: &Value) -> Result<(), FieldError> {
 }
 
 fn condition_value_allowed(source: &Field, value: &Value) -> bool {
+    let accepted = source.accepts(value)
+        || (source.kind == FieldType::Integer
+            && value
+                .as_f64()
+                .is_some_and(|n| n.is_finite() && n.fract() == 0.0)
+            && source
+                .values
+                .as_ref()
+                .is_none_or(|values| values.iter().any(|v| same_value(v, value))));
     source.levels.is_empty()
-        && source.accepts(value)
+        && accepted
         && (source.values.is_some() || source.kind != FieldType::String || value.is_null())
 }
 
@@ -876,4 +945,26 @@ fn parse_choices(
         values.push(value);
     }
     Ok(json!(values))
+}
+
+/// Fair-die example schema. Model probabilities are measured, never made uniform.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Dice {
+    pub permutations: Value,
+    pub return_probabilities: bool,
+}
+impl Default for Dice {
+    fn default() -> Self {
+        Self {
+            permutations: json!("auto"),
+            return_probabilities: true,
+        }
+    }
+}
+impl Dice {
+    pub fn to_schema(&self) -> Value {
+        json!({"type":"string", "enum":["one","two","three","four","five","six"],
+            "instructions":"What number will come up on a single roll of a fair six-sided die?",
+            "permutations":self.permutations, "return_probabilities":self.return_probabilities})
+    }
 }

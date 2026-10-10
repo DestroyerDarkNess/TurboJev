@@ -4,6 +4,7 @@ The report separates schema/runtime contracts from model answer accuracy.
 """
 
 import argparse
+import hashlib
 import ctypes
 import json
 import os
@@ -169,6 +170,46 @@ def main():
             None,
         ),
     ]
+    cases.extend(
+        [
+            (
+                "numeric_limits",
+                "Reference 12345, amount 12.34.",
+                {
+                    "reference": {"type": "integer", "instructions": "Extract the reference."},
+                    "amount": {"type": "number", "instructions": "Extract the amount."},
+                },
+                {"reference": 12345, "amount": 12.34},
+            ),
+            (
+                "dice_sample",
+                "A single roll of a fair die.",
+                {
+                    "roll": {
+                        "type": "string",
+                        "enum": ["one", "two", "three", "four", "five", "six"],
+                        "instructions": "What number will come up on a single roll of a fair six-sided die?",
+                        "permutations": "auto",
+                        "return_probabilities": True,
+                    },
+                },
+                None,
+            ),
+            (
+                "actual_prompt",
+                "The number is 7.",
+                {
+                    "n": {"type": "integer", "instructions": "Extract the stated number."},
+                },
+                {"n": 7},
+            ),
+        ]
+    )
+    case_options = {
+        "numeric_limits": {"numeric_max_digits": 5},
+        "dice_sample": {"mode": "sample", "temperature": 1, "seed": 42},
+        "actual_prompt": {"print_final_prompt": True},
+    }
     records = []
     try:
         for name, context, questions, expected in cases:
@@ -177,10 +218,20 @@ def main():
                 response = call(
                     library.tj_engine_generate_json,
                     handle,
-                    json.dumps({"context": context, "questions": questions}).encode(),
+                    json.dumps(
+                        {"context": context, "questions": questions, **case_options.get(name, {})}
+                    ).encode(),
                 )
                 if name == "large_enum":
                     assert len(response["result"]["code"]["distribution"]) == 32
+                if name == "dice_sample":
+                    probabilities = response["result"]["roll"]["probabilities"]
+                    assert len(probabilities) == 6 and abs(sum(probabilities.values()) - 1) < 1e-9
+                if name == "actual_prompt":
+                    assert (
+                        response["prompts"]
+                        and "Extract the stated number" in response["prompts"][0]
+                    )
                 if name == "ordinal":
                     assert 0 <= response["result"]["tone"]["value"] <= 2
                 record = {
@@ -200,7 +251,10 @@ def main():
             directory.close()
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(
-        json.dumps({"config": config, "records": records}, indent=2) + "\n", encoding="utf-8"
+        json.dumps({"config": config, "records": records,
+                    "library_sha256": hashlib.sha256(args.library.read_bytes()).hexdigest(),
+                    "shim_sha256": hashlib.sha256((args.library_dir / "turbojev_llama_shim.dll").read_bytes()).hexdigest(),
+                    "model_sha256": hashlib.file_digest(args.model.open("rb"), "sha256").hexdigest()}, indent=2) + "\n", encoding="utf-8"
     )
     if any(not record["contract_passed"] for record in records):
         raise SystemExit(1)

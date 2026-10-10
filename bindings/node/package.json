@@ -1,6 +1,6 @@
 {
   "name": "@turbojev/node",
-  "version": "0.32.0",
+  "version": "0.33.0",
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
@@ -20,9 +20,9 @@
     }
   },
   "optionalDependencies": {
-    "@turbojev/node-win32-ia32": "0.32.0",
-    "@turbojev/node-win32-x64": "0.32.0",
-    "@turbojev/node-win32-arm64": "0.32.0"
+    "@turbojev/node-win32-ia32": "0.33.0",
+    "@turbojev/node-win32-x64": "0.33.0",
+    "@turbojev/node-win32-arm64": "0.33.0"
   },
   "files": [
     "dist",

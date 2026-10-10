@@ -77,3 +77,13 @@ test("closing a browser client rejects new and outstanding operations", async ()
     else globalThis.Worker = previous;
   }
 });
+
+test("browser errors retain reported generation usage", async () => {
+  const { TurboJevWebError } = await import("../dist/index.js");
+  const error = new TurboJevWebError(
+    'cancelled\nTURBOJEV_USAGE: {"decisions":1,"generated_tokens":3}',
+  );
+  assert.equal(error.message, "cancelled");
+  assert.equal(error.usage.decisions, 1);
+  assert.equal(error.usage.generated_tokens, 3);
+});

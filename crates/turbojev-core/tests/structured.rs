@@ -11,6 +11,7 @@ fn request(questions: Value) -> GenerateRequest {
 
 fn answer(value: Value) -> FieldOutput {
     FieldOutput {
+        prompt: None,
         value: Some(value),
         logits: vec![],
         thinking: String::new(),
@@ -23,6 +24,7 @@ fn choose(task: &FieldTask, value: Value) -> FieldOutput {
     let values = task.values.as_ref().unwrap();
     assert!(values.contains(&value), "missing {value} in {values:?}");
     FieldOutput {
+        prompt: None,
         value: None,
         logits: values
             .iter()
@@ -62,7 +64,7 @@ fn sampled_duplicate_retries_are_bounded_and_do_not_fabricate_items() {
     let mut request = request(
         json!({"rows": {"type": "array", "items": {"type": "string"}, "continue_from": ["old"]}}),
     );
-    request.temperature = 0.5;
+    request.temperature = Some(0.5);
     let generation = Generation::new(request).unwrap();
     let mut calls = 0;
     let response = run(generation, |_| {
@@ -229,7 +231,7 @@ fn ordered_score_uses_probability_weighted_indices_without_permutations() {
     assert_eq!(tone_calls, 1);
     assert!(response.result["tone"]["value"].as_f64().unwrap() > 1.99);
     assert!(
-        response.result["tone"]["probabilities"]["2"]
+        response.result["tone"]["probabilities"]["furious"]
             .as_f64()
             .unwrap()
             > 0.99
@@ -240,13 +242,14 @@ fn ordered_score_uses_probability_weighted_indices_without_permutations() {
 #[test]
 fn ambiguous_choice_has_zero_confidence_and_skips_confidence_gate() {
     let generation = Generation::new(request(json!({
-        "coin": {"type": "string", "enum": ["heads", "tails"], "return_probabilities": true},
+        "coin": {"type": "string", "enum": ["heads", "tails"], "return_probabilities": true, "permutations":1},
         "certain": {"type": "boolean", "when": {"coin": {"confidence": {"gte": 0.8}}}}
     })))
     .unwrap();
     let response = run(generation, |task| {
         assert_eq!(task.name, "coin");
         FieldOutput {
+            prompt: None,
             value: None,
             logits: vec![0.0, 0.0],
             thinking: String::new(),
@@ -265,9 +268,10 @@ fn finite_sampling_reports_the_tempered_distribution_and_repeats_its_seed() {
         "type": "string", "enum": ["heads", "tails"],
         "return_probabilities": true, "permutations": 1
     }}));
-    request.temperature = 2.0;
+    request.temperature = Some(2.0);
     request.seed = 17;
     let infer = |_: &FieldTask| FieldOutput {
+        prompt: None,
         value: None,
         logits: vec![4.0, 0.0],
         thinking: String::new(),
@@ -334,7 +338,7 @@ fn object_sampling_retries_advance_the_seed_instead_of_replaying_a_duplicate() {
         "continue_from": [{"sku": "A"}],
         "items": {"type": "object", "properties": {"sku": {"type": "string"}}}
     }}));
-    request.temperature = 0.5;
+    request.temperature = Some(0.5);
     request.seed = 7;
     let mut seeds = Vec::new();
     let response = run(Generation::new(request).unwrap(), |task| {
@@ -350,7 +354,7 @@ fn sampling_has_two_duplicate_retries_for_the_whole_array() {
     let mut request = request(json!({"tags": {
         "type": "array", "items": {"type": "string"}, "continue_from": ["A"]
     }}));
-    request.temperature = 0.5;
+    request.temperature = Some(0.5);
     let mut calls = 0;
     let response = run(Generation::new(request).unwrap(), |_| {
         let value = ["A", "B", "B", "C", "C"][calls];
@@ -359,4 +363,140 @@ fn sampling_has_two_duplicate_retries_for_the_whole_array() {
     });
     assert_eq!(calls, 5);
     assert_eq!(response.result["tags"], json!(["A", "B", "C"]));
+}
+
+#[test]
+fn dependency_ancestors_are_visible_but_siblings_are_not() {
+    let generation = Generation::new(request(json!({
+        "a": {"type":"integer"}, "unrelated": {"type":"integer"},
+        "b": {"type":"integer", "depends_on":["a"]},
+        "c": {"type":"integer", "depends_on":["b"]}
+    })))
+    .unwrap();
+    run(generation, |task| {
+        if task.name == "c" {
+            assert_eq!(task.state["previous_answers"], json!({"a":7,"b":7}));
+        }
+        answer(json!(7))
+    });
+}
+
+#[test]
+fn integer_conditions_accept_equivalent_float_operands() {
+    let generation = Generation::new(request(json!({
+        "a": {"type":"integer", "enum":[1,2]},
+        "b": {"type":"boolean", "when":{"a":1.0}}
+    })))
+    .unwrap();
+    let result = run(generation, |task| {
+        choose(
+            task,
+            if task.name == "a" {
+                json!(1)
+            } else {
+                json!(true)
+            },
+        )
+    });
+    assert_eq!(result.result["b"], true);
+    assert!(Generation::new(request(
+        json!({"a":{"type":"integer"},"b":{"type":"boolean","when":{"a":1.5}}})
+    ))
+    .is_err());
+}
+
+#[test]
+fn explicit_argmax_with_positive_temperature_never_samples() {
+    for seed in 0..20 {
+        let mut request = request(
+            json!({"coin":{"type":"string","enum":["heads","tails"],"return_probabilities":true,"permutations":1}}),
+        );
+        request.mode = Some(turbojev_schema::fields::DecodingMode::Argmax);
+        request.temperature = Some(2.0);
+        request.seed = seed;
+        let result = run(Generation::new(request).unwrap(), |task| {
+            assert_eq!(task.temperature, 0.0); // Open generation uses greedy decoding.
+            let mut output = choose(task, json!("tails"));
+            output.logits = vec![0.0, 0.1];
+            output
+        });
+        assert_eq!(result.result["coin"]["value"], "tails");
+        assert!(
+            result.result["coin"]["probabilities"]["tails"]
+                .as_f64()
+                .unwrap()
+                < 0.52
+        );
+    }
+}
+
+#[test]
+fn dice_layout_averaging_remaps_scores_to_faces_before_sampling() {
+    let labels = ["one", "two", "three", "four", "five", "six"];
+    let mut selections = std::collections::HashSet::new();
+    for budget in [json!(1), json!("auto"), json!(8), json!("all")] {
+        for seed in 0..8 {
+            let mut request = request(
+                json!({"roll":{"type":"string","enum":labels,"permutations":budget,"return_probabilities":true}}),
+            );
+            request.mode = Some(turbojev_schema::fields::DecodingMode::Sample);
+            request.seed = seed;
+            let mut calls = 0;
+            let response = run(Generation::new(request).unwrap(), |task| {
+                calls += 1;
+                assert_eq!(task.temperature, 1.0);
+                let mut output = choose(task, json!("one"));
+                output.logits.fill(0.0); // Known uniform fixture; not a model accuracy assertion.
+                output
+            });
+            let roll = &response.result["roll"];
+            assert!(labels.iter().any(|face| roll["value"] == *face));
+            let probabilities = roll["probabilities"].as_object().unwrap();
+            assert!(probabilities
+                .values()
+                .all(|p| (p.as_f64().unwrap() - 1.0 / 6.0).abs() < 1e-12));
+            assert_eq!(
+                calls,
+                match budget {
+                    Value::String(ref b) if b == "all" => 720,
+                    Value::String(_) => 6,
+                    Value::Number(ref n) => n.as_u64().unwrap() as usize,
+                    _ => unreachable!(),
+                }
+            );
+            selections.insert(roll["value"].as_str().unwrap().to_owned());
+        }
+    }
+    assert!(selections.len() > 1);
+}
+
+#[test]
+fn invalid_modes_and_digit_limits_fail_before_inference() {
+    for options in [
+        json!({"mode":"sample","temperature":0}),
+        json!({"numeric_max_digits":0}),
+        json!({"temperature":-1}),
+    ] {
+        let mut payload = json!({"context":"x","questions":{"n":{"type":"integer"}}});
+        payload
+            .as_object_mut()
+            .unwrap()
+            .extend(options.as_object().unwrap().clone());
+        assert!(Generation::new(serde_json::from_value(payload).unwrap()).is_err());
+    }
+    assert!(serde_json::from_value::<GenerateRequest>(json!({"mode":"wrong"})).is_err());
+}
+
+#[test]
+fn numeric_limit_rejects_invalid_values_and_preserves_usage() {
+    let mut request = request(json!({"n":{"type":"number"}}));
+    request.numeric_max_digits = 2;
+    let mut generation = Generation::new(request).unwrap();
+    let task = generation.next_task().unwrap().unwrap();
+    assert!(task.grammar.is_some());
+    assert!(generation
+        .accept(answer(json!(123)), &SoftmaxCalibrator)
+        .is_err());
+    assert_eq!(generation.usage().generated_tokens, 2);
+    assert_eq!(generation.usage().input_tokens, Some(4));
 }

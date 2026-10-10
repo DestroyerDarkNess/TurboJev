@@ -1,4 +1,15 @@
+export { Dice } from "./dice.js";
 export { TurboJevRemote, imageEvidence, mediaEvidence, videoFrameEvidence } from "./remote.js";
+export class TurboJevWebError extends Error {
+    usage;
+    constructor(message) {
+        const [text, usage] = message.split("\nTURBOJEV_USAGE: ");
+        super(text);
+        this.name = "TurboJevWebError";
+        if (usage)
+            this.usage = JSON.parse(usage);
+    }
+}
 export class TurboJevWeb {
     #worker;
     #id = 1;
@@ -12,7 +23,7 @@ export class TurboJevWeb {
             if (!p)
                 return;
             this.#pending.delete(data.id);
-            data.ok ? p.resolve(data.value) : p.reject(new Error(data.error));
+            data.ok ? p.resolve(data.value) : p.reject(new TurboJevWebError(data.error));
         };
         worker.onerror = (e) => {
             for (const p of this.#pending.values())
@@ -46,6 +57,11 @@ export class TurboJevWeb {
         return this.#call("compileSchema", { schema });
     }
     async generate(request, options = {}) {
+        if (request.seed === undefined &&
+            (request.mode === "sample" || (request.mode !== "argmax" && (request.temperature ?? 0) > 0))) {
+            const random = crypto.getRandomValues(new Uint32Array(1));
+            request = { ...request, seed: random[0] };
+        }
         return this.#call("generate", { request }, options);
     }
     async evaluateCompatible(profile, request) {

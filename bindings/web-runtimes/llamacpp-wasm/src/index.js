@@ -287,6 +287,10 @@ export async function createRuntime(dependencies = {}) {
     async inferField(taskJson) {
       if (!engine) throw new Error("Load a GGUF model first.");
       const task = JSON.parse(taskJson);
+      if (task.capture_prompt)
+        throw new Error(
+          "UNSUPPORTED_OPERATION: Wllama does not expose its final formatted input prompt.",
+        );
       if (task.thinking)
         throw new Error(
           "THINKING_UNSUPPORTED: per-field reasoning requires the native GGUF runtime.",
@@ -373,6 +377,7 @@ export async function createRuntime(dependencies = {}) {
         seed: task.seed ?? 0,
         cache_prompt: false,
         chat_template_kwargs: { enable_thinking: false },
+        ...(task.grammar ? { grammar: task.grammar } : {}),
         response_format: {
           type: "json_schema",
           json_schema: { name: "field", schema, strict: true },

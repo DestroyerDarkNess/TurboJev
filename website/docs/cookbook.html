@@ -6,7 +6,7 @@
     <title>Cookbook — TurboJev</title>
     <meta name="description" content="Cookbook documentation for TurboJev." />
     <link rel="icon" href="../favicon.svg" />
-    <link rel="stylesheet" href="../styles.css?v=eefd0e23bda9" />
+    <link rel="stylesheet" href="../styles.css?v=daad6bab75c6" />
   </head>
   <body class="docs-page">
     <a class="skip-link" href="#article">Skip to content</a>
@@ -279,6 +279,48 @@ with TurboJev.load(&quot;model.gguf&quot;, device=&quot;cpu&quot;) as client:
             <code>TimeSpan</code> and <code>CancellationToken</code>. An aborted workflow is not a
             model-selected null answer.
           </p>
+          <h2 id="dice">Fair die: measure the model distribution</h2>
+          <p>
+            The Dice helper builds a six-face enum. TurboJev scores the model's answers and samples
+            from its returned probabilities. It never makes the distribution uniform.
+          </p>
+          <div class="code-panel">
+            <pre><code class="language-python">from turbojev import Dice, TurboJev
+
+with TurboJev.load("Qwen3-0.6B-Q4_K_M.gguf") as client:
+    response = client.generate(
+        context="A single roll of a fair die.",
+        questions={"roll": Dice(permutations="auto").to_schema()},
+        mode="sample",
+        temperature=1,
+        seed=42,
+    )
+    print(response["result"]["roll"])</code></pre>
+          </div>
+          <p>
+            One permutation is one pass; auto uses six layouts; all uses 720. Report timing and
+            divergence from 1/6 per face instead of claiming that a model is a fair RNG.
+          </p>
+          <h3>Decoding controls</h3>
+          <p>
+            Argmax is the default. Positive temperature alone enables sampling. Sample mode without
+            temperature uses 1; sample with zero is invalid. Explicit argmax stays greedy even with
+            positive temperature. Ordered levels return their expected index and probabilities keyed
+            by level names.
+          </p>
+          <h3>Numeric extraction</h3>
+          <p>
+            Set numeric_max_digits (default 32) to limit digits across integer and fractional parts.
+            Native GGUF constrains decoding; every adapter validates the returned value. Numeric
+            enum constants are exempt. Wllama may override custom grammar during Jinja processing,
+            so WASM also enforces the contract after inference.
+          </p>
+          <h3>Failures and diagnostics</h3>
+          <p>
+            Generation errors retain reported token usage. Native GGUF and ONNX can return formatted
+            prompts when print_final_prompt is true. GGUF/WASM rejects that flag because its runtime
+            does not expose the final prompt.
+          </p>
         </section>
         <nav class="page-turn" aria-label="Adjacent pages">
           <a href="fields.html"><small>Previous</small>← Typed fields</a
@@ -310,6 +352,6 @@ with TurboJev.load(&quot;model.gguf&quot;, device=&quot;cpu&quot;) as client:
       <div id="search-results" aria-live="polite"></div>
     </dialog>
     <script src="../vendor/prism/prism.js" defer></script>
-    <script src="../app.js?v=eefd0e23bda9" defer></script>
+    <script src="../app.js?v=daad6bab75c6" defer></script>
   </body>
 </html>

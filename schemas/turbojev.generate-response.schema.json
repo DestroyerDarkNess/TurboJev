@@ -3,7 +3,13 @@
   "title": "TurboJev GenerateResponse",
   "type": "object",
   "additionalProperties": false,
-  "required": ["result", "thinking", "thinking_effort", "skipped", "usage"],
+  "required": [
+    "result",
+    "thinking",
+    "thinking_effort",
+    "skipped",
+    "usage"
+  ],
   "properties": {
     "result": {
       "type": "object",
@@ -20,7 +26,12 @@
     "thinking_effort": {
       "type": "object",
       "additionalProperties": {
-        "enum": ["none", "low", "medium", "high"]
+        "enum": [
+          "none",
+          "low",
+          "medium",
+          "high"
+        ]
       }
     },
     "skipped": {
@@ -32,14 +43,19 @@
     },
     "usage": {
       "type": "object",
-      "required": ["decisions"],
+      "required": [
+        "decisions"
+      ],
       "properties": {
         "decisions": {
           "type": "integer",
           "minimum": 0
         },
         "input_tokens": {
-          "type": ["integer", "null"],
+          "type": [
+            "integer",
+            "null"
+          ],
           "minimum": 0
         },
         "generated_tokens": {
@@ -47,16 +63,34 @@
           "minimum": 0
         }
       }
+    },
+    "prompts": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Opt-in runtime-formatted inputs, omitted when none were captured."
     }
   },
   "$defs": {
     "probabilityAnswer": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["value", "confidence", "probabilities", "distribution", "probability"],
+      "required": [
+        "value",
+        "confidence",
+        "probabilities",
+        "distribution",
+        "probability"
+      ],
       "properties": {
         "value": {
-          "type": ["string", "number", "boolean", "null"]
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
         },
         "confidence": {
           "type": "number",
@@ -75,11 +109,19 @@
           "type": "array",
           "items": {
             "type": "object",
-            "required": ["value", "probability"],
+            "required": [
+              "value",
+              "probability"
+            ],
             "additionalProperties": false,
             "properties": {
               "value": {
-                "type": ["string", "number", "boolean", "null"]
+                "type": [
+                  "string",
+                  "number",
+                  "boolean",
+                  "null"
+                ]
               },
               "probability": {
                 "type": "number",
@@ -99,7 +141,12 @@
     "jsonValue": {
       "anyOf": [
         {
-          "type": ["string", "number", "boolean", "null"]
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
         },
         {
           "type": "array",

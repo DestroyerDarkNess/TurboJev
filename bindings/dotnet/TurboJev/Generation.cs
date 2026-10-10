@@ -6,6 +6,8 @@ namespace TurboJev;
 /// JSON elements preserve nested objects, arrays and probability answers without lossy conversions.
 public sealed record Generation
 {
+    [JsonPropertyName("prompts")]
+    public string[] Prompts { get; init; } = System.Array.Empty<string>();
     [JsonPropertyName("result")]
     public Dictionary<string, JsonElement> Result { get; init; } = new();
 

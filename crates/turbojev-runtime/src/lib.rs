@@ -355,6 +355,7 @@ where
                 }
                 if task.values.as_ref().is_some_and(|values| values.len() == 1) {
                     return Ok(turbojev_backend::FieldOutput {
+                        prompt: None,
                         value: None,
                         logits: vec![0.0],
                         thinking: String::new(),
@@ -370,16 +371,46 @@ where
                         .executor
                         .score(&prepared, ExecutionPlan::default())
                         .map_err(map_runtime_error)?;
-                    return turbojev_backend::field_output_from_scores(
+                    let mut result = turbojev_backend::field_output_from_scores(
                         task,
                         map_runtime_output(output),
-                    );
+                    )?;
+                    if task.capture_prompt {
+                        result.prompt = Some(
+                            self.codec
+                                .decode(&prepared.tasks[0].prompt_suffix)
+                                .map_err(map_runtime_error)?,
+                        );
+                    }
+                    return Ok(result);
                 }
                 let batch = task.decision_batch()?;
+                let capabilities = validate_runtime_execution(
+                    self.executor.capabilities(),
+                    ExecutionPlan::default(),
+                    self.max_tokens_per_code,
+                    self.candidate_set_attempts,
+                )?;
+                let prepared = self
+                    .prepare_batch(&batch, ExecutionPlan::default(), capabilities)
+                    .map_err(map_runtime_error)?;
+                let runtime_output = self
+                    .executor
+                    .score(&prepared, ExecutionPlan::default())
+                    .map_err(map_runtime_error)?;
                 let mut output = turbojev_backend::field_output_from_scores(
                     task,
-                    self.score(&batch, ExecutionPlan::default())?,
+                    map_runtime_output(runtime_output),
                 )?;
+                if task.capture_prompt {
+                    let tokens: Vec<_> = prepared
+                        .common_prefix
+                        .iter()
+                        .chain(&prepared.tasks[0].prompt_suffix)
+                        .copied()
+                        .collect();
+                    output.prompt = Some(self.codec.decode(&tokens).map_err(map_runtime_error)?);
+                }
                 if task.thinking {
                     output.thinking = self.executor.field_thinking()?;
                 }
@@ -544,16 +575,46 @@ where
                     .score_async(&prepared, ExecutionPlan::default())
                     .await
                     .map_err(map_runtime_error)?;
-                return turbojev_backend::field_output_from_scores(
-                    task,
-                    map_runtime_output(output),
-                );
+                let mut result =
+                    turbojev_backend::field_output_from_scores(task, map_runtime_output(output))?;
+                if task.capture_prompt {
+                    result.prompt = Some(
+                        self.codec
+                            .decode(&prepared.tasks[0].prompt_suffix)
+                            .map_err(map_runtime_error)?,
+                    );
+                }
+                return Ok(result);
             }
-            turbojev_backend::field_output_from_scores(
+            let batch = task.decision_batch()?;
+            let capabilities = validate_runtime_execution(
+                self.executor.capabilities(),
+                ExecutionPlan::default(),
+                self.max_tokens_per_code,
+                self.candidate_set_attempts,
+            )?;
+            let prepared = self
+                .prepare_batch(&batch, ExecutionPlan::default(), capabilities)
+                .map_err(map_runtime_error)?;
+            let runtime_output = self
+                .executor
+                .score_async(&prepared, ExecutionPlan::default())
+                .await
+                .map_err(map_runtime_error)?;
+            let mut output = turbojev_backend::field_output_from_scores(
                 task,
-                self.score_async(&task.decision_batch()?, ExecutionPlan::default())
-                    .await?,
-            )
+                map_runtime_output(runtime_output),
+            )?;
+            if task.capture_prompt {
+                let tokens: Vec<_> = prepared
+                    .common_prefix
+                    .iter()
+                    .chain(&prepared.tasks[0].prompt_suffix)
+                    .copied()
+                    .collect();
+                output.prompt = Some(self.codec.decode(&tokens).map_err(map_runtime_error)?);
+            }
+            Ok(output)
         })
     }
 

@@ -525,8 +525,16 @@ impl NativeSession {
         control: &GenerationControl,
     ) -> Result<String, HostError> {
         control.check()?;
-        let request: turbojev_schema::fields::GenerateRequest =
-            serde_json::from_str(input).map_err(HostError::Json)?;
+        let payload: serde_json::Value = serde_json::from_str(input).map_err(HostError::Json)?;
+        let mut request: turbojev_schema::fields::GenerateRequest =
+            serde_json::from_value(payload.clone()).map_err(HostError::Json)?;
+        if payload.get("seed").is_none() && request.samples() {
+            use std::hash::{BuildHasher, Hasher};
+            // Entropy belongs to the host; explicit seeds never consume this stream.
+            request.seed = std::collections::hash_map::RandomState::new()
+                .build_hasher()
+                .finish();
+        }
         let response = match &self.engine {
             NativeEngine::Worker(engine) => engine.generate_controlled(request, || {
                 control
@@ -549,6 +557,10 @@ impl NativeSession {
             control
                 .check()
                 .err()
+                .map(|cause| HostError::Generation {
+                    cause: Box::new(cause),
+                    usage: error.usage().cloned().unwrap_or_default(),
+                })
                 .unwrap_or_else(|| HostError::Core(error.to_string()))
         })?;
         control.check()?;
@@ -699,6 +711,11 @@ fn parse_profile(value: &str) -> Result<WireProfile, HostError> {
 /// Stable host-layer error category.
 #[derive(Debug, Error)]
 pub enum HostError {
+    #[error("{cause}\nTURBOJEV_USAGE: {}", serde_json::to_string(usage).unwrap_or_default())]
+    Generation {
+        cause: Box<HostError>,
+        usage: turbojev_schema::Usage,
+    },
     #[error("generation cancelled")]
     GenerationCancelled,
     #[error("generation deadline exceeded")]
@@ -723,8 +740,9 @@ pub enum HostError {
 
 impl HostError {
     /// Stable machine-readable error code shared by host bindings.
-    pub const fn code(&self) -> &'static str {
+    pub fn code(&self) -> &'static str {
         match self {
+            Self::Generation { cause, .. } => cause.code(),
             Self::GenerationCancelled => "GENERATION_CANCELLED",
             Self::GenerationTimeout => "GENERATION_TIMEOUT",
             Self::InvalidOptions(_) => "INVALID_OPTIONS",

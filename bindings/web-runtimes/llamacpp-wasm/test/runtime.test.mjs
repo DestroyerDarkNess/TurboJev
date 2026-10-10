@@ -40,7 +40,7 @@ function makeWllama({
       }
       if (decisionError) throw decisionError;
       if (decisionResponse && options.logprobs) return decisionResponse(options);
-      if (options.response_format?.json_schema?.name === "field")
+      if (options.response_format?.json_schema?.name === "field" || options.grammar)
         return (
           fieldResponse ?? {
             usage: { prompt_tokens: 12, completion_tokens: 5 },

@@ -11,15 +11,15 @@ homepage.workspace = true
 [dependencies]
 serde.workspace = true
 thiserror.workspace = true
-turbojev-backend = { version = "=0.32.0", path = "../turbojev-backend" }
-turbojev-prompt = { version = "=0.32.0", path = "../turbojev-prompt" }
-turbojev-projection = { version = "=0.32.0", path = "../turbojev-projection" }
-turbojev-runtime = { version = "=0.32.0", path = "../turbojev-runtime" }
-turbojev-sequence = { version = "=0.32.0", path = "../turbojev-sequence" }
+turbojev-backend = { version = "=0.33.0", path = "../turbojev-backend" }
+turbojev-prompt = { version = "=0.33.0", path = "../turbojev-prompt" }
+turbojev-projection = { version = "=0.33.0", path = "../turbojev-projection" }
+turbojev-runtime = { version = "=0.33.0", path = "../turbojev-runtime" }
+turbojev-sequence = { version = "=0.33.0", path = "../turbojev-sequence" }
 
 [dev-dependencies]
 serde_json.workspace = true
-turbojev-tokenizer = { version = "=0.32.0", path = "../turbojev-tokenizer" }
+turbojev-tokenizer = { version = "=0.33.0", path = "../turbojev-tokenizer" }
 
 [lints]
 workspace = true

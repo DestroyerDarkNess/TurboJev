@@ -222,3 +222,102 @@ vision model and matching projector remain required; no text-only fallback is si
 The [0.6.9 port matrix](TYPELLM_0_6_9_PORT.md) distinguishes features, runtime limits and
 
 vendor-specific SGLang transports from the portable SDK.
+
+
+## Dice, sampling, and numeric limits
+
+`Dice` is a convenience schema for the six-face fair-die example. It calls normal
+`generate` inference; it does not simulate a roll, force a uniform distribution,
+or provide cryptographic randomness. Compare the returned distribution with
+1/6 per face to measure model bias. `permutations: "auto"` averages six layouts;
+8 uses eight distinct layouts; `"all"` evaluates all 720 layouts and is expensive.
+Choose 1 explicitly for a single model pass.
+
+```python
+from turbojev import Dice, TurboJev
+
+with TurboJev.load("Qwen3-0.6B-Q4_K_M.gguf", device="cpu") as client:
+    response = client.generate(
+        context="A single roll of a fair die.",
+        questions={"roll": Dice(permutations="auto").to_schema()},
+        mode="sample",
+        temperature=1,
+        seed=42,
+    )
+    print(response["result"]["roll"])
+```
+
+```typescript
+import { Dice, TurboJev } from "@turbojev/node";
+
+const client = await TurboJev.load({ model: "Qwen3-0.6B-Q4_K_M.gguf" });
+try {
+  const response = await client.generate({
+    context: "A single roll of a fair die.",
+    questions: { roll: new Dice("auto").toSchema() },
+    mode: "sample",
+    temperature: 1,
+    seed: 42,
+  });
+  console.log(response.result.roll);
+} finally {
+  await client.close();
+}
+```
+
+Browser JavaScript imports `Dice` from `@turbojev/web` and uses the same request
+with `TurboJevWeb`. C# uses `new Dice("auto").ToSchema()` in its questions map.
+Rust uses `turbojev::schema::fields::Dice::default().to_schema()`. C and mobile
+bindings send the equivalent six-value enum through their existing JSON API.
+
+The default is greedy: no mode/temperature override selects `argmax` at zero.
+Positive temperature alone selects `sample`; `mode="sample"` without temperature
+uses 1. `mode="argmax"` with positive temperature still chooses the most likely
+value, while returning the tempered probabilities. Sample mode with temperature
+zero is invalid. Finite sampling draws once from the averaged distribution.
+Ordinal `levels` always return the expected zero-based index, not a sampled label;
+their probability maps use the actual level names.
+
+Explicit seeds reproduce draws for a fixed model/runtime and request. Native and
+browser hosts supply fresh entropy for sample calls without a seed. The portable
+Rust core has no entropy source and defaults its omitted seed to zero; Rust hosts
+must supply their own seed for a changing stream. Permutations are additional
+model work and do not guarantee calibration or improved accuracy.
+
+`numeric_max_digits` defaults to 32 and accepts 1–4096. It counts digits in the
+integer and fractional parts of open numeric values; a minus sign and decimal
+point do not count. Native GGUF constrains plain-decimal decoding with a grammar;
+all adapters validate generated numeric leaves, including object-array items.
+Numeric enum constants are exempt. The native grammar excludes scientific notation. Other adapters
+validate the digit count of the normalized decimal value. Transformers.js validates after decoding; Wllama's Jinja processing can
+override custom grammar, so its returned values are checked by the Rust core.
+This is a contract guarantee, not a promise that every model can emit a valid answer.
+
+```python
+response = client.generate(
+    context="Reference 12345, amount 12.34.",
+    numeric_max_digits=5,
+    questions={
+        "reference": {"type": "integer", "instructions": "Extract the reference."},
+        "amount": {"type": "number", "instructions": "Extract the amount."},
+    },
+)
+```
+
+A dependent field receives its direct parents and their ancestors, excluding
+unrelated branches. Integer conditions treat `1` and `1.0` as equivalent operands;
+integer outputs still require integer JSON values.
+
+Generation errors retain known counts in Python `error.usage`, Node/browser
+`error.usage`, .NET `exception.Usage` and Rust `BackendError::usage()`. C reads the
+`TURBOJEV_USAGE` JSON trailer in `tj_last_error_message()`. Counts describe completed
+operations; a backend that fails before reporting tokens cannot supply those counts.
+Array-child token usage is included without counting an unfinished array as a
+completed decision. Cancellation remains cooperative between model operations.
+
+Use `print_final_prompt=True` for native GGUF diagnostics. Python prints the actual
+runtime-formatted input and every binding returns captured `prompts` when available.
+This flag is opt-in and can expose input data in logs. Native GGUF and the ONNX
+adapter capture their actual formatted text; GGUF/WASM rejects this flag explicitly
+because Wllama does not expose its final formatted prompt. Singleton enums need no
+model inference and therefore have no model prompt.

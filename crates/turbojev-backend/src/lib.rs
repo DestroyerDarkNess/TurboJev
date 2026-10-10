@@ -265,6 +265,11 @@ pub struct FieldTask {
     pub state: Value,
     pub instructions: String,
     pub output_schema: Value,
+    /// Optional portable grammar for bounded open numeric fields.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub grammar: Option<String>,
+    #[serde(default)]
+    pub capture_prompt: bool,
     /// None requests bounded open-value generation; Some scores these values.
     pub values: Option<Vec<Value>>,
     pub thinking: bool,
@@ -304,6 +309,8 @@ impl FieldTask {
 /// Model evidence for one field; the portable core validates and types it.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FieldOutput {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub prompt: Option<String>,
     /// Missing means logits; explicit JSON null is a generated nullable value.
     #[serde(
         default,
@@ -333,6 +340,7 @@ pub fn field_output_from_scores(
         ));
     }
     Ok(FieldOutput {
+        prompt: None,
         value: None,
         logits: output.scores.into_iter().next().unwrap().logits,
         thinking: String::new(),
@@ -513,6 +521,13 @@ impl<T> ThreadSafeScoringBackend for T where T: ScoringBackend + Send + Sync {}
 /// Error returned by inference backends.
 #[derive(Debug, Error, Clone, PartialEq, Eq)]
 pub enum BackendError {
+    /// Usage accrued before an operation failed; counts from failed inference are unknown.
+    #[error("{cause}\nTURBOJEV_USAGE: {usage_json}")]
+    Generation {
+        cause: Box<BackendError>,
+        usage: turbojev_schema::Usage,
+        usage_json: String,
+    },
     /// Backend is not initialized or has no model loaded.
     #[error("backend is not ready: {0}")]
     NotReady(String),
@@ -528,4 +543,22 @@ pub enum BackendError {
     /// Planner requested capabilities the backend did not advertise.
     #[error("backend does not support the requested execution plan")]
     UnsupportedPlan,
+}
+
+impl BackendError {
+    pub fn with_usage(self, usage: turbojev_schema::Usage) -> Self {
+        let usage_json = serde_json::to_string(&usage).expect("usage serializes");
+        Self::Generation {
+            cause: Box::new(self),
+            usage,
+            usage_json,
+        }
+    }
+
+    pub fn usage(&self) -> Option<&turbojev_schema::Usage> {
+        match self {
+            Self::Generation { usage, .. } => Some(usage),
+            _ => None,
+        }
+    }
 }

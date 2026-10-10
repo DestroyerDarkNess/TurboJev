@@ -1,3 +1,4 @@
+export { Dice } from "./dice.js";
 import type { EvaluationRequest, EvaluationResponse, CompiledDecision, GenerateRequest, GenerateResponse, LoadOptions } from "./types.js";
 export * from "./types.js";
 export { TurboJevError } from "./errors.js";

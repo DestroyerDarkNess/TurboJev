@@ -222,3 +222,9 @@ fusion merely because a runtime can batch tokens.
 
 TurboJev is available under the [Apache License 2.0](LICENSE), which permits
 commercial use and redistribution subject to its terms.
+
+
+The schema API also includes `Dice` helpers, explicit argmax/sample modes,
+plain-decimal digit limits, transitive dependency evidence and partial usage on
+failed generation. See [typed fields](docs/TYPED_FIELDS.md) and the
+[fair-die recipe](samples/typed-fields/dice.json) for reproducible examples.
