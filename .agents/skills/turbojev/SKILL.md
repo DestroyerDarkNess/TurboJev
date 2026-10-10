@@ -315,10 +315,10 @@ node scripts/validate-real-option-order.mjs C:/models/model.gguf
 
 The recorded 0.31.0 Windows x64 Qwen3-0.6B Q4_K_M CPU probe passed 18/18 routing decisions across three cases, three orders and none/balanced modes. Balanced keyed drift was zero in that sample; none reached 13.7 percentage points. These are limited routing results, not a general accuracy, Snake or speed guarantee.
 
-## Structured SDK extension (source 0.32.0)
+## Structured SDK features in published 0.33.0
 
-Do not invoke new APIs from an older registry package. Build this source revision until its
-release is verified. Standalone demos must keep using published packages, not local libraries.
+These features are included in published 0.33.0. Install matching package versions across
+the host, runtime and WASM core. Standalone demos must use registry/CDN packages.
 
 ### Nested objects and scoped dependencies
 
@@ -514,7 +514,6 @@ The 0.32.0 Windows x64 Qwen3-0.6B CPU check failed numerical parity; it is not a
 qualified shared-prefix speed improvement. Select `execution={"policy": "reference"}`
 in load options when exact reference probability behavior matters.
 
-
 ## Dice, sampling, and numeric limits
 
 `Dice` is a convenience schema for the six-face fair-die example. It calls normal
@@ -613,7 +612,1151 @@ adapter capture their actual formatted text; GGUF/WASM rejects this flag explici
 because Wllama does not expose its final formatted prompt. Singleton enums need no
 model inference and therefore have no model prompt.
 
-
 Release 0.33.0 was checked against the public npm, PyPI, NuGet and crates.io
 registries. Windows x86/x64/ARM64 assets were verified; real-model execution
 was checked on Windows x64. Cross-compilation is not execution on ARM64 or x86.
+
+## Complete application SDK cookbook
+
+This section covers the application-facing APIs, rather than every internal Rust
+trait, adapter-author primitive or training utility. All examples and request
+definitions are inline. No external documentation or shared demo module is needed.
+
+### Installation and model prerequisites
+
+Install the latest release when starting an application; lock the resolved version
+for reproducibility. The examples below target verified API version 0.33.0.
+
+```sh
+# Python
+python -m pip install --upgrade turbojev
+
+# JavaScript or TypeScript on Node; use ES modules (.mjs or type: module).
+npm install @turbojev/node@latest
+# TypeScript additionally needs its compiler and Node types.
+npm install --save-dev typescript @types/node
+
+# .NET; choose the RuntimeIdentifier matching the running process.
+dotnet add package TurboJev
+# Windows targets: win-x86, win-x64, win-arm64.
+
+# Rust: core plus optional concrete GGUF runtime.
+cargo add turbojev turbojev-runtime-llamacpp --features turbojev-runtime-llamacpp/ffi
+cargo add serde_json --features preserve_order
+
+# Browser packages, when using a bundler.
+npm install @turbojev/web@latest @turbojev/wasm@latest @turbojev/runtime-llamacpp-wasm@latest
+# ONNX is a separate, optional runtime.
+npm install @turbojev/runtime-transformersjs@latest @huggingface/transformers
+```
+
+Rust's `ffi` feature needs the matching `turbojev_llama_shim` library at final
+linking. Set `TURBOJEV_LLAMA_SHIM_LIB_DIR` to its library directory and deploy its
+runtime dependencies together. `cargo check` alone does not prove final linking.
+Published Windows native assets can be obtained from the matching NuGet package;
+they are not downloaded automatically by `cargo add`.
+
+C has no separate package-manager installer: include `turbojev.h`, link
+`turbojev_capi`, and deploy the matching native dependency set. For a source build,
+build the llama.cpp shim first and enable `llamacpp` in `turbojev-capi`. Windows
+consumers can use the matching published NuGet native directory instead.
+
+Android is a source Gradle module, not a published Maven dependency. Include it
+in `settings.gradle.kts` and depend on it in the app:
+
+```kotlin
+include(":turbojev")
+project(":turbojev").projectDir = file("vendor/TurboJev/bindings/android")
+// In app/build.gradle.kts:
+dependencies {
+    implementation(project(":turbojev"))
+}
+```
+
+Build/package `libturbojev_jni.so` and all native dependencies under
+`src/main/jniLibs/<ABI>/` for each supported Android target, such as
+`arm64-v8a` or `x86_64`. Windows DLLs cannot be reused on Android. Copy downloaded
+GGUF/projector assets to an application-readable file path before loading.
+
+Swift uses the source Swift package, not a published binary package:
+
+```swift
+// Add to the consuming Package.swift dependencies:
+.package(path: "vendor/TurboJev/bindings/swift")
+// Add to the consuming target dependencies:
+.product(name: "TurboJev", package: "TurboJev")
+```
+
+Provide a matching `turbojev_capi` library and dependencies for each Apple target.
+The current system-library package is not an XCFramework and does not bundle
+Apple binaries. Configure library search/linking and app embedding accordingly.
+
+Default text demos use `qjev35-v19c-q8_0.gguf` from
+`ZY-Lee4/QJev3.5-0.8B-GGUF`, revision
+`008c7c7a5c35007b8ba6b06afba50f882f000667`: 811843104 bytes, SHA256
+`7a5a50953df2fb866a2f39bc4ac8906084cac4e3a5fa8f04adc519058ceedf87`.
+Native examples assume the model is already downloaded to `model.gguf`.
+This checkpoint is decision-trained; use a suitable instruction/reasoning model
+for open extraction or thinking. Its upstream trained prompt and benchmark scores
+are not automatically reproduced by TurboJev's normal JSON-prefill path.
+
+OCR examples use a vision model plus its matching projector, currently
+`unsloth/Qwen3.5-2B-GGUF` revision
+`f6d5376be1edb4d416d56da11e5397a961aca8ae`, files
+`Qwen3.5-2B-Q4_K_M.gguf` and `mmproj-F16.gguf`. Do not use text-only QJev for OCR.
+Audio requires a separate audio-capable model/projector pair. Keep downloads,
+model loading and decision timing separate; show download progress in demos.
+
+### Public API coverage and real differences
+
+| Operation                | Python                                  | Node JS / TS                         | Browser JS / TS           | .NET                                 | Rust                             | C                           | Android                 | Swift                         |
+| ------------------------ | --------------------------------------- | ------------------------------------ | ------------------------- | ------------------------------------ | -------------------------------- | --------------------------- | ----------------------- | ----------------------------- |
+| Load / release           | `load` / `close`, context manager       | `load` / `close`                     | `load` / `close`          | `LoadAsync` / `DisposeAsync`         | Construct runtime / drop         | `open_json` / `close`       | `load` / `close`        | initializer / `close`         |
+| Evaluate                 | `evaluate`                              | `evaluate`                           | `evaluate`                | `EvaluateJsonAsync`                  | `evaluate`                       | `evaluate_json`             | `evaluate`              | `evaluate`                    |
+| Generate                 | `generate`, `generate_typed`            | `generate`                           | `generate`                | `GenerateJsonAsync`, `GenerateAsync` | `generate`                       | `generate_json`             | `generate`              | `generate`                    |
+| Compatibility            | `evaluate_compatible`                   | `evaluateCompatible`                 | `evaluateCompatible`      | `EvaluateCompatibleJsonAsync`        | `compat` encode/decode           | `evaluate_compatible_json`  | `evaluateCompatible`    | `evaluateCompatible`          |
+| Compile schema           | `compile_json_schema`, `compile_schema` | `compileJsonSchema`, `compileSchema` | `compileSchema`, raw WASM | `CompileSchema`, `CompileSchemaJson` | `schema::fields` functions       | `tj_compile_schema_json`    | static `compileSchema`  | static `compileSchema`        |
+| Candidate softmax        | `candidate_softmax`                     | static export and client method      | client method, raw WASM   | `CandidateSoftmax`                   | `calibration::candidate_softmax` | `tj_candidate_softmax_json` | Not exported by wrapper | C ABI via `CTurboJev`         |
+| Controlled generation    | `timeout`, `GenerationControl`          | timeout + AbortSignal                | timeout + AbortSignal     | timeout + CancellationToken          | `generate_controlled` callback   | generation control handle   | Not exported by wrapper | C ABI only, preserve affinity |
+| Runtime info             | `info`                                  | `info`                               | `info`                    | No public info wrapper               | `backend()` capabilities         | `tj_engine_info_json`       | No public info wrapper  | `info`                        |
+| `Dice` builder           | `Dice.to_schema`                        | `Dice.toSchema`                      | `Dice.toSchema`           | `Dice.ToSchema`                      | `fields::Dice::to_schema`        | JSON enum                   | JSON enum               | JSON enum                     |
+| Described-choice builder | `Choice.to_schema`                      | JSON field                           | JSON field                | JSON field                           | JSON field                       | JSON field                  | JSON field              | JSON field                    |
+
+In the C columns, engine operation names are abbreviated: prefix them with
+`tj_engine_`. Never invent missing mobile methods to make the matrix symmetrical.
+All bindings accept the same supported field schemas through `generate`; helper
+classes are conveniences, not different inference capabilities.
+
+### One inline request catalogue, usable in every language
+
+Copy this JSON into a string named `casesJson` (Python: `cases_json`; Rust:
+`cases_json`; C: `cases_json`) in the chosen example below. Select one case by
+name. This is inline request data, not an imported module or an external file.
+Each case is a complete request; no inferred answers or host-selected choices
+are supplied. Models can still return an incorrect semantic answer.
+
+```json
+{
+  "evaluate": {
+    "state": "Everything is down and we have a client demo at noon.",
+    "questions": {
+      "urgent": {
+        "type": "noul",
+        "instructions": "Does the customer need a reply within the hour?"
+      },
+      "team": {
+        "type": "choice",
+        "instructions": "Which team should handle it?",
+        "criteria": {
+          "outage": "Service unavailable",
+          "billing": "Charges and refunds",
+          "feature": "Requests and how-to"
+        }
+      },
+      "tone": {
+        "type": "score",
+        "instructions": "How upset is the customer?",
+        "criteria": ["calm", "annoyed", "furious"]
+      }
+    }
+  },
+  "choices": {
+    "context": "The package arrived broken. Please replace it.",
+    "questions": {
+      "team": {
+        "type": "string",
+        "choices": [
+          { "value": "shipping", "description": "Delivery damage or replacement" },
+          { "value": "billing", "description": "Payments or refunds" }
+        ],
+        "instructions": "Which team should handle this?",
+        "permutations": 1,
+        "return_probabilities": true
+      }
+    }
+  },
+  "scalars": {
+    "context": "Invoice 12345 totals 12.34 GBP and is overdue. No payment reference.",
+    "text_max_tokens": 64,
+    "numeric_max_tokens": 32,
+    "numeric_max_digits": 5,
+    "questions": {
+      "currency": { "type": "string", "instructions": "Extract the currency code." },
+      "invoice": { "type": "integer", "instructions": "Extract the invoice number." },
+      "amount": { "type": "number", "instructions": "Extract the total amount." },
+      "overdue": { "type": "boolean", "instructions": "Is payment overdue?" },
+      "reference": {
+        "type": ["string", "null"],
+        "instructions": "Extract the payment reference, or null if absent."
+      }
+    }
+  },
+  "typed_enums": {
+    "context": "This is a high-priority request with no assigned owner.",
+    "questions": {
+      "priority": {
+        "type": "integer",
+        "enum": [1, 2, 3],
+        "instructions": "Select 1 for low, 2 for medium, or 3 for high priority.",
+        "permutations": 1,
+        "return_probabilities": true
+      },
+      "owner": {
+        "type": ["string", "null"],
+        "enum": ["Alex", "null", null],
+        "instructions": "Who owns the request? Use actual null if unassigned.",
+        "permutations": 1,
+        "return_probabilities": true
+      }
+    }
+  },
+  "large_enum": {
+    "context": "The requested reference is code-27.",
+    "questions": {
+      "reference": {
+        "type": "string",
+        "instructions": "Select the exact requested reference.",
+        "enum": [
+          "code-01",
+          "code-02",
+          "code-03",
+          "code-04",
+          "code-05",
+          "code-06",
+          "code-07",
+          "code-08",
+          "code-09",
+          "code-10",
+          "code-11",
+          "code-12",
+          "code-13",
+          "code-14",
+          "code-15",
+          "code-16",
+          "code-17",
+          "code-18",
+          "code-19",
+          "code-20",
+          "code-21",
+          "code-22",
+          "code-23",
+          "code-24",
+          "code-25",
+          "code-26",
+          "code-27"
+        ],
+        "permutations": 1,
+        "return_probabilities": true
+      }
+    }
+  },
+  "levels": {
+    "context": "The customer says: I am furious about this repeated outage.",
+    "questions": {
+      "tone": {
+        "type": "number",
+        "instructions": "How upset is the customer?",
+        "levels": [
+          { "label": "calm", "description": "Neutral and patient" },
+          { "label": "annoyed", "description": "Frustrated but composed" },
+          { "label": "furious", "description": "Extremely angry" }
+        ],
+        "return_probabilities": true
+      }
+    }
+  },
+  "workflow": {
+    "context": "The service is unavailable. Please reply immediately.",
+    "questions": {
+      "team": {
+        "type": "string",
+        "enum": ["outage", "billing"],
+        "instructions": "Which team should handle this?",
+        "return_probabilities": true,
+        "permutations": 1
+      },
+      "acknowledge": {
+        "type": "boolean",
+        "depends_on": ["team"],
+        "when": { "team": { "in": ["outage"], "confidence": { "gte": 0.8 } } },
+        "instructions": "Should the outage team acknowledge immediately?"
+      },
+      "reply": {
+        "type": "string",
+        "depends_on": ["team"],
+        "when": { "acknowledge": true },
+        "instructions": "Write one short acknowledgement."
+      }
+    }
+  },
+  "nested": {
+    "context": "Alex is 21 years old.",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["person"],
+      "properties": {
+        "person": {
+          "type": "object",
+          "properties": {
+            "name": { "type": "string", "instructions": "Extract the person's name." },
+            "age": { "type": "integer", "instructions": "Extract their age." },
+            "adult": {
+              "type": "boolean",
+              "when": { "age": { "gte": 18 } },
+              "instructions": "Is this person an adult?"
+            }
+          }
+        }
+      }
+    }
+  },
+  "array": {
+    "context": "The agenda covers deployment, security, and billing.",
+    "questions": {
+      "topics": {
+        "type": "array",
+        "instructions": "List the remaining agenda topics in their printed order.",
+        "items": { "type": "string" },
+        "minItems": 1,
+        "maxItems": 3,
+        "continue_from": ["deployment"]
+      }
+    }
+  },
+  "object_array": {
+    "context": "Invoice rows: Keyboard, quantity 2. Mouse, quantity 1.",
+    "questions": {
+      "rows": {
+        "type": "array",
+        "instructions": "Extract invoice rows in printed order.",
+        "maxItems": 2,
+        "items": {
+          "type": "object",
+          "properties": {
+            "description": { "type": "string" },
+            "quantity": { "type": "integer" }
+          }
+        }
+      }
+    }
+  },
+  "dice": {
+    "context": "A single roll of a fair six-sided die.",
+    "mode": "sample",
+    "temperature": 1,
+    "seed": 42,
+    "questions": {
+      "roll": {
+        "type": "string",
+        "enum": ["one", "two", "three", "four", "five", "six"],
+        "instructions": "What number comes up?",
+        "return_probabilities": true,
+        "permutations": "auto"
+      }
+    }
+  },
+  "thinking": {
+    "context": "How many letter r occurrences are in strawberry?",
+    "thinking": true,
+    "thinking_budget": 512,
+    "questions": {
+      "count": {
+        "type": "integer",
+        "enum": [1, 2, 3, 4],
+        "instructions": "Count the letter r occurrences.",
+        "permutations": 1
+      }
+    }
+  },
+  "automatic_thinking": {
+    "context": "Are 2026-01-02 and 2026-02-01 in chronological order?",
+    "thinking": "auto",
+    "questions": {
+      "ordered": { "type": "boolean", "instructions": "Is the first date earlier?" }
+    }
+  },
+  "diagnostics": {
+    "context": "The service is down.",
+    "print_final_prompt": true,
+    "questions": {
+      "outage": { "type": "boolean", "instructions": "Is service unavailable?" }
+    }
+  },
+  "image": {
+    "context": "Read the attached receipt.",
+    "questions": {
+      "total": { "type": "number", "instructions": "What is the printed total?" }
+    }
+  }
+}
+```
+
+`evaluate` is the only catalogue entry sent to `evaluate`; all others go to
+`generate`. `large_enum` needs sequence scoring; GGUF/WASM requires the explicit
+value-scorer plugin described above. Attach actual image bytes to `image` as shown
+below. Thinking requires
+native text inference; diagnostics requires a runtime exposing the final prompt.
+Do not run the whole catalogue with a text-only decision checkpoint and claim
+it has demonstrated extraction, OCR or reasoning.
+
+For condition variants, replace the workflow's gate with `{"team":"outage"}`,
+`{"team":["outage","billing"]}`, `{"team":{"not_in":["billing"]}}` or
+`{"team":{"ne":"billing"}}`. Numeric parents accept `gt/gte/lt/lte` with
+type-compatible bounds. Confidence gates require a probability-wrapped parent.
+For permutation variants use 1, a positive integer, `"auto"`, or `"all"`, observing
+the 720-evaluation cap. Request and field thinking overrides must be consistent;
+use an effort or a budget, not both. Generate schemas are a documented subset of
+JSON Schema; do not assume arbitrary validation keywords are implemented.
+
+### Python: every public application helper
+
+After assigning the catalogue string to `cases_json`:
+
+```python
+import json
+from pathlib import Path
+from turbojev import (
+    ArrayField, Choice, Decision, Dice, Generation, GenerationControl,
+    GenerationCancelled, GenerationTimeout, LoadOptions, SchemaError,
+    TurboJev, TurboJevError, Usage, benchmark_prefix_cache,
+    candidate_softmax, compile_json_schema, encode_image, example_schema,
+    run_schema,
+)
+
+cases = json.loads(cases_json)
+request = cases["choices"]  # Any supported generate case from the catalogue.
+schema = {"type": "object", "properties": request["questions"]}
+try:
+    compiled = compile_json_schema(schema)  # Model-free Rust validation.
+    for field in compiled:
+        if isinstance(field, ArrayField):
+            print(field.name, field.items, field.continue_from)
+        elif isinstance(field, Decision):
+            print(field.name, field.path, field.choices, field.depends_on)
+except SchemaError as error:
+    print("Invalid schema:", error)
+    raise
+
+print(candidate_softmax({"shipping": -0.1, "billing": -3.0}, temperature=1))
+choice = Choice("Which team?", {"shipping": "Delivery", "billing": "Payments"})
+print(choice.to_schema(), Dice(permutations=1).to_schema())
+print(example_schema())  # Built-in support schema; no inference here.
+
+options = LoadOptions(
+    model="model.gguf", device="cpu", n_ctx=8192, n_seq_max=1,
+    execution={"orderRobustness": "none"},
+)
+with TurboJev.load(options) as client:
+    print(client.info())
+    print(client.evaluate(cases["evaluate"])["answers"])
+    print(client.evaluate_compatible("typesafe-systemone-v1", cases["evaluate"]))
+    print(client.compile_schema(schema))
+    response = client.generate(request)
+    typed = Generation.from_response(response)
+    typed_again = client.generate_typed(request)
+    print(typed.result, typed.skipped, typed.thinking, typed.thinking_effort)
+    print(typed.usage.decisions, typed.usage.input_tokens, typed.usage.generated_tokens)
+    print(typed.prompts, typed_again.result, Usage())
+    try:
+        controlled = client.generate(request, timeout=30)
+        control = GenerationControl(timeout=30)
+        # Another thread may call control.cancel(); inference stays on this thread.
+        controlled = client.generate(request, control=control)
+    except (GenerationCancelled, GenerationTimeout, TurboJevError) as error:
+        print(error, error.usage)
+
+# One-shot convenience: loads, generates, and closes its own engine.
+one_shot = run_schema(
+    context=request["context"], questions=request["questions"],
+    model="model.gguf", load_options={"device": "cpu"}, timeout=30,
+)
+print(one_shot.result)
+
+# Optional benchmark: multiple questions and enough sequences for prefix reuse.
+# report = benchmark_prefix_cache(
+#     "model.gguf", cases["evaluate"], repeats=3,
+#     load_options={"device": "cpu", "n_seq_max": 4},
+# )
+# print(report["parity"], report["speedup"])
+
+# Separate vision session; never run this with the text-only model.
+with TurboJev.load("vision.gguf", mmproj="mmproj.gguf", n_ctx=8192) as vision:
+    image_request = {**cases["image"], "images": [encode_image(Path("receipt.png"))]}
+    print(vision.generate(image_request)["result"])
+```
+
+`Generation.result` is a mapping, not an invented nested attribute object.
+`Decision`, `ArrayField`, `Generation` and `Usage` are data classes returned by
+compilation/generation, not model sessions. `MAX_ENUM_CHOICES` and
+`MAX_ARRAY_ITEMS` are exported constants, 512 and 50. Context managers close
+automatically; use `client.close()` in `finally` when not using `with`.
+
+### Node JavaScript
+
+After assigning the catalogue string to `casesJson`, run as an ES module:
+
+```javascript
+import { readFile } from "node:fs/promises";
+import { TurboJev, TurboJevError, Dice, compileJsonSchema, candidateSoftmax } from "@turbojev/node";
+
+const cases = JSON.parse(casesJson);
+const request = cases.choices; // Select scalars, levels, workflow, arrays, etc.
+const schema = { type: "object", properties: request.questions };
+console.log(compileJsonSchema(schema));
+console.log(candidateSoftmax({ shipping: -0.1, billing: -3.0 }, 1));
+console.log(new Dice(1).toSchema());
+
+const client = await TurboJev.load({
+  model: "model.gguf",
+  device: "cpu",
+  nCtx: 8192,
+  nSeqMax: 1,
+  execution: { orderRobustness: "none" },
+});
+try {
+  console.log(await client.info());
+  console.log((await client.evaluate(cases.evaluate)).answers);
+  console.log(await client.evaluateCompatible("typesafe-systemone-v1", cases.evaluate));
+  console.log(await client.compileSchema(schema));
+  console.log(await client.candidateSoftmax({ shipping: -0.1, billing: -3.0 }));
+  const controller = new AbortController();
+  // A UI event can call controller.abort().
+  const response = await client.generate(request, {
+    timeoutMs: 30000,
+    signal: controller.signal,
+  });
+  console.log(response.result, response.skipped, response.thinking_effort, response.usage);
+} catch (error) {
+  if (error instanceof TurboJevError) console.error(error.code, error.message, error.usage);
+  throw error;
+} finally {
+  await client.close();
+}
+
+const vision = await TurboJev.load({ model: "vision.gguf", mmproj: "mmproj.gguf" });
+try {
+  const image = (await readFile("receipt.png")).toString("base64");
+  console.log(await vision.generate({ ...cases.image, images: [image] }));
+} finally {
+  await vision.close();
+}
+```
+
+### Node TypeScript
+
+The JavaScript example also works in TypeScript. These additional exported types
+check the same requests and responses; they do not create new SDK functions:
+
+```typescript
+import {
+  TurboJev,
+  Dice,
+  type GenerateRequest,
+  type GenerateResponse,
+  type FieldSchema,
+  type CompiledDecision,
+  type ProbabilityAnswer,
+  type LoadOptions,
+  type EvaluationRequest,
+  type EvaluationResponse,
+} from "@turbojev/node";
+
+const cases: Record<string, GenerateRequest> = JSON.parse(casesJson);
+const field: FieldSchema = new Dice(1).toSchema();
+const request: GenerateRequest = {
+  ...cases.dice,
+  questions: { roll: field },
+};
+const options: LoadOptions = { model: "model.gguf", device: "cpu" };
+const client = await TurboJev.load(options);
+try {
+  const decisions: CompiledDecision[] = await client.compileSchema({
+    type: "object",
+    properties: request.questions,
+  });
+  const response: GenerateResponse = await client.generate(request);
+  const roll = response.result.roll as ProbabilityAnswer;
+  console.log(decisions, roll.value, roll.distribution, response.usage);
+  const evaluation: EvaluationRequest = JSON.parse(casesJson).evaluate;
+  const answer: EvaluationResponse = await client.evaluate(evaluation);
+  console.log(answer.answers);
+} finally {
+  await client.close();
+}
+```
+
+### Browser JavaScript and TypeScript, including CDN installation
+
+For vanilla HTML, create a same-origin `worker-bootstrap.js` containing only:
+
+```javascript
+import "https://cdn.jsdelivr.net/npm/@turbojev/web@0.33.0/worker.js";
+```
+
+Import the SDK in a `<script type="module">`. The bootstrap is application-owned
+worker setup; all TurboJev code still comes from npm/CDN. Do not point the Worker
+constructor directly at a cross-origin CDN URL. Serve via HTTPS or localhost,
+with COOP/COEP for threading/audio. Allow required modules, workers and WASM in CSP.
+After assigning the catalogue to `casesJson`:
+
+```javascript
+import {
+  TurboJevWeb,
+  TurboJevRemote,
+  Dice,
+  imageEvidence,
+  mediaEvidence,
+  videoFrameEvidence,
+} from "https://cdn.jsdelivr.net/npm/@turbojev/web@0.33.0/dist/index.js";
+
+const cases = JSON.parse(casesJson);
+const cdn = "https://cdn.jsdelivr.net/npm/";
+const modelUrl =
+  "https://huggingface.co/ZY-Lee4/QJev3.5-0.8B-GGUF/resolve/008c7c7a5c35007b8ba6b06afba50f882f000667/qjev35-v19c-q8_0.gguf";
+const client = await TurboJevWeb.load({
+  model: "QJev3.5 0.8B v19c",
+  workerUrl: new URL("./worker-bootstrap.js", location.href).href,
+  runtimeModuleUrl: cdn + "@turbojev/runtime-llamacpp-wasm@0.33.0/src/index.js",
+  wasmModuleUrl: cdn + "@turbojev/wasm@0.33.0/turbojev_wasm.js",
+  orderRobustness: "none",
+  runtimeOptions: { modelUrl, device: "wasm", nThreads: 4 },
+});
+try {
+  console.log(await client.info());
+  console.log(await client.evaluate(cases.evaluate));
+  console.log(await client.evaluateCompatible("typesafe-systemone-v1", cases.evaluate));
+  console.log(await client.compileSchema({ type: "object", properties: cases.choices.questions }));
+  console.log(await client.candidateSoftmax({ shipping: -0.1, billing: -3.0 }));
+  console.log(new Dice(1).toSchema());
+  const response = await client.generate(cases.choices, {
+    timeoutMs: 30000,
+    signal: new AbortController().signal,
+  });
+  console.log(response.result, response.skipped, response.usage);
+} finally {
+  await client.close();
+}
+
+// Helpers only encode evidence; choose a matching multimodal session separately.
+// imageFile and audioFile are actual Files selected by the application user.
+const images = await imageEvidence([imageFile], "Read this receipt.");
+const sound = await mediaEvidence(audioFile, "audio", "Identify the spoken command.");
+const video = await videoFrameEvidence(
+  [{ timestampMs: 0, image: imageFile }],
+  "Describe the scene.",
+);
+console.log(images, sound, video);
+
+// Explicitly selected server transport: this sends input to that server.
+// const remote = new TurboJevRemote("https://your-server.example");
+// console.log(await remote.evaluate(cases.evaluate, new AbortController().signal));
+```
+
+Provide user-selected File inputs before inference. For vision, reload using the
+vision GGUF URL and matching `mmprojUrl`,
+`modality: "image"`; pass `images.images` as `generate.images` or the complete
+envelope as `evaluate.state`. Audio uses `modality: "audio"` and its own paired
+checkpoint; decoded video uses `modality: "video"` and an image-capable projector.
+
+For ONNX, change `model` to a supported ONNX repository, `runtimeModuleUrl` to
+`https://esm.sh/@turbojev/runtime-transformersjs@0.33.0?deps=@huggingface/transformers@4.3.0`,
+and `runtimeOptions` to `{device: "wasm", dtype: "q4"}`. This CDN resolves the
+peer dependency for a vanilla module worker; a bundler can use the installed
+runtime package and resolve its Transformers dependency instead.
+QJev's GGUF is not an ONNX model. Select `webgpu` explicitly to request browser GPU.
+
+Browser TypeScript imports the same symbols from `@turbojev/web`; annotate using
+its exported `GenerateRequest`, `GenerateResponse`, `CompiledDecision`,
+`FieldSchema`, `ProbabilityAnswer`, `MediaEvidence`, `VideoFrameInput` and
+`WebLoadOptions`. Its `TurboJevWebError` carries known `usage` on generation failure.
+For example, after copying the same catalogue into `casesJson` and supplying
+application `modelUrl` and a same-origin worker bootstrap:
+
+```typescript
+import {
+  TurboJevWeb,
+  Dice,
+  type WebLoadOptions,
+  type GenerateRequest,
+  type GenerateResponse,
+  type CompiledDecision,
+  type ProbabilityAnswer,
+} from "@turbojev/web";
+
+const cases: Record<string, GenerateRequest> = JSON.parse(casesJson);
+const options: WebLoadOptions = {
+  model: "Selected GGUF",
+  workerUrl: "/worker-bootstrap.js",
+  runtimeModuleUrl:
+    "https://cdn.jsdelivr.net/npm/@turbojev/runtime-llamacpp-wasm@0.33.0/src/index.js",
+  wasmModuleUrl: "https://cdn.jsdelivr.net/npm/@turbojev/wasm@0.33.0/turbojev_wasm.js",
+  runtimeOptions: { modelUrl, device: "wasm" },
+};
+const client = await TurboJevWeb.load(options);
+try {
+  const request: GenerateRequest = { ...cases.dice, questions: { roll: new Dice(1).toSchema() } };
+  const compiled: CompiledDecision[] = await client.compileSchema({
+    type: "object",
+    properties: request.questions,
+  });
+  const response: GenerateResponse = await client.generate(request, { timeoutMs: 30000 });
+  console.log(compiled, (response.result.roll as ProbabilityAnswer).distribution);
+} finally {
+  await client.close();
+}
+```
+
+The raw WASM module also exports model-free helpers:
+
+```javascript
+import init, {
+  compile_schema_json,
+  candidate_softmax_json,
+} from "https://cdn.jsdelivr.net/npm/@turbojev/wasm@0.33.0/turbojev_wasm.js";
+await init();
+const cases = JSON.parse(casesJson);
+console.log(
+  JSON.parse(
+    compile_schema_json(
+      JSON.stringify({
+        type: "object",
+        properties: cases.choices.questions,
+      }),
+    ),
+  ),
+);
+console.log(
+  JSON.parse(
+    candidate_softmax_json(
+      JSON.stringify({
+        logits: { shipping: -0.1, billing: -3.0 },
+        temperature: 1,
+      }),
+    ),
+  ),
+);
+```
+
+### C# / .NET
+
+Assign the catalogue to a raw string `casesJson`. Requires C# 11+ for raw strings;
+the SDK package targets its documented .NET version. Read the JSON elements rather
+than assuming probability answers or nested objects are plain scalars:
+
+```csharp
+using System.Text.Json;
+using TurboJev;
+
+using var cases = JsonDocument.Parse(casesJson);
+string Request(string name) => cases.RootElement.GetProperty(name).GetRawText();
+var questions = cases.RootElement.GetProperty("choices").GetProperty("questions");
+var schema = new { type = "object", properties = questions };
+Console.WriteLine(TurboJevEngine.CompileSchemaJson(JsonSerializer.Serialize(schema)));
+IReadOnlyList<CompiledDecision> compiled = TurboJevEngine.CompileSchema(schema);
+var probabilities = TurboJevEngine.CandidateSoftmax(
+    new Dictionary<string, double> { ["shipping"] = -0.1, ["billing"] = -3.0 });
+Console.WriteLine(JsonSerializer.Serialize(probabilities));
+Console.WriteLine(JsonSerializer.Serialize(new Dice(1).ToSchema()));
+
+await using var client = await TurboJevEngine.LoadAsync(new {
+    model = "model.gguf", device = "cpu", nCtx = 8192, nSeqMax = 1,
+    execution = new { orderRobustness = "none" }
+});
+try {
+    Console.WriteLine(await client.EvaluateJsonAsync(Request("evaluate")));
+    Console.WriteLine(await client.EvaluateCompatibleJsonAsync(
+        "typesafe-systemone-v1", Request("evaluate")));
+    Console.WriteLine(await client.GenerateJsonAsync(Request("choices")));
+    using var cancellation = new CancellationTokenSource();
+    // A UI action may call cancellation.Cancel().
+    Generation response = await client.GenerateAsync(
+        cases.RootElement.GetProperty("choices"), TimeSpan.FromSeconds(30), cancellation.Token);
+    Console.WriteLine(response.Result["team"].GetProperty("value").GetString());
+    Console.WriteLine(response.Usage.Decisions);
+    Console.WriteLine(JsonSerializer.Serialize(response.Skipped));
+} catch (TurboJevException error) {
+    Console.Error.WriteLine(error.Message);
+    Console.Error.WriteLine(JsonSerializer.Serialize(error.Usage));
+    throw;
+}
+
+await using var vision = await TurboJevEngine.LoadAsync(new {
+    model = "vision.gguf", mmproj = "mmproj.gguf", device = "cpu", nCtx = 8192
+});
+var image = Convert.ToBase64String(await File.ReadAllBytesAsync("receipt.png"));
+var imageRequest = new {
+    context = "Read the receipt.", images = new[] { image },
+    questions = cases.RootElement.GetProperty("image").GetProperty("questions")
+};
+Generation receipt = await vision.GenerateAsync(imageRequest);
+Console.WriteLine(receipt.Result["total"].GetRawText());
+```
+
+`GenerateJsonAsync` has both a simple overload and a controlled overload with
+`TimeSpan?` and `CancellationToken`. `await using` calls `DisposeAsync` and releases
+the affinity worker. Do not invoke a nonexistent .NET `InfoAsync` method.
+
+### Rust
+
+Use the published core and runtime crates, matching shim and dependencies. Assign
+the catalogue to a Rust raw string `cases_json`; no external request file is needed:
+
+```rust
+use serde_json::{json, Value};
+use turbojev::{
+    schema::{fields::{compile_json_schema, Dice, GenerateRequest}, EvaluationRequest},
+    OrderRobustness, TurboJev,
+};
+use turbojev_runtime_llamacpp::{
+    ffi::{FfiLlamaCpp, NativeConfig}, reference_backend,
+    ReferencePromptConfig, ReferencePromptRenderer,
+};
+
+fn demo(cases_json: &str) -> Result<(), Box<dyn std::error::Error>> {
+    let cases: Value = serde_json::from_str(cases_json)?;
+    let fields = compile_json_schema(json!({
+        "type": "object", "properties": cases["choices"]["questions"]
+    }))?;
+    println!("{:?}", fields);
+    println!("{:?}", turbojev::calibration::candidate_softmax(&[-0.1, -3.0], 1.0)?);
+    println!("{}", Dice::default().to_schema());
+    let runtime = FfiLlamaCpp::open("model.gguf", NativeConfig {
+        n_ctx: 8192, n_seq_max: 1, n_gpu_layers: 0,
+        ..Default::default()
+    })?;
+    let renderer = ReferencePromptRenderer::new(ReferencePromptConfig::new(
+        "application-en-v1", "Choose one allowed answer code.", "Which answer fits?",
+    ));
+    let engine = TurboJev::new(reference_backend(renderer, runtime))
+        .with_order_robustness(OrderRobustness::None);
+    let evaluation: EvaluationRequest = serde_json::from_value(cases["evaluate"].clone())?;
+    let answer = engine.evaluate(evaluation.clone())?;
+    println!("{}", serde_json::to_string_pretty(&answer)?);
+    println!("{}", turbojev::compat::encode_response(
+        turbojev::compat::WireProfile::TypeSafeSystemOne, &evaluation, &answer,
+    )?);
+    let request: GenerateRequest = serde_json::from_value(cases["choices"].clone())?;
+    let response = engine.generate(request.clone())?;
+    println!("{:?} {:?} {:?}", response.result, response.skipped, response.usage);
+    let started = std::time::Instant::now();
+    let controlled = engine.generate_controlled(request, || {
+        if started.elapsed() >= std::time::Duration::from_secs(30) {
+            return Err(turbojev::backend::BackendError::Inference("deadline expired".into()));
+        }
+        Ok(())
+    })?;
+    println!("{:?}", controlled.usage);
+    Ok(()) // Runtime is released by drop.
+}
+```
+
+Rust compatibility is `decode_request` / `encode_request` / `encode_response`;
+there is no facade `evaluateCompatible` method. For multimodal sessions use
+`FfiLlamaCpp::open_multimodal("vision.gguf", "mmproj.gguf", config)` and send the
+same catalogue image request with base64 `images` or a media envelope. For native
+evaluate thinking, use `.with_thinking(true, 512)` on the runtime before building
+the backend. For explicit GPU, select the required GPU layers/backend; `NativeConfig`
+does not have the JSON host's `device` field. The core cannot supply fresh entropy:
+set `GenerateRequest.seed` from the host when repeated sample calls need new draws.
+
+Rust also exposes `with_planning_policy`, `with_execution_budget`,
+`with_calibrator`, `backend`, `can_evaluate_fused` and `evaluate_fused`:
+
+```rust
+// Given a compatible backend and a validated vector of EvaluationRequest values:
+let engine = TurboJev::new(backend)
+    .with_planning_policy(turbojev::engine::PlanningPolicy::Reference)
+    .with_execution_budget(turbojev::engine::ExecutionBudget::default());
+if engine.can_evaluate_fused(&requests)? {
+    let responses = engine.evaluate_fused(&requests)?;
+    println!("{:?}", responses);
+}
+// A separately fitted calibrator can be installed at construction:
+// let engine = turbojev::TurboJevEngine::with_calibrator(backend, calibrator);
+```
+
+Fusion depends on negotiated runtime support and measured numerical parity;
+do not enable the unqualified llama.cpp multi-root optimization just for speed.
+`TurboJevAsync` has asynchronous evaluate/generate methods for an actual
+`AsyncScoringBackend`; it does not make a thread-affine native model movable.
+
+### C: every stable ABI operation
+
+C does not include a JSON parser. In this example, assign the exact selected
+catalogue requests to `evaluation_json` and `generation_json`, and its question
+map inside an object schema to `schema_json`. These are inline UTF-8 literals.
+Use a JSON library or escaped string literals; never concatenate unescaped user input.
+
+```c
+#include <stdio.h>
+#include "turbojev.h"
+
+static int report(int32_t status, char *output) {
+    if (status != TJ_OK) {
+        fprintf(stderr, "%s: %s\n", tj_last_error_code(), tj_last_error_message());
+        tj_string_free(output);
+        return 0;
+    }
+    if (output) puts(output);
+    tj_string_free(output);
+    return 1;
+}
+
+int demo(const char *evaluation_json, const char *generation_json, const char *schema_json) {
+    tj_engine *engine = NULL;
+    tj_generation_control *control = NULL;
+    char *output = NULL;
+    int32_t status;
+    printf("C ABI: %u\n", tj_abi_version());
+    status = tj_compile_schema_json(schema_json, &output);
+    if (!report(status, output)) return 1;
+    output = NULL;
+    status = tj_candidate_softmax_json(
+        "{\"logits\":{\"shipping\":-0.1,\"billing\":-3.0},\"temperature\":1}", &output);
+    if (!report(status, output)) return 1;
+    status = tj_engine_open_json(
+        "{\"model\":\"model.gguf\",\"device\":\"cpu\",\"nCtx\":8192,\"nSeqMax\":1}", &engine);
+    if (!report(status, NULL)) return 1;
+
+    output = NULL;
+    status = tj_engine_info_json(engine, &output);
+    if (!report(status, output)) goto failed;
+    output = NULL;
+    status = tj_engine_evaluate_json(engine, evaluation_json, &output);
+    if (!report(status, output)) goto failed;
+    output = NULL;
+    status = tj_engine_evaluate_compatible_json(
+        engine, "typesafe-systemone-v1", evaluation_json, &output);
+    if (!report(status, output)) goto failed;
+    output = NULL;
+    status = tj_engine_generate_json(engine, generation_json, &output);
+    if (!report(status, output)) goto failed;
+    status = tj_generation_control_open(30000, &control);
+    if (!report(status, NULL)) goto failed;
+    /* Another thread may call tj_generation_control_cancel(control). */
+    output = NULL;
+    status = tj_engine_generate_json_controlled(engine, generation_json, control, &output);
+    tj_generation_control_free(control);
+    control = NULL;
+    if (!report(status, output)) goto failed;
+    return report(tj_engine_close(engine), NULL) ? 0 : 1;
+
+failed:
+    tj_generation_control_free(control);
+    report(tj_engine_close(engine), NULL);
+    return 1;
+}
+```
+
+Free each successful owned output exactly once. Error strings are borrowed and
+thread-local; inspect them before another native call can replace them. Keep all
+engine operations on its creator thread. Do not free a generation control while
+another thread is still cancelling it. For vision, add `mmproj` to load JSON;
+attach inline base64 `images` to the image generate request. Audio/video use the
+same envelope below; no C-only `Dice` or `Choice` function exists.
+
+### Android / Kotlin
+
+Copy the catalogue into a Kotlin triple-quoted string `casesJson`:
+
+```kotlin
+import ai.turbojev.TurboJev
+import org.json.JSONObject
+
+val cases = JSONObject(casesJson)
+val schema = JSONObject()
+    .put("type", "object")
+    .put("properties", cases.getJSONObject("choices").getJSONObject("questions"))
+val compiled = TurboJev.compileSchema(schema)
+println(compiled)
+val loading = TurboJev.load(JSONObject()
+    .put("model", modelPath)
+    .put("device", "cpu")
+    .put("nCtx", 8192)
+    .put("nSeqMax", 1))
+
+// Run blocking joins on a background executor, never Android's UI thread.
+val engine = loading.join()
+try {
+    println(engine.evaluate(cases.getJSONObject("evaluate")).join())
+    println(engine.evaluateCompatible(
+        "typesafe-systemone-v1", cases.getJSONObject("evaluate")).join())
+    val response = engine.generate(cases.getJSONObject("choices")).join()
+    println(response.getJSONObject("result"))
+    println(response.getJSONArray("skipped"))
+    println(response.getJSONObject("usage"))
+    // Any other supported catalogue case uses exactly engine.generate(case).
+} finally {
+    engine.close()
+}
+
+// In a separate session loaded with the matching vision model and mmproj:
+val imageRequest = cases.getJSONObject("image")
+val encoded = android.util.Base64.encodeToString(imageBytes, android.util.Base64.NO_WRAP)
+imageRequest.put("images", org.json.JSONArray().put(encoded))
+// println(visionEngine.generate(imageRequest).join())
+```
+
+`modelPath` and `imageBytes` are application inputs. Future completion failures
+wrap `TurboJevException`; unwrap the cause when displaying native diagnostics.
+The wrapper exports load, compileSchema, evaluate, generate, evaluateCompatible
+and close. It currently does not export info, softmax or controlled-generation
+convenience methods. Use the JSON dice catalogue entry rather than inventing a
+Kotlin `Dice` class. Actual Android execution is separate from Windows evidence.
+
+### Swift
+
+Assign the catalogue to a Swift multiline string `casesJson`. Keep JSON values
+typed through Foundation; the wrapper returns JSON strings:
+
+```swift
+import Foundation
+import TurboJev
+
+func demo(casesJson: String, modelPath: String) throws {
+    let cases = try JSONSerialization.jsonObject(with: Data(casesJson.utf8)) as! [String: Any]
+    func json(_ value: Any) throws -> String {
+        String(data: try JSONSerialization.data(withJSONObject: value), encoding: .utf8)!
+    }
+    let choice = cases["choices"] as! [String: Any]
+    let schema: [String: Any] = ["type": "object", "properties": choice["questions"]!]
+    print(try TurboJevEngine.compileSchema(json(schema)))
+    let engine = try TurboJevEngine(optionsJSON: json([
+        "model": modelPath, "device": "cpu", "nCtx": 8192, "nSeqMax": 1
+    ]))
+    defer { try? engine.close() }
+    print(try engine.info())
+    print(try engine.evaluate(json(cases["evaluate"]!)))
+    print(try engine.evaluateCompatible(
+        profile: "typesafe-systemone-v1", requestJSON: json(cases["evaluate"]!)
+    ))
+    let responseJSON = try engine.generate(json(choice))
+    let response = try JSONSerialization.jsonObject(with: Data(responseJSON.utf8)) as! [String: Any]
+    print(response["result"]!, response["skipped"]!, response["usage"]!)
+    // Scalars, enums, levels, arrays, workflows and Dice all use engine.generate.
+}
+```
+
+Run synchronous work off the application's UI thread; the wrapper dispatches
+native operations to its affinity thread. Catch `TurboJevError.native(code:message:)`
+and `TurboJevError.closed`. It does not expose its native handle for arbitrary
+external controlled-generation calls. A direct C ABI integration is possible,
+but must own engine creation, affinity and closure independently.
+For an image request, load the vision session with `mmproj` and set
+`images: [try Data(contentsOf: imageURL).base64EncodedString()]` before generation.
+The dice catalogue case is its JSON equivalent; no Swift `Dice` class is exported.
+
+### Image, audio and video recipes for every binding
+
+The same UTF-8 JSON envelope works in each native binding and browser runtime
+that declares the modality. Substitute actual base64 bytes encoded in the host;
+the Rust core never reads paths or downloads media. A selected text model cannot
+process these inputs just because the schema is valid.
+
+```json
+{
+  "contract": "turbojev.media.v1",
+  "modality": "audio",
+  "text": "Identify the command the speaker says.",
+  "base64": "REPLACE_WITH_ACTUAL_SUPPORTED_AUDIO_BASE64"
+}
+```
+
+Use this as `evaluate.state` with a `choice` question describing spoken commands,
+or as `generate.context` with the desired bounded output fields. For a still
+image use `modality: "image"` and actual encoded image bytes. For multiple images,
+use `images: ["BASE64_IMAGE_1", "BASE64_IMAGE_2"]` instead of `base64`.
+
+```json
+{
+  "contract": "turbojev.media.v1",
+  "modality": "video",
+  "text": "Does the object move from left to right?",
+  "frames": [
+    { "timestamp_ms": 0, "base64": "REPLACE_WITH_FIRST_IMAGE_BASE64" },
+    { "timestamp_ms": 1000, "base64": "REPLACE_WITH_SECOND_IMAGE_BASE64" }
+  ]
+}
+```
+
+Replace both illustrative frame strings before calling inference. Use 1–32
+frames with increasing nonnegative integer timestamps and at most 24 MiB of
+combined decoded input. TurboJev receives decoded frames; it does not decode MP4,
+invoke ffmpeg/ffprobe, or guarantee temporal reasoning. Browser helpers produce
+these exact envelopes from Files/Blobs. Python uses `base64.b64encode(bytes)`,
+Node `Buffer.toString("base64")`, C# `Convert.ToBase64String`, Rust a host base64
+encoder, C its chosen encoder, Kotlin `Base64.NO_WRAP`, and Swift
+`Data.base64EncodedString`. Encode real bytes, never a filesystem path string.
+
+### Documentation verification boundary
+
+The cookbook's method names and signatures were checked against 0.33.0 binding
+source. Inline schema compilation checks establish request validity, not model
+accuracy or successful inference on every host. Never describe an unexecuted
+Android, Swift, x86 or ARM64 snippet as a passed runtime test. Open values,
+thinking and modalities require their own actual compatible-model checks.
+
+The 14 generate catalogue schemas compiled through published Python 0.33.0's
+Rust validator. Python snippets passed syntax/export checks; Node and browser
+TypeScript examples passed type checking. The C# example compiled against NuGet
+0.33.0, the Rust example passed `cargo check` against registry 0.33.0, and the C
+example passed strict C11 syntax checks. Rust final native linking and Android/
+Swift execution were not checked in this documentation update.
+
+### Complete configuration reference
+
+Native Node/.NET and C/mobile load JSON use camelCase; Python `LoadOptions` uses
+the mapped snake_case names. Browser loads use `WebLoadOptions` and place runtime
+settings inside `runtimeOptions`, not arbitrary native JSON keys.
+
+| Native JSON / Node / .NET | Python                        | Purpose                                                                    |
+| ------------------------- | ----------------------------- | -------------------------------------------------------------------------- |
+| `model`                   | `model`                       | Local GGUF path; fixture URLs are only for binding tests                   |
+| `mmproj`                  | `mmproj`                      | Matching multimodal projector path                                         |
+| `device`                  | `device`                      | Explicit `cpu` or `gpu`; no silent device fallback                         |
+| `nCtx`                    | `n_ctx`                       | Context size; allow room for prompts, media and generated values           |
+| `nBatch`                  | `n_batch`                     | Model prefill batch size                                                   |
+| `nSeqMax`                 | `n_seq_max`                   | Sequence capacity; 1 saves memory and repeats per-question prefill         |
+| `nGpuLayers`              | `n_gpu_layers`                | GPU offload; do not combine nonzero layers with explicit CPU               |
+| `nThreads`                | `n_threads`                   | Inference thread count                                                     |
+| `nThreadsBatch`           | `n_threads_batch`             | Prefill thread count                                                       |
+| `thinking`                | `thinking`                    | Load-time native evaluate reasoning, default false                         |
+| `maxThinkingTokens`       | `max_thinking_tokens`         | Evaluate reasoning budget, default 512                                     |
+| `execution`               | `execution`                   | Planner, memory/concurrency limits and order policy                        |
+| `worker`                  | `worker`                      | Explicit custom process-runtime integration; not required for bundled GGUF |
+| `prompt`                  | Not exported in `LoadOptions` | Profile, systemInstruction and bestMatchInstruction overrides              |
+| `cacheDir`, `nativePath`  | Not exported in `LoadOptions` | Node model cache and explicit addon location                               |
+
+`execution` supports `policy` (`auto`, `reference`, `deterministic-reuse`),
+`orderRobustness` (`none`, `cyclic`, `balanced`), `maxParallelTasks`,
+`memoryBudgetBytes` and opt-in `llamacppMultiRootFused`. Planner capability
+declarations and numerical qualification still control eligibility. The normal
+packages use their bundled native runtime; no external llama-server executable is
+required. Custom process runtimes are an explicitly chosen integration.
+
+Browser `WebLoadOptions` supports `model`, `runtimeModuleUrl`, `wasmModuleUrl`,
+`workerUrl`, `runtimeOptions`, `orderRobustness`, legacy
+`cyclicOrderRobustness` and `prompt`. GGUF runtime options include `modelUrl`,
+`modelLabel`, `mmprojUrl`, `modality`, `device` (`wasm` or `webgpu`), `nThreads`,
+`jinja`, `chatTemplate`, `warmup`, `debug`, `choiceScorerModuleUrl` and
+`choiceScorerOptions`. A progress callback belongs in worker runtime code;
+functions cannot be sent as structured-cloned `runtimeOptions` from the page.
+ONNX options include `model`, `device`, `dtype` and a runtime-side progress callback.
+
+For all bindings, `generate` supports exactly one of `questions` / `schema`,
+`context` (alias `state`), `images`, `thinking`, `thinking_effort`,
+`thinking_budget`, `text_max_tokens` (default 256), `numeric_max_tokens` (64),
+`numeric_max_digits` (32), `print_final_prompt`, `mode`, `temperature` and `seed`.
+Scalar fields support `type`, `instructions` / `description`, `enum` / `choices`,
+`levels`, `depends_on`, `when`, `permutations`, `return_probabilities`, and their
+own thinking overrides. Object fields use `properties` plus scoped dependencies
+and conditions. Array fields use `items`, `minItems`, `maxItems`, `continue_from`,
+dependencies and conditions; do not add unsupported per-item workflow features.
+
+Native response data is authoritative: evaluate returns `answers`, `usage` and
+`_turbojev` provenance; generate returns `result`, `skipped`, `thinking`,
+`thinking_effort`, `usage` and optional `prompts`. A finite probability wrapper
+retains its typed `value`, `confidence`, `probability`, `probabilities` and
+`distribution`. Skipped fields are omitted, not assigned null. Select a suitable
+model and inspect errors instead of fabricating the expected example outputs.
