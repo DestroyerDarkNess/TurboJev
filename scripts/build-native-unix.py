@@ -24,6 +24,7 @@ def run(*args, cwd=ROOT, env=None):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("rid", choices=[target["rid"] for target in targets() if target["os"] != "win32"])
+    parser.add_argument("--cross-build", action="store_true", help="Package with a supplied cross toolchain; requires a separate real execution check")
     args = parser.parse_args()
     target = next(target for target in targets() if target["rid"] == args.rid)
     arch = architecture(target)
@@ -36,20 +37,22 @@ def main():
     native = output / "native"
     native.mkdir(parents=True, exist_ok=True)
     plan = json.loads((ROOT / "tests/e2e/final-plan.json").read_text())
-    source = ROOT / ".cache/real-validation/llama.cpp"
+    source = Path(os.environ.get("TURBOJEV_LLAMA_SOURCE_DIR", ROOT / ".cache/real-validation/llama.cpp"))
     if not source.exists():
         run("git", "clone", "--depth", "1", "--branch", plan["llamaCpp"]["tag"], plan["llamaCpp"]["repository"], source)
     revision = subprocess.check_output(["git", "-C", str(source), "rev-parse", "HEAD"], text=True).strip()
     if not revision.startswith(plan["llamaCpp"]["commitPrefix"]):
         raise SystemExit("llama.cpp checkout does not match the release plan")
 
-    build = output / "cmake"
+    build = Path(os.environ.get("TURBOJEV_NATIVE_BUILD_DIR", output / "cmake"))
     cmake = ["cmake", "-S", ROOT / "crates/turbojev-runtime-llamacpp/native", "-B", build,
              "-DCMAKE_BUILD_TYPE=Release", f"-DLLAMA_CPP_SOURCE_DIR={source}", "-DGGML_OPENMP=OFF",
              "-DGGML_VULKAN=OFF", "-DGGML_NATIVE=OFF", "-DGGML_AVX=OFF", "-DGGML_AVX2=OFF",
              "-DGGML_FMA=OFF", "-DGGML_F16C=OFF", "-DGGML_BMI2=OFF", "-DGGML_AVX512=OFF"]
+    if os.environ.get("TURBOJEV_CMAKE_TOOLCHAIN"):
+        cmake.append(f"-DCMAKE_TOOLCHAIN_FILE={os.environ['TURBOJEV_CMAKE_TOOLCHAIN']}")
     if target["os"] == "darwin":
-        cmake += ["-DCMAKE_OSX_DEPLOYMENT_TARGET=11.0", "-DGGML_METAL=ON", "-DGGML_METAL_EMBED_LIBRARY=ON"]
+        cmake += ["-DCMAKE_OSX_DEPLOYMENT_TARGET=11.0", "-DGGML_METAL=ON", "-DGGML_METAL_EMBED_LIBRARY=ON", "-DGGML_BLAS=OFF"]
     else:
         # Keep distribution-specific libstdc++ and libgcc out of the dependency closure.
         cmake += ["-DCMAKE_SHARED_LINKER_FLAGS=-static-libstdc++ -static-libgcc"]
@@ -116,6 +119,14 @@ def main():
         # auditwheel refuses a false manylinux tag when symbol versions exceed its floor.
         run(sys.executable, "-m", "auditwheel", "show", wheel)
         run(sys.executable, "scripts/check-elf-dependencies.py", native)
+    if args.cross_build:
+        hashes = {path.name: hashlib.sha256(path.read_bytes()).hexdigest() for path in native.iterdir()}
+        evidence = {"version": version, "rid": args.rid, "llama_cpp_revision": revision,
+                    "runtime_sha256": hashes, "cross_compiled": True, "link_checks_passed": True,
+                    "python_real_smoke_passed": False, "node_real_smoke_passed": False}
+        (output / "build-evidence.json").write_text(json.dumps(evidence, indent=2) + "\n")
+        print("Cross-build complete; a matching host/emulator must run the package checks before publication.")
+        return
     # Hide every original CMake dependency and remove loader environment overrides.
     # The installed wheel and Node package must find only their own sibling libraries.
     shutil.move(str(build), str(output / "cmake-hidden"))

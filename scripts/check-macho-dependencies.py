@@ -21,7 +21,7 @@ def check(path, bundled):
             text = data[start:offset + size].split(b"\0", 1)[0].decode()
             if command == 0x8000001C:
                 rpaths.append(text)
-            else:
+            elif command != 0xD:
                 dependencies.append(text)
         if command in (0x32, 0x24):
             version_offset = 12 if command == 0x32 else 8

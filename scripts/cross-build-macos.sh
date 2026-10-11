@@ -40,8 +40,10 @@ set(CMAKE_ASM_COMPILER clang)
 set(CMAKE_C_COMPILER_TARGET $arch-apple-darwin)
 set(CMAKE_CXX_COMPILER_TARGET $arch-apple-darwin)
 set(CMAKE_ASM_FLAGS_INIT "--target=$arch-apple-darwin -isysroot $MACOS_SDK")
-set(CMAKE_C_FLAGS_INIT "-fuse-ld=lld")
-set(CMAKE_CXX_FLAGS_INIT "-fuse-ld=lld -stdlib=libc++")
+set(CMAKE_CXX_FLAGS_INIT "-stdlib=libc++")
+set(CMAKE_EXE_LINKER_FLAGS_INIT "-fuse-ld=lld")
+set(CMAKE_SHARED_LINKER_FLAGS_INIT "-fuse-ld=lld")
+set(CMAKE_MODULE_LINKER_FLAGS_INIT "-fuse-ld=lld")
 set(CMAKE_OSX_SYSROOT "$MACOS_SDK")
 set(CMAKE_OSX_ARCHITECTURES $arch)
 set(CMAKE_OSX_DEPLOYMENT_TARGET 11.0)
@@ -54,12 +56,16 @@ build="$HOME/.cache/turbojev-toolchains/build-$rid"
 cmake -S "$source_cache/native" -B "$build" -G Ninja \
   -DCMAKE_TOOLCHAIN_FILE="$out/toolchain/darwin.cmake" -DCMAKE_BUILD_TYPE=Release \
   -DCMAKE_PROJECT_INCLUDE="$out/toolchain/after-project.cmake" \
+  -DCMAKE_C_FLAGS= -DCMAKE_CXX_FLAGS=-stdlib=libc++ \
+  -DCMAKE_SHARED_LINKER_FLAGS=-fuse-ld=lld -DCMAKE_EXE_LINKER_FLAGS=-fuse-ld=lld \
   -DLLAMA_CPP_SOURCE_DIR="$source_cache/llama.cpp" \
   -DGGML_OPENMP=OFF -DGGML_NATIVE=OFF -DGGML_VULKAN=OFF \
-  -DGGML_METAL=ON -DGGML_METAL_EMBED_LIBRARY=ON \
+  -DGGML_METAL=ON -DGGML_METAL_EMBED_LIBRARY=ON -DGGML_BLAS=OFF \
   -DGGML_AVX=OFF -DGGML_AVX2=OFF -DGGML_FMA=OFF -DGGML_F16C=OFF -DGGML_BMI2=OFF
 cmake --build "$build" --target turbojev_llama_shim --parallel 4
-find "$build" -name '*.dylib' -exec cp -L '{}' "$out/native/" \;
+# Do not retain a BLAS backend from a previous build with a newer Accelerate ABI.
+find "$out/native" "$out/node" -maxdepth 1 -name 'libggml-blas*.dylib' -delete
+find "$build" -name '*.dylib' ! -name 'libggml-blas*.dylib' -exec cp -L '{}' "$out/native/" \;
 
 export PATH="$HOME/.cargo/bin:$PATH"
 if [[ ! -x "$HOME/.cache/turbojev-toolchains/python/bin/python" ]]; then
