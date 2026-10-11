@@ -4,7 +4,7 @@ plugins {
 }
 
 group = "ai.turbojev"
-version = "0.33.0"
+version = "0.33.1"
 
 android {
     namespace = "ai.turbojev"

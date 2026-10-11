@@ -15,18 +15,18 @@ default = []
 ffi = []
 
 [dependencies]
-turbojev-backend = { version = "=0.33.0", path = "../turbojev-backend" }
-turbojev-prompt = { version = "=0.33.0", path = "../turbojev-prompt" }
-turbojev-runtime = { version = "=0.33.0", path = "../turbojev-runtime" }
-turbojev-schema = { version = "=0.33.0", path = "../turbojev-schema" }
-turbojev-sequence = { version = "=0.33.0", path = "../turbojev-sequence" }
+turbojev-backend = { version = "=0.33.1", path = "../turbojev-backend" }
+turbojev-prompt = { version = "=0.33.1", path = "../turbojev-prompt" }
+turbojev-runtime = { version = "=0.33.1", path = "../turbojev-runtime" }
+turbojev-schema = { version = "=0.33.1", path = "../turbojev-schema" }
+turbojev-sequence = { version = "=0.33.1", path = "../turbojev-sequence" }
 thiserror.workspace = true
 serde_json.workspace = true
 
 [dev-dependencies]
-turbojev = { version = "=0.33.0", path = "../turbojev" }
-turbojev-runtime-conformance = { version = "=0.33.0", path = "../turbojev-runtime-conformance" }
-turbojev-tokenizer = { version = "=0.33.0", path = "../turbojev-tokenizer" }
+turbojev = { version = "=0.33.1", path = "../turbojev" }
+turbojev-runtime-conformance = { version = "=0.33.1", path = "../turbojev-runtime-conformance" }
+turbojev-tokenizer = { version = "=0.33.1", path = "../turbojev-tokenizer" }
 
 [lints.rust]
 rust_2018_idioms = { level = "deny", priority = -1 }

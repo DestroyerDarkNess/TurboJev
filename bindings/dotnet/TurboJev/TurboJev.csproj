@@ -5,7 +5,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <PackageId>TurboJev</PackageId>
-    <Version>0.33.0</Version>
+    <Version>0.33.1</Version>
     <Authors>TurboJev contributors</Authors>
     <Description>Typed semantic decisions powered by TurboJev.</Description>
     <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>

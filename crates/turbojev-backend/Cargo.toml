@@ -9,7 +9,7 @@ repository.workspace = true
 homepage.workspace = true
 
 [dependencies]
-turbojev-schema = { path = "../turbojev-schema", version = "0.33.0" }
+turbojev-schema = { path = "../turbojev-schema", version = "0.33.1" }
 serde.workspace = true
 serde_json.workspace = true
 thiserror.workspace = true

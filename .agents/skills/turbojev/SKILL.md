@@ -35,7 +35,7 @@ For native samples, build artifacts for the same architecture as the host compil
 - **Python:** CPython 3.9+ with the normal GIL-enabled stable ABI (`cp39-abi3`).
   Wheels have separate Windows x86/x64/ARM64 tags; use the interpreter's
   architecture. PyPy and free-threaded interpreters are not qualified. The next
-  release fixes a 0.33.0 import failure on Python 3.9 in the benchmark helper and
+  version 0.33.1 fixes a 0.33.0 import failure on Python 3.9 in the benchmark helper and
   makes public type annotations introspectable there. The corrected x64 wheel
   was tested on CPython 3.9.13, 3.12.7 and 3.14.0; the published x86 binary
   passed contract checks on CPython 3.12.10. ARM64 DLL architecture was checked,

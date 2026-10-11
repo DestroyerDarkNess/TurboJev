@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.33.1
 
 - Restore Python 3.9 imports and annotation introspection; verify the packaged stable-ABI extension on CPython 3.9, 3.12 and 3.14, and CPython 3.12 x86.
 - Declare the Node wrapper's actual Node 18+ requirement and retain Node-API 8 compatibility across runtime versions. Validate native package architecture before publication.
@@ -11,6 +11,10 @@
 - Copy packaged native runtime dependencies for .NET Framework and load the directory matching the running process without changing its PATH.
 - Add portable UTF-8 interop, synchronous disposal and context-independent SDK continuations for WinForms/WPF consumers.
 - Gate NuGet publishing on installed-package compatibility checks, including legacy .NET consumers, UTF-8, schema/result helpers, cancellation, disposal and real GGUF inference.
+
+## Unreleased
+
+No unreleased changes.
 
 ## 0.33.0
 

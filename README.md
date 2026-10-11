@@ -35,7 +35,8 @@ includes installation and examples for every binding, including browser CDN use.
 
 The next NuGet release adds .NET Framework 4.8 and .NET Core 3.1 / .NET 5–7
 through .NET Standard 2.0, alongside the .NET 8 assembly used by newer .NET
-versions. The currently published 0.33.0 package targets .NET 8 only. See
+versions. Version 0.33.1 adds .NET Standard 2.0, .NET Framework 4.8 and .NET 8
+targets. See
 [.NET compatibility](docs/DOTNET.md) for installation and validation details.
 See the [binding compatibility matrix](docs/BINDING_COMPATIBILITY.md) for runtime
 requirements, architecture coverage and the status of mobile/Apple bindings.

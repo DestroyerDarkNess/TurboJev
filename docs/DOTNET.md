@@ -1,7 +1,7 @@
 # .NET SDK compatibility
 
-The next NuGet release after 0.33.0 includes three managed assemblies with the
-same public SDK. The published 0.33.0 package still targets .NET 8 only.
+Version 0.33.1 includes three managed assemblies with the same public SDK:
+.NET Standard 2.0, .NET Framework 4.8 and .NET 8.
 
 | Application target | Selected TurboJev assembly |
 | --- | --- |

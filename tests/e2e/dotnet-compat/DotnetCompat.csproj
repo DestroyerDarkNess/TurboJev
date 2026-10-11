@@ -12,7 +12,7 @@
     <CheckEolTargetFramework>false</CheckEolTargetFramework>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
     <GenerateBindingRedirectsOutputType>true</GenerateBindingRedirectsOutputType>
-    <TurboJevPackageVersion Condition="'$(TurboJevPackageVersion)' == ''">0.33.0</TurboJevPackageVersion>
+    <TurboJevPackageVersion Condition="'$(TurboJevPackageVersion)' == ''">0.33.1</TurboJevPackageVersion>
   </PropertyGroup>
   <PropertyGroup Condition="'$(TargetFramework)' != 'net48'">
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>

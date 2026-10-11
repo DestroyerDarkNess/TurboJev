@@ -9,10 +9,10 @@ repository.workspace = true
 homepage.workspace = true
 
 [dependencies]
-turbojev-schema = { version = "=0.33.0", path = "../turbojev-schema" }
-turbojev-server-execution = { version = "=0.33.0", path = "../turbojev-server-execution" }
-turbojev-wire = { version = "=0.33.0", path = "../turbojev-wire" }
-turbojev-compat = { version = "=0.33.0", path = "../turbojev-compat" }
+turbojev-schema = { version = "=0.33.1", path = "../turbojev-schema" }
+turbojev-server-execution = { version = "=0.33.1", path = "../turbojev-server-execution" }
+turbojev-wire = { version = "=0.33.1", path = "../turbojev-wire" }
+turbojev-compat = { version = "=0.33.1", path = "../turbojev-compat" }
 serde.workspace = true
 serde_json.workspace = true
 thiserror.workspace = true

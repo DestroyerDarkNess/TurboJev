@@ -29,7 +29,7 @@ GitHub trusted-publisher configurations alone do not authenticate local uploads.
 - NuGet publishes one package containing native Windows runtime assets for
   win-x86, win-x64, and win-arm64, plus managed assemblies for `netstandard2.0`,
   `net48` and `net8.0`. These managed compatibility targets are included starting
-  with the next release after 0.33.0.
+  in version 0.33.1.
 - crates.io publishes source packages once. The facade's internal dependencies
   are published first. Cargo verifies each packaged crate before upload.
 

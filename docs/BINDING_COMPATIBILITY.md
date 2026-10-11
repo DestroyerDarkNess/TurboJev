@@ -1,8 +1,8 @@
 # Binding compatibility
 
-This audit covers the source after the 0.33.0 release. Changes listed here are
-not yet published. A source wrapper, matching native binaries and a compatible
-model runtime are separate deployment requirements.
+This audit records the binding fixes and compatibility checks prepared for
+0.33.1. A source wrapper, matching native binaries and a compatible model
+runtime are separate deployment requirements.
 
 | Binding | Requirement | Validation on 2026-10-11 |
 | --- | --- | --- |
