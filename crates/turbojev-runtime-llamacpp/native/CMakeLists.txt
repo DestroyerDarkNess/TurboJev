@@ -18,6 +18,14 @@ set(LLAMA_SUBPROCESS OFF CACHE BOOL "TurboJev does not launch external media too
 set(LLAMA_CURL OFF CACHE BOOL "" FORCE)
 set(LLAMA_OPENSSL OFF CACHE BOOL "" FORCE)
 set(GGML_NATIVE OFF CACHE BOOL "" FORCE)
+if(APPLE)
+  set(CMAKE_INSTALL_RPATH "@loader_path")
+  set(CMAKE_BUILD_WITH_INSTALL_RPATH ON)
+  set(CMAKE_INSTALL_NAME_DIR "@rpath")
+elseif(UNIX)
+  set(CMAKE_INSTALL_RPATH "$ORIGIN")
+  set(CMAKE_BUILD_WITH_INSTALL_RPATH ON)
+endif()
 if(WIN32)
   # MSVC OpenMP can retain threads executing unloaded DLL code when a Node
   # worker exits. Use ggml's native thread pool for unloadable Windows hosts.
@@ -34,7 +42,7 @@ if(TURBOJEV_BUILD_NATIVE_TESTS)
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
   add_test(NAME turbojev_chat_template COMMAND turbojev_chat_template_test)
 endif()
-if(CMAKE_GENERATOR_PLATFORM STREQUAL "Win32")
+if(CMAKE_GENERATOR_PLATFORM STREQUAL "Win32" OR CMAKE_SIZEOF_VOID_P EQUAL 4)
   # ggml's BMI2 implementation can reference the 64-bit PDEP intrinsic on x86 MSVC.
   set(GGML_BMI2 OFF CACHE BOOL "Disable BMI2 for 32-bit Windows" FORCE)
 endif()

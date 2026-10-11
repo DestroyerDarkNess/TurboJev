@@ -9,29 +9,29 @@ repository.workspace = true
 homepage.workspace = true
 
 [dependencies]
-turbojev-backend = { version = "=0.33.1", path = "../turbojev-backend" }
-turbojev-backend-mock = { version = "=0.33.1", path = "../turbojev-backend-mock" }
-turbojev-backend-custom = { version = "=0.33.1", path = "../turbojev-backend-custom" }
-turbojev-calibration = { version = "=0.33.1", path = "../turbojev-calibration" }
-turbojev-core = { version = "=0.33.1", path = "../turbojev-core" }
-turbojev-engine = { version = "=0.33.1", path = "../turbojev-engine" }
-turbojev-model = { version = "=0.33.1", path = "../turbojev-model" }
-turbojev-specialized = { version = "=0.33.1", path = "../turbojev-specialized" }
-turbojev-training-data = { version = "=0.33.1", path = "../turbojev-training-data" }
-turbojev-specialized-artifact = { version = "=0.33.1", path = "../turbojev-specialized-artifact" }
-turbojev-specialized-eval = { version = "=0.33.1", path = "../turbojev-specialized-eval" }
-turbojev-prompt = { version = "=0.33.1", path = "../turbojev-prompt" }
-turbojev-projection = { version = "=0.33.1", path = "../turbojev-projection" }
-turbojev-schema = { version = "=0.33.1", path = "../turbojev-schema" }
-turbojev-tokenizer = { version = "=0.33.1", path = "../turbojev-tokenizer" }
-turbojev-wire = { version = "=0.33.1", path = "../turbojev-wire" }
-turbojev-compat = { version = "=0.33.1", path = "../turbojev-compat" }
-turbojev-conformance = { version = "=0.33.1", path = "../turbojev-conformance" }
-turbojev-runtime = { version = "=0.33.1", path = "../turbojev-runtime" }
-turbojev-sequence = { version = "=0.33.1", path = "../turbojev-sequence" }
-turbojev-runtime-conformance = { version = "=0.33.1", path = "../turbojev-runtime-conformance" }
-turbojev-runtime-qualification = { version = "=0.33.1", path = "../turbojev-runtime-qualification" }
-turbojev-runtime-projection = { version = "=0.33.1", path = "../turbojev-runtime-projection" }
+turbojev-backend = { version = "=0.34.0", path = "../turbojev-backend" }
+turbojev-backend-mock = { version = "=0.34.0", path = "../turbojev-backend-mock" }
+turbojev-backend-custom = { version = "=0.34.0", path = "../turbojev-backend-custom" }
+turbojev-calibration = { version = "=0.34.0", path = "../turbojev-calibration" }
+turbojev-core = { version = "=0.34.0", path = "../turbojev-core" }
+turbojev-engine = { version = "=0.34.0", path = "../turbojev-engine" }
+turbojev-model = { version = "=0.34.0", path = "../turbojev-model" }
+turbojev-specialized = { version = "=0.34.0", path = "../turbojev-specialized" }
+turbojev-training-data = { version = "=0.34.0", path = "../turbojev-training-data" }
+turbojev-specialized-artifact = { version = "=0.34.0", path = "../turbojev-specialized-artifact" }
+turbojev-specialized-eval = { version = "=0.34.0", path = "../turbojev-specialized-eval" }
+turbojev-prompt = { version = "=0.34.0", path = "../turbojev-prompt" }
+turbojev-projection = { version = "=0.34.0", path = "../turbojev-projection" }
+turbojev-schema = { version = "=0.34.0", path = "../turbojev-schema" }
+turbojev-tokenizer = { version = "=0.34.0", path = "../turbojev-tokenizer" }
+turbojev-wire = { version = "=0.34.0", path = "../turbojev-wire" }
+turbojev-compat = { version = "=0.34.0", path = "../turbojev-compat" }
+turbojev-conformance = { version = "=0.34.0", path = "../turbojev-conformance" }
+turbojev-runtime = { version = "=0.34.0", path = "../turbojev-runtime" }
+turbojev-sequence = { version = "=0.34.0", path = "../turbojev-sequence" }
+turbojev-runtime-conformance = { version = "=0.34.0", path = "../turbojev-runtime-conformance" }
+turbojev-runtime-qualification = { version = "=0.34.0", path = "../turbojev-runtime-qualification" }
+turbojev-runtime-projection = { version = "=0.34.0", path = "../turbojev-runtime-projection" }
 
 [lints]
 workspace = true

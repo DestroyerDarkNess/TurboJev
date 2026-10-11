@@ -24,6 +24,32 @@ $LlamaPlan = Get-Content (Join-Path $Root "tests/e2e/final-plan.json") -Raw | Co
 $LlamaSource = Join-Path $Root ".cache/real-validation/llama.cpp"
 $NativeRuntimeRoot = Join-Path $Root "artifacts/native-runtime"
 $ReleaseVersion = [regex]::Match((Get-Content (Join-Path $Root "Cargo.toml") -Raw), '(?m)^version = "([0-9.]+)"').Groups[1].Value
+$NativeTargets = Get-Content (Join-Path $Root 'scripts/native-targets.json') -Raw | ConvertFrom-Json
+$UnixTargets = @($NativeTargets | Where-Object os -NE 'win32')
+
+function Require-UnixArtifacts {
+    foreach ($target in $UnixTargets) {
+        $directory = Join-Path $Root "artifacts/unix/$($target.rid)"
+        $evidencePath = Join-Path $directory 'build-evidence.json'
+        if (-not (Test-Path -LiteralPath $evidencePath)) {
+            throw "Missing validated $($target.rid) artifacts. Run native-release.yml and download its artifacts before publishing."
+        }
+        $evidence = Get-Content $evidencePath -Raw | ConvertFrom-Json
+        if ($evidence.version -ne $ReleaseVersion -or $evidence.rid -ne $target.rid -or -not $evidence.python_real_smoke_passed) {
+            throw "The $($target.rid) build evidence does not qualify release $ReleaseVersion."
+        }
+        foreach ($name in $evidence.runtime_sha256.PSObject.Properties.Name) {
+            $library = Join-Path $directory "native/$name"
+            if (-not (Test-Path $library) -or (Get-FileHash $library -Algorithm SHA256).Hash.ToLowerInvariant() -ne $evidence.runtime_sha256.$name) {
+                throw "Runtime hash mismatch: $($target.rid)/$name"
+            }
+        }
+        Invoke-Tool 'python' @('scripts/check-native-node-package.py', (Join-Path $directory 'node'))
+        $wheels = @(Get-ChildItem (Join-Path $directory 'wheels') -Filter '*.whl')
+        if ($wheels.Count -ne 1) { throw "Expected one wheel for $($target.rid)." }
+        Invoke-Tool 'python' @('scripts/check-native-python-wheel.py', $wheels[0].FullName)
+    }
+}
 
 function Assert-WorkspacePath {
     param([string]$Path)
@@ -326,6 +352,11 @@ function Publish-Node {
     Invoke-Tool "node" @("tests/e2e/node/real_smoke.mjs", $realModel, $hostAddon)
     Invoke-Tool $NpmCommand @("test") $nodePackage
 
+    foreach ($target in $UnixTargets) {
+        $platformPackage = Join-Path $Root "artifacts/unix/$($target.rid)/node"
+        $platformPackages += $platformPackage
+    }
+
     foreach ($platformPackage in $platformPackages) {
         Publish-NpmPackage $NpmCommand $platformPackage
     }
@@ -419,7 +450,14 @@ function Publish-Python {
         if (-not $packages) {
             throw "No Python wheel was produced"
         }
-        if ($packages.Count -ne $AllArchitectures.Count) { throw "Expected one wheel per architecture" }
+        foreach ($target in $UnixTargets) {
+            $unixOutput = Join-Path $output $target.rid
+            New-Item -ItemType Directory -Force $unixOutput | Out-Null
+            Get-ChildItem (Join-Path $Root "artifacts/unix/$($target.rid)/wheels") -Filter '*.whl' |
+                Copy-Item -Destination $unixOutput -Force
+        }
+        $packages = Get-ChildItem -LiteralPath $output -Filter '*.whl' -File -Recurse
+        if ($packages.Count -ne $NativeTargets.Count) { throw "Expected one wheel per native target" }
         Invoke-Tool $python (@("-m", "twine", "check") + @($packages.FullName))
         $hostWheel = $packages | Where-Object Name -Like '*win_amd64.whl'
         Invoke-Tool $python @('-m', 'pip', 'install', '--force-reinstall', '--no-deps', $hostWheel.FullName)
@@ -467,6 +505,12 @@ function Publish-NuGet {
         Get-ChildItem -LiteralPath $runtimeDirectory -Filter "*.dll" -File | Copy-Item -Destination $ridRoot -Force
     }
 
+    foreach ($target in $UnixTargets) {
+        $ridRoot = Join-Path $nativeRoot $target.rid
+        New-Item -ItemType Directory -Force $ridRoot | Out-Null
+        Get-ChildItem (Join-Path $Root "artifacts/unix/$($target.rid)/native") -File |
+            Copy-Item -Destination $ridRoot -Force
+    }
     Invoke-Tool "dotnet" @("pack", "bindings/dotnet/TurboJev/TurboJev.csproj", "--configuration", "Release", "-p:TurboJevNativeRoot=$nativeRoot", "--output", $output)
 
     $package = Get-ChildItem -LiteralPath $output -Filter "TurboJev.*.nupkg" -File | Select-Object -First 1
@@ -514,6 +558,9 @@ function Confirm-Publish {
 Import-DotEnv (Join-Path $Root ".env")
 
 Invoke-Tool "python" @("scripts/release_preflight.py", "--tag", "v$ReleaseVersion")
+
+# A native release is complete across systems before any package is uploaded.
+if (-not $Target -or $Target -ne 'cargo') { Require-UnixArtifacts }
 
 if (-not (Test-Path -LiteralPath (Join-Path $Root ".env"))) {
     Copy-Item -LiteralPath (Join-Path $Root ".env.example") -Destination (Join-Path $Root ".env")

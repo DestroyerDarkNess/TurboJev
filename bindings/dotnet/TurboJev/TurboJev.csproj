@@ -5,7 +5,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <PackageId>TurboJev</PackageId>
-    <Version>0.33.1</Version>
+    <Version>0.34.0</Version>
     <Authors>TurboJev contributors</Authors>
     <Description>Typed semantic decisions powered by TurboJev.</Description>
     <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
@@ -15,7 +15,7 @@
     <RepositoryUrl>https://github.com/DestroyerDarkNess/TurboJev</RepositoryUrl>
     <PackageProjectUrl>https://github.com/DestroyerDarkNess/TurboJev</PackageProjectUrl>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <RuntimeIdentifiers>win-x86;win-x64;win-arm64</RuntimeIdentifiers>
+    <RuntimeIdentifiers>win-x86;win-x64;win-arm64;linux-x86;linux-x64;linux-arm64;osx-x64;osx-arm64</RuntimeIdentifiers>
   </PropertyGroup>
   <ItemGroup Condition="'$(TargetFramework)' != 'net8.0'">
     <PackageReference Include="System.Text.Json" Version="8.0.6" />
@@ -32,5 +32,10 @@
     <None Include="$(TurboJevNativeRoot)\win-x86\*.dll" Pack="true" PackagePath="runtimes/win-x86/native/" />
     <None Include="$(TurboJevNativeRoot)\win-x64\*.dll" Pack="true" PackagePath="runtimes/win-x64/native/" />
     <None Include="$(TurboJevNativeRoot)\win-arm64\*.dll" Pack="true" PackagePath="runtimes/win-arm64/native/" />
+    <None Include="$(TurboJevNativeRoot)\linux-x86\*.so*" Pack="true" PackagePath="runtimes/linux-x86/native/" />
+    <None Include="$(TurboJevNativeRoot)\linux-x64\*.so*" Pack="true" PackagePath="runtimes/linux-x64/native/" />
+    <None Include="$(TurboJevNativeRoot)\linux-arm64\*.so*" Pack="true" PackagePath="runtimes/linux-arm64/native/" />
+    <None Include="$(TurboJevNativeRoot)\osx-x64\*.dylib" Pack="true" PackagePath="runtimes/osx-x64/native/" />
+    <None Include="$(TurboJevNativeRoot)\osx-arm64\*.dylib" Pack="true" PackagePath="runtimes/osx-arm64/native/" />
   </ItemGroup>
 </Project>

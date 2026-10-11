@@ -8,7 +8,7 @@ import io
 import sys
 import zipfile
 from pathlib import Path
-from native_assets import verify_machine
+from native_assets import architecture, required_runtime, verify_machine, wheel_target
 
 
 def digest(data: bytes) -> str:
@@ -21,19 +21,16 @@ def main() -> None:
         raise SystemExit("usage: bundle-native-wheel.py WHEEL NATIVE_DLL_DIRECTORY")
     wheel = Path(sys.argv[1])
     native = Path(sys.argv[2])
-    architecture = next((arch for tag, arch in (("win32", "x86"), ("win_amd64", "x64"), ("win_arm64", "arm64"))
-                         if wheel.name.endswith(f"-{tag}.whl")), None)
-    if architecture is None:
-        raise SystemExit("Native DLL bundling requires a Windows wheel with a supported architecture tag")
-    dlls = sorted(native.glob("*.dll"))
-    required = {"turbojev_llama_shim.dll", "mtmd.dll", "llama-common.dll", "llama.dll", "ggml.dll", "ggml-base.dll", "ggml-cpu.dll"}
-    if architecture == "x64":
-        required.add("ggml-vulkan.dll")
+    target = wheel_target(wheel.name)
+    arch = architecture(target)
+    dlls = sorted(path for path in native.iterdir() if path.is_file() and
+                  (path.name.endswith((".dll", ".dylib")) or ".so" in path.name))
+    required = required_runtime(target["os"], arch)
     missing = required - {path.name.lower() for path in dlls}
     if missing:
         raise SystemExit(f"Native directory {native} is missing: {', '.join(sorted(missing))}")
     for dll in dlls:
-        verify_machine(dll.read_bytes(), architecture, dll.name)
+        verify_machine(dll.read_bytes(), arch, dll.name)
 
     temporary = wheel.with_suffix(".bundling.whl")
     with zipfile.ZipFile(wheel, "r") as source:
@@ -42,11 +39,11 @@ def main() -> None:
         record_bytes = source.read(record_name)
 
     rows = list(csv.reader(io.StringIO(record_bytes.decode("utf-8"))))
-    extensions = [(item, data) for item, data in entries if item.filename.endswith(".pyd")]
+    extensions = [(item, data) for item, data in entries if item.filename.startswith("turbojev/_native") and item.filename.endswith((".pyd", ".so"))]
     if not extensions:
         raise SystemExit("Wheel is missing its native Python extension")
     for item, data in extensions:
-        verify_machine(data, architecture, item.filename)
+        verify_machine(data, arch, item.filename)
     names = {item.filename for item, _ in entries}
     additions: list[tuple[str, bytes]] = []
     for dll in dlls:
