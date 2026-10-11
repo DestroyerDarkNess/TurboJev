@@ -66,6 +66,13 @@ def main() -> int:
     else:
         require("TurboJev.csproj", match.group(1), expected, errors)
 
+    android_path = "bindings/android/build.gradle.kts"
+    match = re.search(r'(?m)^version\s*=\s*"([^"]+)"', read(android_path))
+    if not match:
+        errors.append(f"{android_path}: module version is missing")
+    else:
+        require(android_path, match.group(1), expected, errors)
+
     if errors:
         print("release preflight failed:")
         print("\n".join(f"- {error}" for error in errors))

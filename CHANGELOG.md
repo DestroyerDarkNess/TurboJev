@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Restore Python 3.9 imports and annotation introspection; verify the packaged stable-ABI extension on CPython 3.9, 3.12 and 3.14, and CPython 3.12 x86.
+- Declare the Node wrapper's actual Node 18+ requirement and retain Node-API 8 compatibility across runtime versions. Validate native package architecture before publication.
+- Correct Android repository configuration, remove a duplicate platform JSON dependency and lower the wrapper minimum to API 24. Align the Android module version with the workspace.
+- Lower the source Swift wrapper's manifest requirements to Swift 5.7, iOS 12 and macOS 10.13; read native open/close errors on their affinity thread and stop that thread on failure. Apple runtime validation remains pending.
+- Reject Python/NuGet CI uploads missing packaged inference libraries and check PE architectures in Windows wheels, npm addons and NuGet assets.
 - Multi-target the .NET SDK for .NET Standard 2.0, .NET Framework 4.8 and .NET 8; keep the same typed SDK and native runtime contracts across targets.
 - Copy packaged native runtime dependencies for .NET Framework and load the directory matching the running process without changing its PATH.
 - Add portable UTF-8 interop, synchronous disposal and context-independent SDK continuations for WinForms/WPF consumers.

@@ -1,9 +1,11 @@
 """Benchmarks report observed timing and negotiated execution, without inventing cache hits."""
 
+from __future__ import annotations
+
 from copy import deepcopy
 import statistics
 import time
-from typing import Any, Mapping
+from typing import Any, Mapping, Optional
 
 
 def benchmark_prefix_cache(
@@ -11,7 +13,7 @@ def benchmark_prefix_cache(
     request: Mapping[str, Any],
     *,
     repeats: int = 3,
-    load_options: Mapping[str, Any] | None = None,
+    load_options: Optional[Mapping[str, Any]] = None,
 ) -> dict[str, Any]:
     """Compare independent reference and shared-prefix evaluation of one multi-question batch.
 

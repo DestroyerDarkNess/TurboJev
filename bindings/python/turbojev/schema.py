@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 import json
-from typing import Any, Mapping
+from typing import Any, Mapping, Optional, Union
 
 MAX_ENUM_CHOICES = 512
 MAX_ARRAY_ITEMS = 50
@@ -26,10 +26,10 @@ class Decision:
     depends_on: tuple[str, ...] = ()
     levels: tuple[str, ...] = ()
     descriptions: tuple[tuple[Any, str], ...] = ()
-    permutations: int | str = 1
+    permutations: Union[int, str] = 1
     return_probabilities: bool = False
-    thinking: bool | str = False
-    thinking_budget: int | None = None
+    thinking: Union[bool, str] = False
+    thinking_budget: Optional[int] = None
     dependency_groups: tuple[tuple[str, ...], ...] = ()
     when: tuple[tuple[str, Any], ...] = ()
 
@@ -43,7 +43,7 @@ class ArrayField:
     items: tuple[Decision, ...]
     item_object: bool
     min_items: int = 0
-    max_items: int | None = None
+    max_items: Optional[int] = None
     continue_from: tuple[Any, ...] = ()
     depends_on: tuple[str, ...] = ()
 
@@ -59,7 +59,7 @@ class Choice:
     question: str
     choices: Mapping[str, str]
     return_probabilities: bool = False
-    permutations: int | str | None = None
+    permutations: Optional[Union[int, str]] = None
 
     def to_schema(self) -> dict[str, Any]:
         schema = {
@@ -81,7 +81,7 @@ class Usage:
     """Reported inference counts. Missing token counts stay unknown."""
 
     decisions: int = 0
-    input_tokens: int | None = None
+    input_tokens: Optional[int] = None
     generated_tokens: int = 0
 
 
@@ -127,7 +127,7 @@ def _decision(description: Mapping[str, Any]) -> Decision:
     )
 
 
-def compile_json_schema(schema: Mapping[str, Any]) -> list[Decision | ArrayField]:
+def compile_json_schema(schema: Mapping[str, Any]) -> list[Union[Decision, ArrayField]]:
     """Compile without loading a model; validation runs exclusively in Rust."""
     from . import NativeEngine, TurboJevError
 
@@ -164,12 +164,12 @@ def compile_json_schema(schema: Mapping[str, Any]) -> list[Decision | ArrayField
 
 def run_schema(
     context: Any = "",
-    schema: Mapping[str, Any] | None = None,
+    schema: Optional[Mapping[str, Any]] = None,
     *,
     model: str,
-    questions: Mapping[str, Any] | None = None,
-    load_options: Mapping[str, Any] | None = None,
-    timeout: float | None = None,
+    questions: Optional[Mapping[str, Any]] = None,
+    load_options: Optional[Mapping[str, Any]] = None,
+    timeout: Optional[float] = None,
     control: Any = None,
     **generation_options: Any,
 ) -> Generation:
@@ -233,7 +233,7 @@ class Dice:
     Permutation averaging reduces label-order bias; it does not force fairness.
     """
 
-    permutations: int | str = "auto"
+    permutations: Union[int, str] = "auto"
     return_probabilities: bool = True
 
     def to_schema(self) -> dict[str, Any]:

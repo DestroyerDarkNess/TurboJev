@@ -3,7 +3,7 @@ import json
 import os
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Literal, Mapping
+from typing import Any, Literal, Mapping, Optional, Union
 
 from .schema import (
     ArrayField,
@@ -69,16 +69,16 @@ class GenerationControl:
 @dataclass(frozen=True)
 class LoadOptions:
     model: str
-    mmproj: str | None = None
+    mmproj: Optional[str] = None
     n_ctx: int = 4096
     n_batch: int = 512
     n_seq_max: int = 8
     n_gpu_layers: int = 0
-    n_threads: int | None = None
-    n_threads_batch: int | None = None
-    device: Literal["cpu", "gpu"] | None = None
-    worker: Mapping[str, Any] | None = None
-    execution: Mapping[str, Any] | None = None
+    n_threads: Optional[int] = None
+    n_threads_batch: Optional[int] = None
+    device: Optional[Literal["cpu", "gpu"]] = None
+    worker: Optional[Mapping[str, Any]] = None
+    execution: Optional[Mapping[str, Any]] = None
     thinking: bool = False
     max_thinking_tokens: int = 512
 
@@ -111,7 +111,7 @@ class TurboJev:
         self._native = native
 
     @classmethod
-    def load(cls, model: str | LoadOptions, **kwargs: Any) -> "TurboJev":
+    def load(cls, model: Union[str, LoadOptions], **kwargs: Any) -> "TurboJev":
         if NativeEngine is None:
             raise TurboJevError(f"TurboJev native extension is unavailable: {_IMPORT_ERROR}")
         options = model if isinstance(model, LoadOptions) else LoadOptions(model=model, **kwargs)
@@ -130,10 +130,10 @@ class TurboJev:
 
     def generate(
         self,
-        request: Mapping[str, Any] | None = None,
+        request: Optional[Mapping[str, Any]] = None,
         *,
-        timeout: float | None = None,
-        control: GenerationControl | None = None,
+        timeout: Optional[float] = None,
+        control: Optional[GenerationControl] = None,
         **kwargs: Any,
     ) -> dict[str, Any]:
         """Generate JSON-typed fields with enums, dependencies, and conditions.
@@ -159,12 +159,12 @@ class TurboJev:
                 print(prompt)
         return response
 
-    def compile_schema(self, schema: Mapping[str, Any]) -> list[Decision | ArrayField]:
+    def compile_schema(self, schema: Mapping[str, Any]) -> list[Union[Decision, ArrayField]]:
         from .schema import compile_json_schema
 
         return compile_json_schema(schema)
 
-    def generate_typed(self, request: Mapping[str, Any] | None = None, **kwargs: Any) -> Generation:
+    def generate_typed(self, request: Optional[Mapping[str, Any]] = None, **kwargs: Any) -> Generation:
         from .schema import Generation
 
         return Generation.from_response(self.generate(request, **kwargs))

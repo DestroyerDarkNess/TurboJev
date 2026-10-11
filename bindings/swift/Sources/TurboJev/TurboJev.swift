@@ -78,11 +78,18 @@ public final class TurboJevEngine {
 
     public init(optionsJSON: String) throws {
         var opened: OpaquePointer?
-        let rc = try dispatcher.sync {
-            optionsJSON.withCString { tj_engine_open_json($0, &opened) }
+        do {
+            try dispatcher.sync {
+                let rc = optionsJSON.withCString { tj_engine_open_json($0, &opened) }
+                // Native diagnostics are thread-local: read them on this worker.
+                try Self.check(rc)
+            }
+        } catch {
+            dispatcher.stop()
+            throw error
         }
-        try Self.check(rc)
         guard let opened else {
+            dispatcher.stop()
             throw TurboJevError.native(
                 code: "turbojev.native.null_handle",
                 message: "TurboJev native engine returned a null handle"
@@ -138,12 +145,13 @@ public final class TurboJevEngine {
         guard let engine = handle else {
             return
         }
-        let rc = try dispatcher.sync {
-            tj_engine_close(engine)
+        defer {
+            handle = nil
+            dispatcher.stop()
         }
-        try Self.check(rc)
-        handle = nil
-        dispatcher.stop()
+        try dispatcher.sync {
+            try Self.check(tj_engine_close(engine))
+        }
     }
 
     private func call(

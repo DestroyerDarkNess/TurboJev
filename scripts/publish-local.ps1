@@ -309,6 +309,7 @@ function Publish-Node {
             main = "turbojev.node"
             os = @("win32")
             cpu = @($nodeArchitecture)
+            engines = $manifest.engines
             license = $manifest.license
             repository = $manifest.repository
         }
@@ -411,6 +412,7 @@ function Publish-Python {
             $wheel = Get-ChildItem -LiteralPath $architectureOutput -Filter "*.whl" | Select-Object -First 1
             if (-not $wheel) { throw "Maturin did not produce a wheel for $architecture." }
             Invoke-Tool $python @("scripts/bundle-native-wheel.py", $wheel.FullName, $runtimeDirectory)
+            Invoke-Tool $python @("scripts/check-native-python-wheel.py", $wheel.FullName)
         }
 
         $packages = Get-ChildItem -LiteralPath $output -Filter "*.whl" -File -Recurse

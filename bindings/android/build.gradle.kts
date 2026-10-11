@@ -4,12 +4,18 @@ plugins {
 }
 
 group = "ai.turbojev"
-version = "0.28.2"
+version = "0.33.0"
 
 android {
     namespace = "ai.turbojev"
     compileSdk = 35
-    defaultConfig { minSdk = 26 }
+    // CompletableFuture is available from Android 7.0 / API 24.
+    defaultConfig { minSdk = 24 }
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_1_8
+        targetCompatibility = JavaVersion.VERSION_1_8
+    }
+    kotlinOptions { jvmTarget = "1.8" }
 }
-repositories { google(); mavenCentral() }
-dependencies { implementation("org.json:json:20240303") }
+// Repositories live in settings.gradle.kts (FAIL_ON_PROJECT_REPOS).
+// org.json is provided by Android; do not bundle a desktop copy.

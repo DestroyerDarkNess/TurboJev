@@ -106,6 +106,9 @@ jobs:
         run: |
           python -m pip install --upgrade pip maturin==1.9.6
           maturin build --release --out dist
+      - name: Require complete native runtime wheel before publishing
+        run: |
+          python -c "import pathlib, subprocess, sys; wheels = list(pathlib.Path('bindings/python/dist').glob('*.whl')); assert wheels, 'No wheels built'; [subprocess.run([sys.executable, 'scripts/check-native-python-wheel.py', str(wheel)], check=True) for wheel in wheels]"
       - name: Publish with PyPI trusted publishing
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
@@ -126,6 +129,9 @@ jobs:
           dotnet-version: "8.0.x"
       - name: Build NuGet package
         run: dotnet pack bindings/dotnet/TurboJev/TurboJev.csproj --configuration Release --output artifacts/nuget
+      - name: Require all managed targets and matching native runtime assets
+        run: |
+          python -c "import pathlib, subprocess, sys; packages = list(pathlib.Path('artifacts/nuget').glob('*.nupkg')); assert packages, 'No NuGet package built'; [subprocess.run([sys.executable, 'scripts/check-native-nuget.py', str(package)], check=True) for package in packages]"
       - name: NuGet login (OIDC to temporary API key)
         uses: NuGet/login@v1
         id: login

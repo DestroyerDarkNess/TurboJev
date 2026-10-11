@@ -30,6 +30,55 @@ Published native 0.33.0 packages cover Windows x86/x64/ARM64. Browser WASM is ar
 
 For native samples, build artifacts for the same architecture as the host compiler/interpreter. The samples builder takes one architecture per run (for example, `--arch x64`); it does not mean “all architectures.” C consumers can start with `cargo build -p turbojev-capi --release`; enable the `llamacpp` feature for a real GGUF C ABI build (`cargo build -p turbojev-capi --release --features llamacpp`). A fixture-only library cannot load a real model.
 
+## Binding compatibility requirements
+
+- **Python:** CPython 3.9+ with the normal GIL-enabled stable ABI (`cp39-abi3`).
+  Wheels have separate Windows x86/x64/ARM64 tags; use the interpreter's
+  architecture. PyPy and free-threaded interpreters are not qualified. The next
+  release fixes a 0.33.0 import failure on Python 3.9 in the benchmark helper and
+  makes public type annotations introspectable there. The corrected x64 wheel
+  was tested on CPython 3.9.13, 3.12.7 and 3.14.0; the published x86 binary
+  passed contract checks on CPython 3.12.10. ARM64 DLL architecture was checked,
+  but ARM64 execution was not tested.
+- **Node:** Node 18+ for the full wrapper, including URL model downloads that
+  use `fetch` and Web Streams. The native addon uses Node-API 8 rather than a
+  Node-major-specific ABI. The same x64 addon passed contract checks on Node
+  18.20.8 and 24.18.0; the x86 addon passed on Node 22.18.0. The package is ESM:
+  use `import`, `.mjs`, or dynamic `import()` from CommonJS. Native ARM64
+  execution remains untested.
+- **TypeScript:** the generated Node/browser declarations were checked with
+  TypeScript 4.7.4 and the repository uses 5.9.2 to build. A modern TypeScript
+  compiler is a build tool requirement, not a different inference ABI. NodeNext
+  consumers should use ESM configuration or `.mts`.
+- **C/C++:** the header uses fixed-width C99 types, opaque pointers and C linkage.
+  C99/C11/C17 and C++11/C++17 consumers passed native calls on Windows x64;
+  MSVC C11 also passed on x86. Build or obtain native libraries matching the
+  application's architecture. The C header and a Windows DLL do not establish
+  support for Apple, Android or Linux native deployment.
+- **Rust:** the workspace declares Rust 1.82 / edition 2021. The locked native
+  binding crates passed `cargo check` with Rust 1.82. GGUF remains an optional
+  runtime feature and requires the shim and its dependencies when linking.
+- **Browser/WASM:** the host needs modern ESM, module workers and WebAssembly.
+  Multithreaded and audio GGUF paths also need cross-origin isolation and
+  `SharedArrayBuffer`; GPU requires WebGPU. Device/backend errors must remain
+  explicit. Browser adapter contract tests do not qualify every browser or GPU.
+- **Android/Kotlin:** the source wrapper now declares API 24+ / Java 8 bytecode;
+  `CompletableFuture` sets that runtime floor. Kotlin 2.0.21 is the repository's
+  build compiler. Supply JNI libraries and model-runtime dependencies for each
+  Android ABI. The wrapper compiled against the Android SDK, but full Gradle
+  validation was blocked by a local JVM loopback error; no device execution was
+  performed. There is no bundled published AAR.
+- **Swift:** the source manifest now requires tools 5.7+, iOS 12+ and macOS
+  10.13+. These are wrapper deployment settings, not promises about the minimum
+  OS of the separately built model runtime or Metal backend. Supply a matching
+  Apple C ABI library and dependencies; no bundled XCFramework is published.
+  Native errors must be read on the thread that performed the call. Compilation
+  and execution of the lower Apple deployment targets remain pending.
+
+New compatibility fixes above are unreleased source changes; the current public
+package remains 0.33.0. Platform package inspection checks DLL architecture and
+dependency presence without pretending to execute ARM64 on an x64 host.
+
 ## Choose the operation
 
 - `evaluate`: `state` plus typed `choice`, `noul` and ordered `score` questions; read `response.answers`.

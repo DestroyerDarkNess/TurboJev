@@ -41,6 +41,19 @@ from turbojev import TurboJev
 from turbojev import LoadOptions
 
 
+def test_public_annotations_resolve_on_oldest_supported_python():
+    from typing import get_type_hints
+
+    from turbojev import benchmark_prefix_cache, compile_json_schema
+    from turbojev.schema import ArrayField, Choice, Decision, Usage
+
+    assert get_type_hints(LoadOptions)["model"] is str
+    for public_type in (ArrayField, Choice, Decision, Usage):
+        assert get_type_hints(public_type)
+    for operation in (TurboJev.generate, compile_json_schema, benchmark_prefix_cache):
+        assert get_type_hints(operation)
+
+
 def test_worker_configuration_reaches_native_load():
     worker = {"program": "python", "args": ["scorer.py"]}
     assert (
