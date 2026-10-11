@@ -43,6 +43,7 @@ def native(args):
     targets = {
         ("win", "x64"): "x86_64-pc-windows-msvc",
         ("win", "x86"): "i686-pc-windows-msvc",
+        ("win", "arm64"): "aarch64-pc-windows-msvc",
         ("linux", "x64"): "x86_64-unknown-linux-gnu",
         ("linux", "x86"): "i686-unknown-linux-gnu",
         ("linux", "arm64"): "aarch64-unknown-linux-gnu",
@@ -85,7 +86,7 @@ def native(args):
     )
     flags = ["-DCMAKE_BUILD_TYPE=Release", "-DGGML_OPENMP=OFF", f"-DLLAMA_CPP_SOURCE_DIR={source}"]
     if system == "win" and not args.native_build:
-        flags += ["-A", "Win32" if arch == "x86" else "x64"]
+        flags += ["-A", {"x86": "Win32", "x64": "x64", "arm64": "ARM64"}[arch]]
     elif system != "win" and arch == "x86":
         flags += ["-DCMAKE_C_FLAGS=-m32", "-DCMAKE_CXX_FLAGS=-m32"]
     run("cmake", "-S", ROOT / "crates/turbojev-runtime-llamacpp/native", "-B", build, *flags)
@@ -107,6 +108,9 @@ def native(args):
     env = os.environ.copy()
     env["TURBOJEV_LLAMA_SHIM_LIB_DIR"] = str(stage)
     env["PYO3_PYTHON"] = sys.executable
+    if system != "win":
+        loader = "@loader_path" if system == "osx" else "$ORIGIN"
+        env["RUSTFLAGS"] = f"{env.get('RUSTFLAGS', '')} -C link-arg=-Wl,-rpath,{loader}".strip()
     run("rustup", "target", "add", target)
     profile = [] if args.debug else ["--release"]
     rust_host = (
@@ -147,9 +151,9 @@ def native(args):
         output / f"{prefix}_native{suffix}",
         py / ("_native.pyd" if system == "win" else "_native.abi3.so"),
     )
-    if system == "win":
-        for dll in stage.glob("*.dll"):
-            shutil.copy2(dll, py)
+    for pattern in ("*.dll", "*.so", "*.so.*", "*.dylib"):
+        for library in stage.glob(pattern):
+            shutil.copy2(library, py)
     shutil.copy2(
         output / ("turbojev-rust-sample.exe" if system == "win" else "turbojev-rust-sample"), stage
     )

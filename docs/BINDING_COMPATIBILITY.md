@@ -1,5 +1,12 @@
 # Binding compatibility
 
+Native release 0.34.0 adds Windows/Linux x86/x64/ARM64 and macOS x64/ARM64
+packages. Linux requires glibc 2.28+ and macOS requires 11+. See
+[native releases](NATIVE_RELEASES.md) for the complete package matrix, local
+build commands and the distinction between execution and cross-build checks.
+Android/iOS remain source integrations. The earlier 0.33.1 binding audit below
+is retained as historical evidence rather than relabeled as a new test run.
+
 This audit records the binding fixes and compatibility checks released in
 0.33.1. A source wrapper, matching native binaries and a compatible model
 runtime are separate deployment requirements.

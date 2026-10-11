@@ -100,10 +100,27 @@ def main():
     wheel = wheel_files[0]
     run(sys.executable, "scripts/bundle-native-wheel.py", wheel, native)
     run(sys.executable, "scripts/check-native-python-wheel.py", wheel)
+    for path in native.iterdir():
+        verify_machine(path.read_bytes(), arch, path.name)
+        if target["os"] == "darwin":
+            linked = subprocess.check_output(["otool", "-L", str(path)], text=True)
+            for line in linked.splitlines()[1:]:
+                dependency = line.strip().split(" (", 1)[0]
+                if dependency.startswith(("/System/Library/", "/usr/lib/")):
+                    continue
+                if not dependency.startswith(("@rpath/", "@loader_path/")):
+                    raise SystemExit(f"{path.name}: non-relocatable dependency {dependency}")
+                if Path(dependency).name not in {entry.name for entry in native.iterdir()}:
+                    raise SystemExit(f"{path.name}: unbundled dependency {dependency}")
     if target["os"] == "linux":
         # auditwheel refuses a false manylinux tag when symbol versions exceed its floor.
         run(sys.executable, "-m", "auditwheel", "show", wheel)
         run(sys.executable, "scripts/check-elf-dependencies.py", native)
+    # Hide every original CMake dependency and remove loader environment overrides.
+    # The installed wheel and Node package must find only their own sibling libraries.
+    shutil.move(str(build), str(output / "cmake-hidden"))
+    os.environ.pop("LD_LIBRARY_PATH", None)
+    os.environ.pop("DYLD_LIBRARY_PATH", None)
     run(sys.executable, "-m", "pip", "install", "--force-reinstall", "--no-deps", wheel)
     run(sys.executable, "scripts/smoke-python-package.py")
     run(sys.executable, "scripts/download_model.py", "--plan", "tests/e2e/final-plan.json")

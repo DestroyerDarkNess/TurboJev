@@ -22,7 +22,8 @@ def main() -> int:
     for folder in ("build", "buildtransitive"):
         if f"{folder}/turbojev.targets" not in files:
             errors.append(f"{folder}: missing .NET Framework native asset deployment targets")
-    for target in targets():
+    selected = [target for target in targets() if '--windows-only' not in sys.argv or target['os'] == 'win32']
+    for target in selected:
         rid = target["rid"]
         prefix = f"runtimes/{rid}/native/"
         runtime_dlls = {Path(name).name for name in files if name.startswith(prefix)}

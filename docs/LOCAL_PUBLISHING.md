@@ -19,15 +19,16 @@ GitHub trusted-publisher configurations alone do not authenticate local uploads.
 
 ## Packages and architectures
 
-- npm publishes the web binding and browser runtime adapters once, then Windows
-  native Node packages for ia32, x64, and arm64 and the Node wrapper. Browser
+- npm publishes the web binding and browser runtime adapters once, then eight
+  native Node packages for Windows/Linux ia32/x64/arm64 and macOS x64/arm64,
+  followed by the Node wrapper. Browser
   demos load the published llama.cpp runtime from jsDelivr; they do not copy it
   from the repository source.
-- PyPI publishes three Windows wheels: x86, x64, and ARM64, using the CPython
+- PyPI publishes eight Windows/Linux/macOS wheels using the CPython
   stable ABI (Python 3.9+). Publishing tools use `artifacts/publish-tools` so they
   do not modify globally installed Python packages.
-- NuGet publishes one package containing native Windows runtime assets for
-  win-x86, win-x64, and win-arm64, plus managed assemblies for `netstandard2.0`,
+- NuGet publishes one package containing all eight desktop runtime directories
+  from `scripts/native-targets.json`, plus managed assemblies for `netstandard2.0`,
   `net48` and `net8.0`. These managed compatibility targets are included starting
   in version 0.33.1.
 - crates.io publishes source packages once. The facade's internal dependencies
@@ -36,12 +37,15 @@ GitHub trusted-publisher configurations alone do not authenticate local uploads.
 The publisher builds the pinned llama.cpp revision once per Windows target and
 enables the `llamacpp` feature for each native binding. The shim and llama.cpp
 runtime DLLs are bundled in npm packages, Python wheels, and NuGet runtime
-folders. This Windows matrix does not produce Linux or macOS binaries and does
-does not execute ARM64 binaries on an x64 host. The .NET compatibility gate also
+folders. Prepare Linux/macOS artifacts first using the local commands in
+[NATIVE_RELEASES.md](NATIVE_RELEASES.md). The publisher requires their evidence
+and validates hashes before upload. `-BuildOnly` builds the Windows/browser
+artifacts without uploading and can run before Unix artifacts are ready.
+Cross-compilation does not execute ARM64 binaries on an x64 host. The .NET compatibility gate also
 executes the Framework consumer as x86 on Windows x64.
 
 Before uploading NuGet, the publisher installs the actual packed artifact into
-isolated consumers targeting Framework 4.8, .NET Core 3.1 and .NET 5–10.
+isolated consumers targeting Framework 4.8, .NET Core 3.1 and .NET 5â€“10.
 It compiles every target, executes those with an installed runtime, and tests
 real GGUF inference in Framework 4.8, Core 3.1 and .NET 8. Missing legacy
 runtimes are reported as compile-only coverage. .NET 8 must be installed for
@@ -74,8 +78,8 @@ python scripts/verify-published-release.py --registry npm --version 0.30.1
 ```
 
 The verifier uses public registry endpoints without credentials. It checks all
-eight npm packages, the complete published Cargo dependency closure, all three
-Windows Python wheel architectures, and NuGet's published checksum. When local
+thirteen npm packages, the complete published Cargo dependency closure, all eight
+Python wheel platforms, and NuGet's published checksum. When local
 release artifacts are present, it also compares wheel hashes and checks the
-NuGet package's native assets for x86, x64 and ARM64. Its JSON report is saved
+NuGet package's native assets across all eight runtime directories. Its JSON report is saved
 under `artifacts/`; missing or unavailable packages make it fail.

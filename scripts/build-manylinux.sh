@@ -4,6 +4,8 @@ set -euo pipefail
 : "${RID:?RID must select a Linux release target}"
 export PATH="/opt/python/cp312-cp312/bin:$HOME/.cargo/bin:$PATH"
 export CARGO_CACHE_AUTO_CLEAN_FREQUENCY=never
+git config --global --add safe.directory /work
+git config --global --add safe.directory /work/.cache/real-validation/llama.cpp
 python -m pip install maturin==1.9.6 cmake ninja auditwheel
 if ! command -v cargo >/dev/null; then
   curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs |

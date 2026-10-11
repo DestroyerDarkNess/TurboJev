@@ -1,7 +1,8 @@
 [CmdletBinding()]
 param(
     [ValidateSet('npm', 'python', 'nuget', 'cargo', 'all')][string]$Target,
-    [switch]$Yes
+    [switch]$Yes,
+    [switch]$BuildOnly
 )
 
 $ErrorActionPreference = "Stop"
@@ -32,10 +33,11 @@ function Require-UnixArtifacts {
         $directory = Join-Path $Root "artifacts/unix/$($target.rid)"
         $evidencePath = Join-Path $directory 'build-evidence.json'
         if (-not (Test-Path -LiteralPath $evidencePath)) {
-            throw "Missing validated $($target.rid) artifacts. Run native-release.yml and download its artifacts before publishing."
+            throw "Missing validated $($target.rid) artifacts. Build Linux with build-manylinux.sh and macOS with build-native-unix.py or cross-build-macos.sh before publishing."
         }
         $evidence = Get-Content $evidencePath -Raw | ConvertFrom-Json
-        if ($evidence.version -ne $ReleaseVersion -or $evidence.rid -ne $target.rid -or -not $evidence.python_real_smoke_passed) {
+        $validated = $evidence.python_real_smoke_passed -or ($target.os -eq 'darwin' -and $evidence.cross_compiled -and $evidence.link_checks_passed)
+        if ($evidence.version -ne $ReleaseVersion -or $evidence.rid -ne $target.rid -or -not $validated) {
             throw "The $($target.rid) build evidence does not qualify release $ReleaseVersion."
         }
         foreach ($name in $evidence.runtime_sha256.PSObject.Properties.Name) {
@@ -249,6 +251,10 @@ function Build-NativeRuntime {
 
 function Publish-NpmPackage {
     param([string]$NpmCommand, [string]$PackagePath)
+    if ($BuildOnly) {
+        Invoke-Tool $NpmCommand @('pack', '--dry-run') $PackagePath
+        return
+    }
     $manifest = Get-Content -Raw (Join-Path $PackagePath 'package.json') | ConvertFrom-Json
     $packageVersion = "$($manifest.name)@$($manifest.version)"
     $publishedVersion = & $NpmCommand view $packageVersion version --prefer-online 2>$null
@@ -354,6 +360,7 @@ function Publish-Node {
 
     foreach ($target in $UnixTargets) {
         $platformPackage = Join-Path $Root "artifacts/unix/$($target.rid)/node"
+        if ($BuildOnly -and -not (Test-Path $platformPackage)) { continue }
         $platformPackages += $platformPackage
     }
 
@@ -451,13 +458,14 @@ function Publish-Python {
             throw "No Python wheel was produced"
         }
         foreach ($target in $UnixTargets) {
+            if ($BuildOnly -and -not (Test-Path (Join-Path $Root "artifacts/unix/$($target.rid)/wheels"))) { continue }
             $unixOutput = Join-Path $output $target.rid
             New-Item -ItemType Directory -Force $unixOutput | Out-Null
             Get-ChildItem (Join-Path $Root "artifacts/unix/$($target.rid)/wheels") -Filter '*.whl' |
                 Copy-Item -Destination $unixOutput -Force
         }
         $packages = Get-ChildItem -LiteralPath $output -Filter '*.whl' -File -Recurse
-        if ($packages.Count -ne $NativeTargets.Count) { throw "Expected one wheel per native target" }
+        if (-not $BuildOnly -and $packages.Count -ne $NativeTargets.Count) { throw "Expected one wheel per native target" }
         Invoke-Tool $python (@("-m", "twine", "check") + @($packages.FullName))
         $hostWheel = $packages | Where-Object Name -Like '*win_amd64.whl'
         Invoke-Tool $python @('-m', 'pip', 'install', '--force-reinstall', '--no-deps', $hostWheel.FullName)
@@ -467,7 +475,7 @@ function Publish-Python {
             Invoke-Tool $python @("scripts/download_model.py", "--plan", "tests/e2e/final-plan.json")
         }
         Invoke-Tool $python @("tests/e2e/python/real_smoke.py", $realModel, "--report", (Join-Path $output "real-smoke.json"))
-        Invoke-Tool $python (@("-m", "twine", "upload", "--non-interactive", "--skip-existing") + @($packages.FullName))
+        if (-not $BuildOnly) { Invoke-Tool $python (@("-m", "twine", "upload", "--non-interactive", "--skip-existing") + @($packages.FullName)) }
     }
     finally {
         $env:PYO3_CONFIG_FILE = $previousPyConfig
@@ -506,6 +514,7 @@ function Publish-NuGet {
     }
 
     foreach ($target in $UnixTargets) {
+        if ($BuildOnly -and -not (Test-Path (Join-Path $Root "artifacts/unix/$($target.rid)/native"))) { continue }
         $ridRoot = Join-Path $nativeRoot $target.rid
         New-Item -ItemType Directory -Force $ridRoot | Out-Null
         Get-ChildItem (Join-Path $Root "artifacts/unix/$($target.rid)/native") -File |
@@ -515,7 +524,9 @@ function Publish-NuGet {
 
     $package = Get-ChildItem -LiteralPath $output -Filter "TurboJev.*.nupkg" -File | Select-Object -First 1
     if (-not $package) { throw "NuGet package was not created." }
-    Invoke-Tool "python" @("scripts/check-native-nuget.py", $package.FullName)
+    $checkArgs = @("scripts/check-native-nuget.py", $package.FullName)
+    if ($BuildOnly) { $checkArgs += '--windows-only' }
+    Invoke-Tool "python" $checkArgs
     $realModel = Join-Path $Root ".cache/real-validation/$($LlamaPlan.model.filename)"
     if (-not (Test-Path -LiteralPath $realModel)) {
         Invoke-Tool "python" @("scripts/download_model.py", "--plan", "tests/e2e/final-plan.json")
@@ -524,6 +535,7 @@ function Publish-NuGet {
     Invoke-Tool "pwsh" @("-NoProfile", "-File", "scripts/smoke-dotnet-compat.ps1", "-PackagePath", $package.FullName, "-ModelPath", $realModel)
 
     foreach ($package in Get-ChildItem -LiteralPath $output -Filter "*.nupkg") {
+        if ($BuildOnly) { continue }
         $arguments = @("nuget", "push", $package.FullName, "--api-key", $env:NUGET_API_KEY, "--source", "https://api.nuget.org/v3/index.json", "--skip-duplicate")
         $display = @("nuget", "push", $package.FullName, "--api-key", "***", "--source", "https://api.nuget.org/v3/index.json", "--skip-duplicate")
         Invoke-Tool -Command "dotnet" -Arguments $arguments -DisplayArguments $display
@@ -531,6 +543,7 @@ function Publish-NuGet {
 }
 
 function Publish-Cargo {
+    if ($BuildOnly) { return }
     Require-Value "CARGO_REGISTRY_TOKEN" | Out-Null
     $previousToken = $env:CARGO_REGISTRIES_CRATES_IO_TOKEN
     $env:CARGO_REGISTRIES_CRATES_IO_TOKEN = $env:CARGO_REGISTRY_TOKEN
@@ -560,7 +573,7 @@ Import-DotEnv (Join-Path $Root ".env")
 Invoke-Tool "python" @("scripts/release_preflight.py", "--tag", "v$ReleaseVersion")
 
 # A native release is complete across systems before any package is uploaded.
-if (-not $Target -or $Target -ne 'cargo') { Require-UnixArtifacts }
+if (-not $BuildOnly -and (-not $Target -or $Target -ne 'cargo')) { Require-UnixArtifacts }
 
 if (-not (Test-Path -LiteralPath (Join-Path $Root ".env"))) {
     Copy-Item -LiteralPath (Join-Path $Root ".env.example") -Destination (Join-Path $Root ".env")

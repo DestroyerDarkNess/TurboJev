@@ -14,6 +14,8 @@ from urllib.request import Request, urlopen
 from urllib.parse import quote
 import zipfile
 
+from native_assets import node_package, required_runtime, architecture, targets
+
 ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -29,8 +31,8 @@ def verify_npm(name, version):
     assert data["name"] == name and data["version"] == version
     assert data["dist"]["integrity"].startswith("sha512-")
     if name == "@turbojev/node":
-        for arch in ("ia32", "x64", "arm64"):
-            assert data["optionalDependencies"][f"@turbojev/node-win32-{arch}"] == version
+        for target in targets():
+            assert data["optionalDependencies"][node_package(target)] == version
     return {"name": name, "version": version, "integrity": data["dist"]["integrity"]}
 
 
@@ -44,7 +46,7 @@ def verify_python(version):
     data = fetch(f"https://pypi.org/pypi/turbojev/{version}/json")
     assert data["info"]["version"] == version
     wheels = [entry for entry in data["urls"] if entry["packagetype"] == "bdist_wheel" and not entry["yanked"]]
-    for platform in ("win32", "win_amd64", "win_arm64"):
+    for platform in (target["wheel"] for target in targets()):
         entries = [entry for entry in wheels if entry["filename"].endswith(f"-{platform}.whl")]
         assert len(entries) == 1, (platform, entries)
         entry = entries[0]
@@ -75,12 +77,15 @@ def verify_nuget(version):
                     assert archive.read(name) == original.read(name), f"NuGet payload differs: {name}"
         native_hashes = {
             name: hashlib.sha256(archive.read(name)).hexdigest()
-            for name in names if name.startswith("runtimes/") and name.endswith(".dll")
+            for name in names if name.startswith("runtimes/") and "/native/" in name
         }
-    assets = ["win-x86", "win-x64", "win-arm64"]
-    for rid in assets:
-        for library in ("turbojev_capi.dll", "turbojev_llama_shim.dll", "mtmd.dll", "llama.dll"):
-            assert f"runtimes/{rid}/native/{library}" in names, (rid, library)
+    assets = [target["rid"] for target in targets()]
+    for target in targets():
+        suffix = ".dll" if target["os"] == "win32" else ".dylib" if target["os"] == "darwin" else ".so"
+        prefix = "" if target["os"] == "win32" else "lib"
+        libraries = required_runtime(target["os"], architecture(target)) | {prefix + "turbojev_capi" + suffix}
+        for library in libraries:
+            assert f"runtimes/{target['rid']}/native/{library}" in names, (target["rid"], library)
     return {"name": "TurboJev", "version": version, "sha512": expected,
             "repository_signature_present": ".signature.p7s" in names,
             "payload_matches_local": True if local.exists() else None,
@@ -96,7 +101,7 @@ def main():
     jobs = []
     if args.registry in ("all", "npm"):
         names = ["@turbojev/wasm", "@turbojev/web", "@turbojev/runtime-transformersjs", "@turbojev/runtime-llamacpp-wasm", "@turbojev/node"]
-        names += [f"@turbojev/node-win32-{arch}" for arch in ("ia32", "x64", "arm64")]
+        names += [node_package(target) for target in targets()]
         jobs += [("npm", name, lambda name=name: verify_npm(name, args.version)) for name in names]
     if args.registry in ("all", "python"):
         jobs.append(("python", "turbojev", lambda: verify_python(args.version)))

@@ -11,7 +11,8 @@
 </p>
 
 <p align="center">
-  Native Windows packages for <strong>x86 · x64 · ARM64</strong><br>
+  Native packages for <strong>Windows · Linux · macOS</strong><br>
+  Windows / Linux: x86 · x64 · ARM64 · macOS: Intel · Apple Silicon<br>
   Portable Rust core · Browser WebAssembly · CPU and supported GPU runtimes
 </p>
 
@@ -65,9 +66,17 @@ Choose your language and runtime while keeping the same decision semantics.
 | **Rust** | [crates.io](https://crates.io/crates/turbojev) | `cargo add turbojev` |
 | **Browser** | [npm / CDN](https://www.npmjs.com/package/@turbojev/web) | `npm install @turbojev/web @turbojev/wasm @turbojev/runtime-llamacpp-wasm` |
 
-Published native packages include Windows x86, x64 and ARM64 libraries. Use a
-package matching your process architecture. Rust source and browser WASM are
-portable; native Linux/macOS packages are not currently published.
+Native packages include the model runtime and its library dependencies:
+
+| Platform | Architectures | Requirement |
+| --- | --- | --- |
+| Windows | x86, x64, ARM64 | Matching process architecture |
+| Linux | x86, x64, ARM64 | glibc 2.28+; Alpine/musl needs a source build |
+| macOS | x64, ARM64 | macOS 11+; Intel or Apple Silicon |
+
+Python and npm select the native package for the running interpreter. NuGet
+contains all eight runtime directories. Browser WebAssembly is architecture
+independent. Android and iOS integrations are available as source.
 
 The Rust core does not load models on its own. Add
 `turbojev-runtime-llamacpp` with its `ffi` feature and provide the matching native
@@ -313,8 +322,8 @@ Loading a GGUF does not reproduce a specialized model's custom head, scorer or
 training prompt automatically.
 
 CPU is the default. Explicit GPU selection reports an error if the requested
-backend/device is unavailable. The Windows x64 package includes Vulkan support;
-the published x86 and ARM64 native builds are CPU-only. Browser applications can
+backend/device is unavailable. Windows x64 includes Vulkan and macOS includes
+Metal. Windows x86/ARM64 and Linux packages use CPU inference. Browser applications can
 choose GGUF through llama.cpp/WASM or supported ONNX through Transformers.js,
 with explicit WebGPU selection where supported.
 
@@ -334,9 +343,10 @@ cooperative between model operations. Failed generation retains known usage.
 - [Evaluations](evals/README.md): reproducible task sets and real-model runs.
 - [Testing](docs/TESTING.md): contracts, fixtures and validation limits.
 
-Published assets and actual inference are different checks. Windows x86/x64/ARM64
-assets were verified; real-model execution was checked on Windows x64. Those
-results do not establish accuracy for every model, modality or architecture.
+Published assets and actual inference are different checks. See the
+[native release matrix](docs/NATIVE_RELEASES.md) for build commands, package
+contents and execution evidence. Cross-compilation is not a hardware execution
+test, and a package release does not establish accuracy for every model.
 
 ## License
 

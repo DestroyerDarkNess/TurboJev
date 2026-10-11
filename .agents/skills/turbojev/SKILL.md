@@ -5,7 +5,7 @@ description: Use when installing, integrating, designing decisions for, or troub
 
 # TurboJev
 
-Help build applications with TurboJev's typed decision and structured workflow APIs. This guide describes the 0.33.1 published SDK: `evaluate`, `generate`, balanced choice ordering, field dependencies, conditional omission, probability wrappers and bounded reasoning. Use the repository's current source and docs as the authority: package versions, platform assets, and runtime capabilities change. Do not repeat old README version numbers or claim validation that has not been run.
+Help build applications with TurboJev's typed decision and structured workflow APIs. This guide describes the 0.34.0 published SDK: `evaluate`, `generate`, balanced choice ordering, field dependencies, conditional omission, probability wrappers and bounded reasoning. Use the repository's current source and docs as the authority: package versions, platform assets, and runtime capabilities change. Do not repeat old README version numbers or claim validation that has not been run.
 
 This skill is self-contained: installation, contracts, options and limitations are included below. No external Markdown is required to follow it.
 
@@ -15,7 +15,7 @@ Identify the host language, target OS/architecture, model format, and intended i
 
 ## Install by language
 
-Published native 0.33.1 packages cover Windows x86/x64/ARM64. Browser WASM is architecture independent; Rust source can target other platforms with a compatible toolchain. This is not evidence of native Linux/macOS packages or testing on every architecture. Check release assets before promising other availability. These packages expose TurboJev's typed-decision API; they do not all include the same model runtime.
+Native 0.34.0 packages cover Windows and Linux x86/x64/ARM64, plus macOS x64/ARM64. Linux requires glibc 2.28+ (Alpine/musl requires a source build); macOS requires 11+. Browser WASM is architecture independent. NuGet bundles all eight runtime directories; pip and npm select the running interpreter architecture. macOS artifacts are cross-compiled and link-checked, without claiming Mac execution. Android/iOS remain source integrations. These packages expose TurboJev's typed-decision API; they do not all include the same model runtime.
 
 | Host                            | Install                                                                                               | What it provides                                                                                 |
 | ------------------------------- | ----------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
@@ -33,8 +33,8 @@ For native samples, build artifacts for the same architecture as the host compil
 ## Binding compatibility requirements
 
 - **Python:** CPython 3.9+ with the normal GIL-enabled stable ABI (`cp39-abi3`).
-  Wheels have separate Windows x86/x64/ARM64 tags; use the interpreter's
-  architecture. PyPy and free-threaded interpreters are not qualified. Version 0.33.1 fixes the 0.33.0 import failure on Python 3.9 in the benchmark helper and
+  Wheels have separate Windows/Linux x86/x64/ARM64 and macOS x64/ARM64 tags; use the interpreter's
+  architecture. PyPy and free-threaded interpreters are not qualified. Version 0.33.1 fixed the 0.33.0 import failure on Python 3.9 in the benchmark helper and
   makes public type annotations introspectable there. The corrected x64 wheel
   was tested on CPython 3.9.13, 3.12.7 and 3.14.0; the published x86 binary
   passed contract checks on CPython 3.12.10. ARM64 DLL architecture was checked,
@@ -52,8 +52,8 @@ For native samples, build artifacts for the same architecture as the host compil
 - **C/C++:** the header uses fixed-width C99 types, opaque pointers and C linkage.
   C99/C11/C17 and C++11/C++17 consumers passed native calls on Windows x64;
   MSVC C11 also passed on x86. Build or obtain native libraries matching the
-  application's architecture. The C header and a Windows DLL do not establish
-  support for Apple, Android or Linux native deployment.
+  application's architecture. The matching NuGet runtime directory supplies desktop C ABI libraries and
+  their dependencies for Windows, Linux and macOS. Android/iOS need dedicated builds.
 - **Rust:** the workspace declares Rust 1.82 / edition 2021. The locked native
   binding crates passed `cargo check` with Rust 1.82. GGUF remains an optional
   runtime feature and requires the shim and its dependencies when linking.
@@ -68,14 +68,14 @@ For native samples, build artifacts for the same architecture as the host compil
   validation was blocked by a local JVM loopback error; no device execution was
   performed. There is no bundled published AAR.
 - **Swift:** the source manifest now requires tools 5.7+, iOS 12+ and macOS
-  10.13+. Swift Package Manager can resolve the v0.33.1 Git tag. These are
+  10.13+. Swift Package Manager can resolve the v0.34.0 Git tag. These are
   wrapper deployment settings, not promises about the separately built model
   runtime or Metal backend. Supply a matching Apple C ABI library; no bundled
   XCFramework is published.
   Native errors must be read on the thread that performed the call. Compilation
   and execution of the lower Apple deployment targets remain pending.
 
-Compatibility fixes above are included in published 0.33.1. The v0.33.1 Git tag
+Compatibility fixes above are included in published 0.34.0. The v0.34.0 Git tag
 provides the source package for Swift Package Manager and the Android module.
 Windows ARM64 binaries were cross-compiled and checked, not executed on ARM64.
 
@@ -138,7 +138,7 @@ For model-controlled games, disclose whether the state is raw coordinates or der
 ## Choose the right runtime
 
 - **Native text inference:** use the llama.cpp adapter for GGUF models it can load. CPU is the normal default. GPU is opt-in; an unsupported GPU request should surface the runtime error, not silently change devices.
-- **Published GPU assets:** the Windows x64 native package includes Vulkan support; published x86 and ARM64 native builds are CPU-only. Architecture coverage does not imply GPU coverage on every target.
+- **Published GPU assets:** Windows x64 includes Vulkan; macOS x64/ARM64 include Metal with embedded kernels. Linux and Windows x86/ARM64 packages use CPU inference. Explicit GPU selection does not silently fall back to CPU. Architecture coverage does not imply GPU coverage on every target.
 - **Node/TypeScript, Python, C, and .NET:** these bindings expose the shared native host. Their package or binary must match the target OS, CPU architecture, and language ABI. Check actual release assets before promising x86, x64, or ARM64 support.
 - **Rust:** compose the core crate with the runtime adapter the application selects; adding the core crate alone does not provide GGUF inference.
 - **Browser/WASM:** choose a supported browser runtime, such as Transformers.js with ONNX or the llama.cpp WASM path with compatible GGUF. Browser hardware, memory, model-format, tokenizer, and template constraints apply.
@@ -322,7 +322,7 @@ Default `generate` thinking is false, independently of the load-time policy used
 | Transformers.js text           | Token logits                | Bounded greedy generation, validated afterward; no grammar mask | Explicit unsupported error                                     |
 | Existing custom scorer/fixture | Finite scoring              | Requires implementing `infer_field` / `inferField`              | Requires that hook                                             |
 
-Native and browser GGUF field generation accept the existing image/audio/video-frame envelope when the loaded model and matching projector support the modality. That is not a promise of receipt-reading accuracy. Native media reasoning is explicitly unsupported. Video inputs are decoded, timestamped image frames; TurboJev does not decode video containers or invoke external media executables. Current published native binaries cover Windows x86/x64/ARM64; portable source and WASM support do not imply Linux/macOS binary releases or execution on every architecture.
+Native and browser GGUF field generation accept the existing image/audio/video-frame envelope when the loaded model and matching projector support the modality. That is not a promise of receipt-reading accuracy. Native media reasoning is explicitly unsupported. Video inputs are decoded, timestamped image frames; TurboJev does not decode video containers or invoke external media executables. Native binaries cover Windows/Linux x86/x64/ARM64 and macOS x64/ARM64. Architecture checks and cross-compilation are not execution tests; macOS GPU execution remains unverified.
 
 `usage.decisions` counts completed output fields, not hidden effort queries or permutation evaluations. `input_tokens` sums known actual model counts; `generated_tokens` counts actual generated reasoning/value tokens. `thinking` contains actual model reasoning where supported. Increase context and reduce `nSeqMax` for longer reasoning. Unsupported modes, context overflow and unfinished reasoning return errors; no fallback answer is fabricated.
 
@@ -367,7 +367,7 @@ The recorded 0.31.0 Windows x64 Qwen3-0.6B Q4_K_M CPU probe passed 18/18 routing
 
 ## Structured SDK features carried forward from 0.33.0
 
-These features remain included in published 0.33.1. Install matching package versions across
+These features remain included in published 0.34.0. Install matching package versions across
 the host, runtime and WASM core. Standalone demos must use registry/CDN packages.
 
 ### Nested objects and scoped dependencies
@@ -675,7 +675,7 @@ definitions are inline. No external documentation or shared demo module is neede
 ### Installation and model prerequisites
 
 Install the latest release when starting an application; lock the resolved version
-for reproducibility. The examples below target published API version 0.33.1.
+for reproducibility. The examples below target published API version 0.34.0.
 
 ```sh
 # Python
@@ -688,7 +688,9 @@ npm install --save-dev typescript @types/node
 
 # .NET; choose the RuntimeIdentifier matching the running process.
 dotnet add package TurboJev
-# Windows targets: win-x86, win-x64, win-arm64.
+# Windows: win-x86, win-x64, win-arm64.
+# Linux (glibc 2.28+): linux-x86, linux-x64, linux-arm64.
+# macOS 11+: osx-x64, osx-arm64. Host runtime support still applies.
 
 # Rust: core plus optional concrete GGUF runtime.
 cargo add turbojev turbojev-runtime-llamacpp --features turbojev-runtime-llamacpp/ffi
@@ -703,13 +705,15 @@ npm install @turbojev/runtime-transformersjs@latest @huggingface/transformers
 Rust's `ffi` feature needs the matching `turbojev_llama_shim` library at final
 linking. Set `TURBOJEV_LLAMA_SHIM_LIB_DIR` to its library directory and deploy its
 runtime dependencies together. `cargo check` alone does not prove final linking.
-Published Windows native assets can be obtained from the matching NuGet package;
+Published Windows, Linux and macOS native assets can be obtained from the matching NuGet package;
 they are not downloaded automatically by `cargo add`.
 
 C has no separate package-manager installer: include `turbojev.h`, link
 `turbojev_capi`, and deploy the matching native dependency set. For a source build,
-build the llama.cpp shim first and enable `llamacpp` in `turbojev-capi`. Windows
-consumers can use the matching published NuGet native directory instead.
+build the llama.cpp shim first and enable `llamacpp` in `turbojev-capi`. Desktop
+consumers can use the matching published NuGet native directory instead. On
+Linux deploy all sibling `.so`/SONAME aliases; on macOS deploy all sibling
+`.dylib` files. Their `$ORIGIN`/`@loader_path` paths preserve relocation.
 
 Android is a source Gradle module, not a published Maven dependency. Include it
 in `settings.gradle.kts` and depend on it in the app:
@@ -1241,7 +1245,7 @@ try {
 For vanilla HTML, create a same-origin `worker-bootstrap.js` containing only:
 
 ```javascript
-import "https://cdn.jsdelivr.net/npm/@turbojev/web@0.33.1/worker.js";
+import "https://cdn.jsdelivr.net/npm/@turbojev/web@0.34.0/worker.js";
 ```
 
 Import the SDK in a `<script type="module">`. The bootstrap is application-owned
@@ -1258,7 +1262,7 @@ import {
   imageEvidence,
   mediaEvidence,
   videoFrameEvidence,
-} from "https://cdn.jsdelivr.net/npm/@turbojev/web@0.33.1/dist/index.js";
+} from "https://cdn.jsdelivr.net/npm/@turbojev/web@0.34.0/dist/index.js";
 
 const cases = JSON.parse(casesJson);
 const cdn = "https://cdn.jsdelivr.net/npm/";
@@ -1267,8 +1271,8 @@ const modelUrl =
 const client = await TurboJevWeb.load({
   model: "QJev3.5 0.8B v19c",
   workerUrl: new URL("./worker-bootstrap.js", location.href).href,
-  runtimeModuleUrl: cdn + "@turbojev/runtime-llamacpp-wasm@0.33.1/src/index.js",
-  wasmModuleUrl: cdn + "@turbojev/wasm@0.33.1/turbojev_wasm.js",
+  runtimeModuleUrl: cdn + "@turbojev/runtime-llamacpp-wasm@0.34.0/src/index.js",
+  wasmModuleUrl: cdn + "@turbojev/wasm@0.34.0/turbojev_wasm.js",
   orderRobustness: "none",
   runtimeOptions: { modelUrl, device: "wasm", nThreads: 4 },
 });
@@ -1310,7 +1314,7 @@ envelope as `evaluate.state`. Audio uses `modality: "audio"` and its own paired
 checkpoint; decoded video uses `modality: "video"` and an image-capable projector.
 
 For ONNX, change `model` to a supported ONNX repository, `runtimeModuleUrl` to
-`https://esm.sh/@turbojev/runtime-transformersjs@0.33.1?deps=@huggingface/transformers@4.3.0`,
+`https://esm.sh/@turbojev/runtime-transformersjs@0.34.0?deps=@huggingface/transformers@4.3.0`,
 and `runtimeOptions` to `{device: "wasm", dtype: "q4"}`. This CDN resolves the
 peer dependency for a vanilla module worker; a bundler can use the installed
 runtime package and resolve its Transformers dependency instead.
@@ -1339,8 +1343,8 @@ const options: WebLoadOptions = {
   model: "Selected GGUF",
   workerUrl: "/worker-bootstrap.js",
   runtimeModuleUrl:
-    "https://cdn.jsdelivr.net/npm/@turbojev/runtime-llamacpp-wasm@0.33.1/src/index.js",
-  wasmModuleUrl: "https://cdn.jsdelivr.net/npm/@turbojev/wasm@0.33.1/turbojev_wasm.js",
+    "https://cdn.jsdelivr.net/npm/@turbojev/runtime-llamacpp-wasm@0.34.0/src/index.js",
+  wasmModuleUrl: "https://cdn.jsdelivr.net/npm/@turbojev/wasm@0.34.0/turbojev_wasm.js",
   runtimeOptions: { modelUrl, device: "wasm" },
 };
 const client = await TurboJevWeb.load(options);
@@ -1363,7 +1367,7 @@ The raw WASM module also exports model-free helpers:
 import init, {
   compile_schema_json,
   candidate_softmax_json,
-} from "https://cdn.jsdelivr.net/npm/@turbojev/wasm@0.33.1/turbojev_wasm.js";
+} from "https://cdn.jsdelivr.net/npm/@turbojev/wasm@0.34.0/turbojev_wasm.js";
 await init();
 const cases = JSON.parse(casesJson);
 console.log(
@@ -1391,7 +1395,7 @@ console.log(
 ### C# / .NET
 
 Assign the catalogue to a raw string `casesJson`. Requires C# 11+ for raw strings;
-The published 0.33.1 SDK targets .NET Standard 2.0, .NET Framework 4.8 and
+The published 0.34.0 SDK targets .NET Standard 2.0, .NET Framework 4.8 and
 .NET 8. Framework 4.8, .NET Core 3.1 and .NET 5–7 use the `netstandard2.0`
 assembly. .NET 8 and newer select the `net8.0` assembly. Language syntax and runtime
 targets are separate: older C# projects can call the same SDK without raw strings,
@@ -1458,7 +1462,9 @@ to the output, and the SDK loads the directory matching the process architecture
 Deploy those directories along with the managed assemblies and dependencies.
 An x86 application loads x86 DLLs even on Windows x64. Framework ARM64 support
 requires an ARM64-capable Framework runtime (4.8.1); DLL presence alone is not
-an execution test. Native Linux/macOS assets are not published.
+an execution test. For .NET Core/.NET on Linux or macOS, select a supported
+host RID; NuGet also includes Linux x86/x64/ARM64 and macOS x64/ARM64 libraries.
+Modern .NET does not offer a Linux x86 host runtime, despite the C ABI asset.
 
 The following method also works with traditional C# syntax. For a UI application,
 await it from the event handler so inference does not block the UI:

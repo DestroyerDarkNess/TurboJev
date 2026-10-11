@@ -1,5 +1,11 @@
 # .NET SDK compatibility
 
+Starting with 0.34.0, NuGet includes eight desktop native runtime directories:
+Windows/Linux x86/x64/ARM64 and macOS x64/ARM64. Linux needs glibc 2.28+;
+macOS needs 11+. Select a RID that the application's .NET runtime actually
+supports; the Linux x86 C ABI does not provide a Linux x86 CLR. Framework
+applications run on Windows. See [native releases](NATIVE_RELEASES.md).
+
 Version 0.33.1 includes three managed assemblies with the same public SDK:
 .NET Standard 2.0, .NET Framework 4.8 and .NET 8.
 

@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.34.0
+
+- Add bundled Linux x86/x64/ARM64 and macOS Intel/Apple Silicon native packages alongside Windows x86/x64/ARM64.
+- Use a shared eight-target release matrix for npm optional dependencies, Python stable-ABI wheels and NuGet runtime assets.
+- Verify PE, ELF and Mach-O architectures before packaging; check relocatable library paths, Linux glibc 2.28 compatibility and macOS 11 deployment targets.
+- Include Metal with embedded kernels in macOS builds and retain Windows x64 Vulkan support. Linux builds use CPU inference.
+- Add local manylinux and LLVM/macOS cross-build scripts, with real-model validation where executable and explicit build-only evidence for cross-built macOS artifacts.
+- Update installation guidance, source sample staging and standalone registry demos for the expanded desktop platform matrix.
+
 ## 0.33.1
 
 - Restore Python 3.9 imports and annotation introspection; verify the packaged stable-ABI extension on CPython 3.9, 3.12 and 3.14, and CPython 3.12 x86.
