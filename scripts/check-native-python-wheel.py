@@ -1,5 +1,9 @@
-"""Reject wheels without the declared stable ABI or matching model-runtime DLLs."""
+"""Reject wheels without a complete, matching runtime and valid wheel metadata."""
 import sys
+import base64
+import csv
+import hashlib
+import io
 import zipfile
 from pathlib import Path
 
@@ -15,6 +19,19 @@ def main() -> None:
     required = required_runtime(target["os"], arch)
     with zipfile.ZipFile(wheel) as archive:
         names = archive.namelist()
+        if len(names) != len(set(names)):
+            raise SystemExit("Wheel contains duplicate archive entries")
+        record = next(name for name in names if name.endswith(".dist-info/RECORD"))
+        rows = list(csv.reader(io.StringIO(archive.read(record).decode())))
+        if len(rows) != len({row[0] for row in rows}) or {row[0] for row in rows} != set(names):
+            raise SystemExit("Wheel RECORD must list every file exactly once")
+        for name, expected_hash, expected_size in rows:
+            if name == record:
+                continue
+            data = archive.read(name)
+            digest = "sha256=" + base64.urlsafe_b64encode(hashlib.sha256(data).digest()).rstrip(b"=").decode()
+            if expected_hash != digest or expected_size != str(len(data)):
+                raise SystemExit(f"Wheel RECORD differs for {name}")
         missing = {"turbojev/" + name for name in required} - set(names)
         if missing:
             raise SystemExit("Wheel lacks native inference dependencies: " + ", ".join(sorted(missing)))

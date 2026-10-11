@@ -44,6 +44,13 @@ emulator is required for the ARM64 container. The build runs Python and, where
 available, Node inference against a real GGUF after hiding original CMake
 libraries and clearing loader environment overrides.
 
+To avoid emulating the ARM64 compiler, LLVM 18 can cross-build against a paused
+ARM64 manylinux container's filesystem. Set `MANYLINUX_SYSROOT` to its mounted
+root (for example `/proc/<container-pid>/root`) and run
+`scripts/cross-build-linux-arm64.sh` on Linux x64. Afterward, execute
+`python scripts/validate-unix-package.py linux-arm64` inside an ARM64 container
+or matching host. Cross-build evidence alone does not qualify Linux publication.
+
 On a matching Mac, install CMake, Rust, Python, maturin and Node, then run:
 
 ```sh
@@ -63,7 +70,8 @@ bash scripts/cross-build-macos.sh osx-x64
 
 The output is `artifacts/unix/<rid>` with `native`, `node`, `wheels` and
 `build-evidence.json`. Cross-built Mach-O libraries are checked for architecture,
-ABI exports, bundled dependencies, relocatable paths and OS deployment target.
+ABI exports, bundled dependencies, relocatable paths, OS deployment target and
+linker code signatures (required for ARM64).
 These checks do not claim execution on macOS or GPU hardware.
 
 ## Publish

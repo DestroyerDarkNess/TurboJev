@@ -365,6 +365,7 @@ function Publish-Node {
     }
 
     foreach ($platformPackage in $platformPackages) {
+        Invoke-Tool 'python' @('scripts/add-runtime-licenses.py', $platformPackage)
         Publish-NpmPackage $NpmCommand $platformPackage
     }
     Publish-NpmPackage $NpmCommand $nodePackage
@@ -463,6 +464,10 @@ function Publish-Python {
             New-Item -ItemType Directory -Force $unixOutput | Out-Null
             Get-ChildItem (Join-Path $Root "artifacts/unix/$($target.rid)/wheels") -Filter '*.whl' |
                 Copy-Item -Destination $unixOutput -Force
+            foreach ($wheel in Get-ChildItem $unixOutput -Filter '*.whl') {
+                Invoke-Tool $python @('scripts/bundle-native-wheel.py', $wheel.FullName, (Join-Path $Root "artifacts/unix/$($target.rid)/native"))
+                Invoke-Tool $python @('scripts/check-native-python-wheel.py', $wheel.FullName)
+            }
         }
         $packages = Get-ChildItem -LiteralPath $output -Filter '*.whl' -File -Recurse
         if (-not $BuildOnly -and $packages.Count -ne $NativeTargets.Count) { throw "Expected one wheel per native target" }

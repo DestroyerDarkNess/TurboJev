@@ -1,4 +1,4 @@
-"""Add architecture-matched llama.cpp DLLs to a built TurboJev wheel."""
+"""Bundle architecture-matched inference libraries and licenses into a wheel."""
 from __future__ import annotations
 
 import base64
@@ -9,6 +9,7 @@ import sys
 import zipfile
 from pathlib import Path
 from native_assets import architecture, required_runtime, verify_machine, wheel_target
+from runtime_licenses import license_entries
 
 
 def digest(data: bytes) -> str:
@@ -18,7 +19,7 @@ def digest(data: bytes) -> str:
 
 def main() -> None:
     if len(sys.argv) != 3:
-        raise SystemExit("usage: bundle-native-wheel.py WHEEL NATIVE_DLL_DIRECTORY")
+        raise SystemExit("usage: bundle-native-wheel.py WHEEL NATIVE_LIBRARY_DIRECTORY")
     wheel = Path(sys.argv[1])
     native = Path(sys.argv[2])
     target = wheel_target(wheel.name)
@@ -38,7 +39,7 @@ def main() -> None:
         record_name = next(item.filename for item in source.infolist() if item.filename.endswith(".dist-info/RECORD"))
         record_bytes = source.read(record_name)
 
-    rows = list(csv.reader(io.StringIO(record_bytes.decode("utf-8"))))
+    rows = [row for row in csv.reader(io.StringIO(record_bytes.decode("utf-8"))) if row[0] != record_name]
     extensions = [(item, data) for item, data in entries if item.filename.startswith("turbojev/_native") and item.filename.endswith((".pyd", ".so"))]
     if not extensions:
         raise SystemExit("Wheel is missing its native Python extension")
@@ -53,6 +54,12 @@ def main() -> None:
         data = dll.read_bytes()
         additions.append((archive_name, data))
         rows.append([archive_name, digest(data), str(len(data))])
+    for name, license_path in license_entries().items():
+        archive_name = "turbojev/" + name
+        if archive_name not in names:
+            data = license_path.read_bytes()
+            additions.append((archive_name, data))
+            rows.append([archive_name, digest(data), str(len(data))])
     bundled_names = {item.filename.lower() for item, _ in entries} | {
         name.lower() for name, _ in additions
     }
@@ -70,7 +77,7 @@ def main() -> None:
             output.writestr(name, data)
         output.writestr(record_name, record_output.getvalue())
     temporary.replace(wheel)
-    print(f"Bundled {len(additions)} llama.cpp runtime DLLs into {wheel.name}")
+    print(f"Bundled native libraries and runtime notices into {wheel.name}")
 
 
 if __name__ == "__main__":

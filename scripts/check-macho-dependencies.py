@@ -1,8 +1,47 @@
 """Validate cross-built macOS library paths, deployment target and public ABI."""
 from pathlib import Path
+import hashlib
 import struct
 import subprocess
 import sys
+
+
+def check_signature(data, name):
+    offset = 32
+    signature = None
+    for _ in range(struct.unpack_from("<I", data, 16)[0]):
+        command, size = struct.unpack_from("<II", data, offset)
+        if command == 0x1D:
+            signature = struct.unpack_from("<II", data, offset + 8)
+        offset += size
+    if signature is None:
+        if struct.unpack_from("<I", data, 4)[0] == 0x0100000C:
+            raise ValueError(f"{name}: ARM64 Mach-O lacks its required code signature")
+        return
+    start, length = signature
+    blob = data[start:start + length]
+    magic, _, count = struct.unpack_from(">III", blob)
+    if magic != 0xFADE0CC0:
+        raise ValueError(f"{name}: invalid code signature container")
+    directory = None
+    for index in range(count):
+        kind, position = struct.unpack_from(">II", blob, 12 + index * 8)
+        if kind == 0:
+            directory = blob[position:]
+    if directory is None or struct.unpack_from(">I", directory)[0] != 0xFADE0C02:
+        raise ValueError(f"{name}: missing code directory")
+    hash_offset = struct.unpack_from(">I", directory, 16)[0]
+    slots, limit = struct.unpack_from(">II", directory, 28)
+    hash_size, hash_type, _, page_shift = directory[36:40]
+    if hash_size != 32 or hash_type != 2 or page_shift != 12 or limit != start:
+        raise ValueError(f"{name}: unsupported linker signature layout")
+    if slots != (limit + 4095) // 4096:
+        raise ValueError(f"{name}: incorrect code signature page count")
+    for index in range(slots):
+        actual = hashlib.sha256(data[index * 4096:min((index + 1) * 4096, limit)]).digest()
+        expected = directory[hash_offset + index * 32:hash_offset + (index + 1) * 32]
+        if actual != expected:
+            raise ValueError(f"{name}: code signature invalid after binary modification")
 
 
 def check(path, bundled):
@@ -56,7 +95,8 @@ def main():
     for path in directory.iterdir():
         if path.suffix in (".dylib", ".node", ".so"):
             check(path, names)
-    print("Mach-O dependency closure, macOS 11 floor and public ABI verified")
+            check_signature(path.read_bytes(), path.name)
+    print("Mach-O dependencies, macOS 11 floor, public ABI and code signatures verified")
 
 
 if __name__ == "__main__":

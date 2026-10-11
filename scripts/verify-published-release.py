@@ -8,13 +8,14 @@ import json
 import os
 from pathlib import Path
 import subprocess
+import tarfile
 import time
 import tomllib
 from urllib.request import Request, urlopen
 from urllib.parse import quote
 import zipfile
 
-from native_assets import node_package, required_runtime, architecture, targets
+from native_assets import node_package, required_runtime, architecture, targets, verify_machine
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -33,7 +34,25 @@ def verify_npm(name, version):
     if name == "@turbojev/node":
         for target in targets():
             assert data["optionalDependencies"][node_package(target)] == version
-    return {"name": name, "version": version, "integrity": data["dist"]["integrity"]}
+    record = {"name": name, "version": version, "integrity": data["dist"]["integrity"]}
+    target = next((item for item in targets() if node_package(item) == name), None)
+    if target:
+        body = fetch(data["dist"]["tarball"], raw=True)
+        integrity = "sha512-" + base64.b64encode(hashlib.sha512(body).digest()).decode()
+        assert integrity == data["dist"]["integrity"], "npm tarball integrity differs"
+        with tarfile.open(fileobj=io.BytesIO(body), mode="r:gz") as archive:
+            entries = {Path(item.name).name: item for item in archive.getmembers() if item.isfile()}
+            required = {"turbojev.node"} | required_runtime(target["os"], architecture(target))
+            assert required <= entries.keys(), f"Public npm package lacks: {required - entries.keys()}"
+            hashes = {}
+            for filename, entry in entries.items():
+                if filename.endswith((".node", ".dll", ".dylib")) or ".so" in filename:
+                    binary = archive.extractfile(entry).read()
+                    verify_machine(binary, architecture(target), filename)
+                    hashes[filename] = hashlib.sha256(binary).hexdigest()
+            record["native_sha256"] = hashes
+            record["verified_rid"] = target["rid"]
+    return record
 
 
 def verify_cargo(name, version):

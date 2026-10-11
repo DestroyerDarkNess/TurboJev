@@ -26,6 +26,10 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\..\README.md" Pack="true" PackagePath="README.md" />
+    <None Include="..\..\..\LICENSE" Pack="true" PackagePath="LICENSE" />
+    <None Include="..\..\..\NOTICE" Pack="true" PackagePath="NOTICE" />
+    <None Include="..\..\..\.cache\real-validation\llama.cpp\LICENSE" Pack="true" PackagePath="licenses/llama.cpp-LICENSE" />
+    <None Include="..\..\..\.cache\real-validation\llama.cpp\vendor\**\LICENSE*" Pack="true" PackagePath="licenses/llama.cpp-vendor/%(RecursiveDir)" />
     <None Include="build\TurboJev.targets" Pack="true" PackagePath="build/;buildTransitive/" />
   </ItemGroup>
   <ItemGroup Condition="'$(TurboJevNativeRoot)' != ''">
