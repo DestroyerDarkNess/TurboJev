@@ -1,27 +1,69 @@
-# TurboJev
+<h1 align="center">TurboJev</h1>
 
-**Typed decisions and structured generation with local open-weight models.**
+<p align="center">
+  <strong>Typed decisions and structured generation with local open-weight models.</strong>
+</p>
 
-[Documentation](.agents/skills/turbojev/SKILL.md) · [Samples](samples/README.md) · [Demos](https://github.com/DestroyerDarkNess/TurboJev.Demos) · [Evaluations](evals/README.md)
+<p align="center">
+  Turn context and questions into decisions, probabilities and structured data.<br>
+  Built in Rust, with Python, JavaScript, TypeScript, C#, C and browser bindings,<br>
+  plus source integrations for Android and Swift.
+</p>
+
+<p align="center">
+  Native Windows packages for <strong>x86 · x64 · ARM64</strong><br>
+  Portable Rust core · Browser WebAssembly · CPU and supported GPU runtimes
+</p>
+
+<p align="center">
+  <a href="https://pypi.org/project/turbojev/"><img alt="Python package on PyPI" src="https://img.shields.io/badge/PYTHON-PyPI-30363d?style=for-the-badge&amp;labelColor=161b22" height="28"></a>
+  <a href="https://www.npmjs.com/package/@turbojev/node"><img alt="JavaScript and TypeScript packages on npm" src="https://img.shields.io/badge/JS%20%2F%20TS-npm-30363d?style=for-the-badge&amp;labelColor=161b22" height="28"></a>
+  <a href="https://www.nuget.org/packages/TurboJev"><img alt=".NET package on NuGet" src="https://img.shields.io/badge/.NET-NuGet-30363d?style=for-the-badge&amp;labelColor=161b22" height="28"></a>
+  <a href="https://crates.io/crates/turbojev"><img alt="Rust package on crates.io" src="https://img.shields.io/badge/RUST-crates.io-30363d?style=for-the-badge&amp;labelColor=161b22" height="28"></a>
+</p>
+
+<p align="center">
+  <a href="https://www.npmjs.com/package/@turbojev/web"><img alt="Browser and WebAssembly packages" src="https://img.shields.io/badge/BROWSER-WASM-30363d?style=for-the-badge&amp;labelColor=161b22" height="28"></a>
+  <a href="https://github.com/DestroyerDarkNess/TurboJev.Demos"><img alt="Runnable demos using published packages" src="https://img.shields.io/badge/DEMOS-multiple%20languages-30363d?style=for-the-badge&amp;labelColor=161b22" height="28"></a>
+  <a href="evals/README.md"><img alt="Reproducible evaluation tools" src="https://img.shields.io/badge/EVALUATIONS-reproducible-30363d?style=for-the-badge&amp;labelColor=161b22" height="28"></a>
+  <a href="LICENSE"><img alt="License: Apache 2.0" src="https://img.shields.io/badge/LICENSE-Apache--2.0-30363d?style=for-the-badge&amp;labelColor=161b22" height="28"></a>
+</p>
+
+<p align="center">
+  <a href="#quick-start"><strong>Quick start</strong></a> ·
+  <a href=".agents/skills/turbojev/SKILL.md"><strong>SDK guide</strong></a> ·
+  <a href="docs/COOKBOOK.md"><strong>Cookbook</strong></a> ·
+  <a href="samples/README.md"><strong>Samples</strong></a> ·
+  <a href="https://github.com/DestroyerDarkNess/TurboJev.Demos"><strong>Demos</strong></a>
+</p>
+
+---
 
 TurboJev turns context and questions into typed answers. Use it to route support
 tickets, assess urgency, extract invoice fields, or build workflows where one
 answer determines the next question. It runs compatible models locally through
 llama.cpp or a browser runtime, with no mandatory hosted service or telemetry.
 
-The decision engine is written in Rust. Python, JavaScript, TypeScript, C#, C,
-and browser bindings share its validation, schemas and response contracts.
-Android and Swift integrations are available as source bindings.
+Bindings share the Rust engine's validation, schemas and response contracts.
+Choose your language and runtime while keeping the same decision semantics.
+
+| Capability | Use it for |
+| --- | --- |
+| **Typed decisions** | Select an allowed answer, assess a boolean condition or score ordered criteria. |
+| **Structured generation** | Extract text, numbers, nullable values, objects and bounded arrays. |
+| **Workflows** | Run dependent questions and include fields only when their conditions hold. |
+| **Probability controls** | Inspect distributions, sample answers and configure option-order averaging. |
+| **Multimodal input** | Evaluate images, audio and timestamped video frames with a compatible runtime and model. |
 
 ## Install
 
-| Language             | Package                                                                    |
-| -------------------- | -------------------------------------------------------------------------- |
-| Python               | `python -m pip install --upgrade turbojev`                                 |
-| Node.js / TypeScript | `npm install @turbojev/node`                                               |
-| C# / .NET            | `dotnet add package TurboJev`                                              |
-| Rust                 | `cargo add turbojev`                                                       |
-| Browser              | `npm install @turbojev/web @turbojev/wasm @turbojev/runtime-llamacpp-wasm` |
+| Language | Registry | Install |
+| --- | --- | --- |
+| **Python** | [PyPI](https://pypi.org/project/turbojev/) | `python -m pip install --upgrade turbojev` |
+| **Node.js / TypeScript** | [npm](https://www.npmjs.com/package/@turbojev/node) | `npm install @turbojev/node` |
+| **C# / .NET** | [NuGet](https://www.nuget.org/packages/TurboJev) | `dotnet add package TurboJev` |
+| **Rust** | [crates.io](https://crates.io/crates/turbojev) | `cargo add turbojev` |
+| **Browser** | [npm / CDN](https://www.npmjs.com/package/@turbojev/web) | `npm install @turbojev/web @turbojev/wasm @turbojev/runtime-llamacpp-wasm` |
 
 Published native packages include Windows x86, x64 and ARM64 libraries. Use a
 package matching your process architecture. Rust source and browser WASM are
@@ -33,10 +75,8 @@ shim for GGUF inference. C links the C ABI library; Android and Swift need nativ
 libraries built for their targets. The [self-contained SDK guide](.agents/skills/turbojev/SKILL.md)
 includes installation and examples for every binding, including browser CDN use.
 
-The next NuGet release adds .NET Framework 4.8 and .NET Core 3.1 / .NET 5–7
-through .NET Standard 2.0, alongside the .NET 8 assembly used by newer .NET
-versions. Version 0.33.1 adds .NET Standard 2.0, .NET Framework 4.8 and .NET 8
-targets. See
+The NuGet package includes .NET Standard 2.0, .NET Framework 4.8 and .NET 8
+assemblies, supporting .NET Core 3.1, .NET 5–7 and newer .NET versions. See
 [.NET compatibility](docs/DOTNET.md) for installation and validation details.
 See the [binding compatibility matrix](docs/BINDING_COMPATIBILITY.md) for runtime
 requirements, architecture coverage and the status of mobile/Apple bindings.
