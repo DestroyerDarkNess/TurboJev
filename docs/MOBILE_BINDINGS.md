@@ -27,7 +27,8 @@ Android's built-in `org.json`. Repositories are configured in
 under the appropriate `jniLibs/<ABI>` directories.
 
 The Swift source package requires Swift tools 5.7+ and declares iOS 12+ / macOS
-10.13+ deployment targets. These are wrapper requirements; the supplied C ABI,
+10.13+ deployment targets. Swift Package Manager can consume the `v0.33.1` Git
+tag. These are wrapper requirements; the supplied C ABI,
 llama.cpp build and GPU backend may require a higher OS version. Supply matching
 native libraries for the intended Apple device or simulator. Windows DLLs cannot
 be used in an Apple application. These lower deployment targets have not been

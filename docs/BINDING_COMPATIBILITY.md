@@ -1,8 +1,11 @@
 # Binding compatibility
 
-This audit records the binding fixes and compatibility checks prepared for
+This audit records the binding fixes and compatibility checks released in
 0.33.1. A source wrapper, matching native binaries and a compatible model
 runtime are separate deployment requirements.
+
+Registry visibility, package hashes, the Cargo dependency closure and release
+tag are recorded in [the 0.33.1 publication report](validation/published-release-0.33.1.json).
 
 | Binding | Requirement | Validation on 2026-10-11 |
 | --- | --- | --- |

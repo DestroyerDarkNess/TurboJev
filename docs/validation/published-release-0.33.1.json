@@ -1,0 +1,311 @@
+{
+  "version": "0.33.1",
+  "checkedUtc": "2026-10-11T16:17:44Z",
+  "git": {
+    "commit": "2716a06c1e518f6bf40513ef218b6100c3bad72d",
+    "tag": "v0.33.1"
+  },
+  "registries": [
+    {
+      "registry": "npm",
+      "name": "@turbojev/node",
+      "visible": true,
+      "url": "https://registry.npmjs.org/@turbojev%2fnode"
+    },
+    {
+      "registry": "npm",
+      "name": "@turbojev/node-win32-ia32",
+      "visible": true,
+      "url": "https://registry.npmjs.org/@turbojev%2fnode-win32-ia32"
+    },
+    {
+      "registry": "npm",
+      "name": "@turbojev/node-win32-x64",
+      "visible": true,
+      "url": "https://registry.npmjs.org/@turbojev%2fnode-win32-x64"
+    },
+    {
+      "registry": "npm",
+      "name": "@turbojev/node-win32-arm64",
+      "visible": true,
+      "url": "https://registry.npmjs.org/@turbojev%2fnode-win32-arm64"
+    },
+    {
+      "registry": "npm",
+      "name": "@turbojev/web",
+      "visible": true,
+      "url": "https://registry.npmjs.org/@turbojev%2fweb"
+    },
+    {
+      "registry": "npm",
+      "name": "@turbojev/wasm",
+      "visible": true,
+      "url": "https://registry.npmjs.org/@turbojev%2fwasm"
+    },
+    {
+      "registry": "npm",
+      "name": "@turbojev/runtime-transformersjs",
+      "visible": true,
+      "url": "https://registry.npmjs.org/@turbojev%2fruntime-transformersjs"
+    },
+    {
+      "registry": "npm",
+      "name": "@turbojev/runtime-llamacpp-wasm",
+      "visible": true,
+      "url": "https://registry.npmjs.org/@turbojev%2fruntime-llamacpp-wasm"
+    },
+    {
+      "registry": "crates.io",
+      "name": "turbojev-schema",
+      "visible": true,
+      "url": "https://crates.io/api/v1/crates/turbojev-schema/0.33.1"
+    },
+    {
+      "registry": "crates.io",
+      "name": "turbojev-backend",
+      "visible": true,
+      "url": "https://crates.io/api/v1/crates/turbojev-backend/0.33.1"
+    },
+    {
+      "registry": "crates.io",
+      "name": "turbojev-backend-custom",
+      "visible": true,
+      "url": "https://crates.io/api/v1/crates/turbojev-backend-custom/0.33.1"
+    },
+    {
+      "registry": "crates.io",
+      "name": "turbojev-backend-mock",
+      "visible": true,
+      "url": "https://crates.io/api/v1/crates/turbojev-backend-mock/0.33.1"
+    },
+    {
+      "registry": "crates.io",
+      "name": "turbojev-calibration",
+      "visible": true,
+      "url": "https://crates.io/api/v1/crates/turbojev-calibration/0.33.1"
+    },
+    {
+      "registry": "crates.io",
+      "name": "turbojev-compat",
+      "visible": true,
+      "url": "https://crates.io/api/v1/crates/turbojev-compat/0.33.1"
+    },
+    {
+      "registry": "crates.io",
+      "name": "turbojev-conformance",
+      "visible": true,
+      "url": "https://crates.io/api/v1/crates/turbojev-conformance/0.33.1"
+    },
+    {
+      "registry": "crates.io",
+      "name": "turbojev-engine",
+      "visible": true,
+      "url": "https://crates.io/api/v1/crates/turbojev-engine/0.33.1"
+    },
+    {
+      "registry": "crates.io",
+      "name": "turbojev-core",
+      "visible": true,
+      "url": "https://crates.io/api/v1/crates/turbojev-core/0.33.1"
+    },
+    {
+      "registry": "crates.io",
+      "name": "turbojev-model",
+      "visible": true,
+      "url": "https://crates.io/api/v1/crates/turbojev-model/0.33.1"
+    },
+    {
+      "registry": "crates.io",
+      "name": "turbojev-projection",
+      "visible": true,
+      "url": "https://crates.io/api/v1/crates/turbojev-projection/0.33.1"
+    },
+    {
+      "registry": "crates.io",
+      "name": "turbojev-prompt",
+      "visible": true,
+      "url": "https://crates.io/api/v1/crates/turbojev-prompt/0.33.1"
+    },
+    {
+      "registry": "crates.io",
+      "name": "turbojev-tokenizer",
+      "visible": true,
+      "url": "https://crates.io/api/v1/crates/turbojev-tokenizer/0.33.1"
+    },
+    {
+      "registry": "crates.io",
+      "name": "turbojev-runtime",
+      "visible": true,
+      "url": "https://crates.io/api/v1/crates/turbojev-runtime/0.33.1"
+    },
+    {
+      "registry": "crates.io",
+      "name": "turbojev-sequence",
+      "visible": true,
+      "url": "https://crates.io/api/v1/crates/turbojev-sequence/0.33.1"
+    },
+    {
+      "registry": "crates.io",
+      "name": "turbojev-runtime-conformance",
+      "visible": true,
+      "url": "https://crates.io/api/v1/crates/turbojev-runtime-conformance/0.33.1"
+    },
+    {
+      "registry": "crates.io",
+      "name": "turbojev-runtime-projection",
+      "visible": true,
+      "url": "https://crates.io/api/v1/crates/turbojev-runtime-projection/0.33.1"
+    },
+    {
+      "registry": "crates.io",
+      "name": "turbojev-runtime-qualification",
+      "visible": true,
+      "url": "https://crates.io/api/v1/crates/turbojev-runtime-qualification/0.33.1"
+    },
+    {
+      "registry": "crates.io",
+      "name": "turbojev-specialized",
+      "visible": true,
+      "url": "https://crates.io/api/v1/crates/turbojev-specialized/0.33.1"
+    },
+    {
+      "registry": "crates.io",
+      "name": "turbojev-training-data",
+      "visible": true,
+      "url": "https://crates.io/api/v1/crates/turbojev-training-data/0.33.1"
+    },
+    {
+      "registry": "crates.io",
+      "name": "turbojev-specialized-artifact",
+      "visible": true,
+      "url": "https://crates.io/api/v1/crates/turbojev-specialized-artifact/0.33.1"
+    },
+    {
+      "registry": "crates.io",
+      "name": "turbojev-benchmark",
+      "visible": true,
+      "url": "https://crates.io/api/v1/crates/turbojev-benchmark/0.33.1"
+    },
+    {
+      "registry": "crates.io",
+      "name": "turbojev-specialized-eval",
+      "visible": true,
+      "url": "https://crates.io/api/v1/crates/turbojev-specialized-eval/0.33.1"
+    },
+    {
+      "registry": "crates.io",
+      "name": "turbojev-wire",
+      "visible": true,
+      "url": "https://crates.io/api/v1/crates/turbojev-wire/0.33.1"
+    },
+    {
+      "registry": "crates.io",
+      "name": "turbojev",
+      "visible": true,
+      "url": "https://crates.io/api/v1/crates/turbojev/0.33.1"
+    },
+    {
+      "registry": "crates.io",
+      "name": "turbojev-runtime-llamacpp",
+      "visible": true,
+      "url": "https://crates.io/api/v1/crates/turbojev-runtime-llamacpp/0.33.1"
+    },
+    {
+      "registry": "crates.io",
+      "name": "turbojev-host-native",
+      "visible": true,
+      "url": "https://crates.io/api/v1/crates/turbojev-host-native/0.33.1"
+    },
+    {
+      "registry": "PyPI",
+      "name": "turbojev",
+      "visible": true,
+      "url": "https://pypi.org/pypi/turbojev/json"
+    },
+    {
+      "registry": "NuGet",
+      "name": "TurboJev",
+      "visible": true,
+      "url": "https://api.nuget.org/v3-flatcontainer/turbojev/index.json"
+    }
+  ],
+  "artifacts": {
+    "python": {
+      "files": [
+        {
+          "architecture": "x86",
+          "file": "turbojev-0.33.1-cp39-abi3-win32.whl",
+          "sha256": "eb8714a50a87adaeb4daa7ebb3f37718e64ab98330f0bb191902b57d196cbecf"
+        },
+        {
+          "architecture": "x64",
+          "file": "turbojev-0.33.1-cp39-abi3-win_amd64.whl",
+          "sha256": "171fb0db99c629f7abca6a25107cc1cedcb5d83017dba822e9bfbaa08120ba41"
+        },
+        {
+          "architecture": "arm64",
+          "file": "turbojev-0.33.1-cp39-abi3-win_arm64.whl",
+          "sha256": "da441afd43b9bf73e95ae02f11ed9a9e9830a3a409b4f72ca56170176263ff35"
+        }
+      ],
+      "realModelSuitePassed": true,
+      "realModelSha256": "478cca924101ed67bb2751f597be41532b2f4817ee2ab1b0d7cc379c76e79faf"
+    },
+    "nuget": {
+      "file": "TurboJev.0.33.1.nupkg",
+      "sha256": "64592dfdec103143930467bb375f4349e80242ed87d50f5408c1ff3ad0eb62e5",
+      "architectureAssets": [
+        "win-x86",
+        "win-x64",
+        "win-arm64"
+      ],
+      "consumerTestsPassed": true
+    },
+    "node": {
+      "nativeArchitectures": [
+        "x86",
+        "x64",
+        "arm64"
+      ],
+      "realModelSuitePassed": true
+    },
+    "cratesIoClosure": {
+      "crateCount": 27,
+      "crates": [
+        "turbojev-schema",
+        "turbojev-backend",
+        "turbojev-backend-custom",
+        "turbojev-backend-mock",
+        "turbojev-calibration",
+        "turbojev-compat",
+        "turbojev-conformance",
+        "turbojev-engine",
+        "turbojev-core",
+        "turbojev-model",
+        "turbojev-projection",
+        "turbojev-prompt",
+        "turbojev-tokenizer",
+        "turbojev-runtime",
+        "turbojev-sequence",
+        "turbojev-runtime-conformance",
+        "turbojev-runtime-projection",
+        "turbojev-runtime-qualification",
+        "turbojev-specialized",
+        "turbojev-training-data",
+        "turbojev-specialized-artifact",
+        "turbojev-benchmark",
+        "turbojev-specialized-eval",
+        "turbojev-wire",
+        "turbojev",
+        "turbojev-runtime-llamacpp",
+        "turbojev-host-native"
+      ]
+    }
+  },
+  "limitations": [
+    "Windows ARM64 binaries were cross-compiled and PE-checked, not executed on ARM64 hardware.",
+    "Swift Package Manager consumes the v0.33.1 Git tag; no XCFramework is bundled.",
+    "Android source is pinned by the v0.33.1 tag; no Maven AAR is published.",
+    "No native Linux or macOS registry packages are produced."
+  ]
+}

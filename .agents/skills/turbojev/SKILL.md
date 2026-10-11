@@ -5,7 +5,7 @@ description: Use when installing, integrating, designing decisions for, or troub
 
 # TurboJev
 
-Help build applications with TurboJev's typed decision and structured workflow APIs. This guide describes the 0.33.0 published SDK: `evaluate`, `generate`, balanced choice ordering, field dependencies, conditional omission, probability wrappers and bounded reasoning. Use the repository's current source and docs as the authority: package versions, platform assets, and runtime capabilities change. Do not repeat old README version numbers or claim validation that has not been run.
+Help build applications with TurboJev's typed decision and structured workflow APIs. This guide describes the 0.33.1 published SDK: `evaluate`, `generate`, balanced choice ordering, field dependencies, conditional omission, probability wrappers and bounded reasoning. Use the repository's current source and docs as the authority: package versions, platform assets, and runtime capabilities change. Do not repeat old README version numbers or claim validation that has not been run.
 
 This skill is self-contained: installation, contracts, options and limitations are included below. No external Markdown is required to follow it.
 
@@ -15,7 +15,7 @@ Identify the host language, target OS/architecture, model format, and intended i
 
 ## Install by language
 
-Published native 0.33.0 packages cover Windows x86/x64/ARM64. Browser WASM is architecture independent; Rust source can target other platforms with a compatible toolchain. This is not evidence of native Linux/macOS packages or testing on every architecture. Check release assets before promising other availability. These packages expose TurboJev's typed-decision API; they do not all include the same model runtime.
+Published native 0.33.1 packages cover Windows x86/x64/ARM64. Browser WASM is architecture independent; Rust source can target other platforms with a compatible toolchain. This is not evidence of native Linux/macOS packages or testing on every architecture. Check release assets before promising other availability. These packages expose TurboJev's typed-decision API; they do not all include the same model runtime.
 
 | Host                            | Install                                                                                               | What it provides                                                                                 |
 | ------------------------------- | ----------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
@@ -34,8 +34,7 @@ For native samples, build artifacts for the same architecture as the host compil
 
 - **Python:** CPython 3.9+ with the normal GIL-enabled stable ABI (`cp39-abi3`).
   Wheels have separate Windows x86/x64/ARM64 tags; use the interpreter's
-  architecture. PyPy and free-threaded interpreters are not qualified. The next
-  version 0.33.1 fixes a 0.33.0 import failure on Python 3.9 in the benchmark helper and
+  architecture. PyPy and free-threaded interpreters are not qualified. Version 0.33.1 fixes the 0.33.0 import failure on Python 3.9 in the benchmark helper and
   makes public type annotations introspectable there. The corrected x64 wheel
   was tested on CPython 3.9.13, 3.12.7 and 3.14.0; the published x86 binary
   passed contract checks on CPython 3.12.10. ARM64 DLL architecture was checked,
@@ -69,15 +68,16 @@ For native samples, build artifacts for the same architecture as the host compil
   validation was blocked by a local JVM loopback error; no device execution was
   performed. There is no bundled published AAR.
 - **Swift:** the source manifest now requires tools 5.7+, iOS 12+ and macOS
-  10.13+. These are wrapper deployment settings, not promises about the minimum
-  OS of the separately built model runtime or Metal backend. Supply a matching
-  Apple C ABI library and dependencies; no bundled XCFramework is published.
+  10.13+. Swift Package Manager can resolve the v0.33.1 Git tag. These are
+  wrapper deployment settings, not promises about the separately built model
+  runtime or Metal backend. Supply a matching Apple C ABI library; no bundled
+  XCFramework is published.
   Native errors must be read on the thread that performed the call. Compilation
   and execution of the lower Apple deployment targets remain pending.
 
-New compatibility fixes above are unreleased source changes; the current public
-package remains 0.33.0. Platform package inspection checks DLL architecture and
-dependency presence without pretending to execute ARM64 on an x64 host.
+Compatibility fixes above are included in published 0.33.1. The v0.33.1 Git tag
+provides the source package for Swift Package Manager and the Android module.
+Windows ARM64 binaries were cross-compiled and checked, not executed on ARM64.
 
 ## Choose the operation
 
@@ -365,9 +365,9 @@ node scripts/validate-real-option-order.mjs C:/models/model.gguf
 
 The recorded 0.31.0 Windows x64 Qwen3-0.6B Q4_K_M CPU probe passed 18/18 routing decisions across three cases, three orders and none/balanced modes. Balanced keyed drift was zero in that sample; none reached 13.7 percentage points. These are limited routing results, not a general accuracy, Snake or speed guarantee.
 
-## Structured SDK features in published 0.33.0
+## Structured SDK features carried forward from 0.33.0
 
-These features are included in published 0.33.0. Install matching package versions across
+These features remain included in published 0.33.1. Install matching package versions across
 the host, runtime and WASM core. Standalone demos must use registry/CDN packages.
 
 ### Nested objects and scoped dependencies
@@ -675,7 +675,7 @@ definitions are inline. No external documentation or shared demo module is neede
 ### Installation and model prerequisites
 
 Install the latest release when starting an application; lock the resolved version
-for reproducibility. The examples below target verified API version 0.33.0.
+for reproducibility. The examples below target published API version 0.33.1.
 
 ```sh
 # Python
@@ -1241,7 +1241,7 @@ try {
 For vanilla HTML, create a same-origin `worker-bootstrap.js` containing only:
 
 ```javascript
-import "https://cdn.jsdelivr.net/npm/@turbojev/web@0.33.0/worker.js";
+import "https://cdn.jsdelivr.net/npm/@turbojev/web@0.33.1/worker.js";
 ```
 
 Import the SDK in a `<script type="module">`. The bootstrap is application-owned
@@ -1258,7 +1258,7 @@ import {
   imageEvidence,
   mediaEvidence,
   videoFrameEvidence,
-} from "https://cdn.jsdelivr.net/npm/@turbojev/web@0.33.0/dist/index.js";
+} from "https://cdn.jsdelivr.net/npm/@turbojev/web@0.33.1/dist/index.js";
 
 const cases = JSON.parse(casesJson);
 const cdn = "https://cdn.jsdelivr.net/npm/";
@@ -1267,8 +1267,8 @@ const modelUrl =
 const client = await TurboJevWeb.load({
   model: "QJev3.5 0.8B v19c",
   workerUrl: new URL("./worker-bootstrap.js", location.href).href,
-  runtimeModuleUrl: cdn + "@turbojev/runtime-llamacpp-wasm@0.33.0/src/index.js",
-  wasmModuleUrl: cdn + "@turbojev/wasm@0.33.0/turbojev_wasm.js",
+  runtimeModuleUrl: cdn + "@turbojev/runtime-llamacpp-wasm@0.33.1/src/index.js",
+  wasmModuleUrl: cdn + "@turbojev/wasm@0.33.1/turbojev_wasm.js",
   orderRobustness: "none",
   runtimeOptions: { modelUrl, device: "wasm", nThreads: 4 },
 });
@@ -1310,7 +1310,7 @@ envelope as `evaluate.state`. Audio uses `modality: "audio"` and its own paired
 checkpoint; decoded video uses `modality: "video"` and an image-capable projector.
 
 For ONNX, change `model` to a supported ONNX repository, `runtimeModuleUrl` to
-`https://esm.sh/@turbojev/runtime-transformersjs@0.33.0?deps=@huggingface/transformers@4.3.0`,
+`https://esm.sh/@turbojev/runtime-transformersjs@0.33.1?deps=@huggingface/transformers@4.3.0`,
 and `runtimeOptions` to `{device: "wasm", dtype: "q4"}`. This CDN resolves the
 peer dependency for a vanilla module worker; a bundler can use the installed
 runtime package and resolve its Transformers dependency instead.
@@ -1339,8 +1339,8 @@ const options: WebLoadOptions = {
   model: "Selected GGUF",
   workerUrl: "/worker-bootstrap.js",
   runtimeModuleUrl:
-    "https://cdn.jsdelivr.net/npm/@turbojev/runtime-llamacpp-wasm@0.33.0/src/index.js",
-  wasmModuleUrl: "https://cdn.jsdelivr.net/npm/@turbojev/wasm@0.33.0/turbojev_wasm.js",
+    "https://cdn.jsdelivr.net/npm/@turbojev/runtime-llamacpp-wasm@0.33.1/src/index.js",
+  wasmModuleUrl: "https://cdn.jsdelivr.net/npm/@turbojev/wasm@0.33.1/turbojev_wasm.js",
   runtimeOptions: { modelUrl, device: "wasm" },
 };
 const client = await TurboJevWeb.load(options);
@@ -1363,7 +1363,7 @@ The raw WASM module also exports model-free helpers:
 import init, {
   compile_schema_json,
   candidate_softmax_json,
-} from "https://cdn.jsdelivr.net/npm/@turbojev/wasm@0.33.0/turbojev_wasm.js";
+} from "https://cdn.jsdelivr.net/npm/@turbojev/wasm@0.33.1/turbojev_wasm.js";
 await init();
 const cases = JSON.parse(casesJson);
 console.log(
@@ -1391,9 +1391,9 @@ console.log(
 ### C# / .NET
 
 Assign the catalogue to a raw string `casesJson`. Requires C# 11+ for raw strings;
-the published 0.33.0 SDK targets .NET 8. The next NuGet release adds `net48`
-and `netstandard2.0` assemblies for Framework 4.8, .NET Core 3.1 and .NET
-5–7. .NET 8 and newer select the `net8.0` assembly. Language syntax and runtime
+The published 0.33.1 SDK targets .NET Standard 2.0, .NET Framework 4.8 and
+.NET 8. Framework 4.8, .NET Core 3.1 and .NET 5–7 use the `netstandard2.0`
+assembly. .NET 8 and newer select the `net8.0` assembly. Language syntax and runtime
 targets are separate: older C# projects can call the same SDK without raw strings,
 top-level statements or `await using`. Read the JSON elements rather
 than assuming probability answers or nested objects are plain scalars:
@@ -1451,9 +1451,8 @@ Console.WriteLine(receipt.Result["total"].GetRawText());
 `TimeSpan?` and `CancellationToken`. `await using` calls `DisposeAsync` and releases
 the affinity worker. Do not invoke a nonexistent .NET `InfoAsync` method.
 
-For a .NET Framework 4.8 application, install the next NuGet release once it is
-published with `Install-Package TurboJev` in Visual Studio's Package Manager
-Console. Do not expect these added targets in 0.33.0. Use `PackageReference`;
+For a .NET Framework 4.8 application, install the published package with
+`Install-Package TurboJev` in Visual Studio's Package Manager Console. Use `PackageReference`;
 its package targets copy the bundled Windows x86/x64/ARM64 native directories
 to the output, and the SDK loads the directory matching the process architecture.
 Deploy those directories along with the managed assemblies and dependencies.
