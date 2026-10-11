@@ -10,6 +10,9 @@ case "$rid" in
   *) echo "Unsupported macOS target: $rid" >&2; exit 1 ;;
 esac
 root="$(cd "$(dirname "$0")/.." && pwd)"
+export PATH="$HOME/.cargo/bin:$PATH"
+# Proc macros and build scripts also need the Linux host standard library.
+(cd "$root" && rustup target add x86_64-unknown-linux-gnu "$triple")
 out="$root/artifacts/unix/$rid"
 mkdir -p "$out/native" "$out/node" "$out/wheels" "$out/toolchain"
 source_cache="$HOME/.cache/turbojev-toolchains/source"

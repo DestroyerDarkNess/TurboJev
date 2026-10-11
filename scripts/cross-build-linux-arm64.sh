@@ -3,6 +3,8 @@
 set -euo pipefail
 : "${MANYLINUX_SYSROOT:?Set the mounted ARM64 manylinux filesystem path}"
 root="$(cd "$(dirname "$0")/.." && pwd)"
+export PATH="$HOME/.cargo/bin:$PATH"
+(cd "$root" && rustup target add x86_64-unknown-linux-gnu aarch64-unknown-linux-gnu)
 tools="$HOME/.cache/turbojev-linux-arm64"
 mkdir -p "$tools"
 gcc_dir="$MANYLINUX_SYSROOT/opt/rh/gcc-toolset-14/root/usr/lib/gcc/aarch64-redhat-linux/14"
