@@ -43,6 +43,8 @@ internal static class Native
     [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
     private static extern int tj_engine_evaluate_compatible_json(nint h, [In] byte[] p, [In] byte[] r, out nint o);
     [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+    internal static extern int tj_engine_info_json(nint h, out nint o);
+    [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
     internal static extern int tj_engine_close(nint h);
     [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
     internal static extern void tj_string_free(nint p);
