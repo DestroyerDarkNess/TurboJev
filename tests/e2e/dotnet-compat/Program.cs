@@ -34,6 +34,8 @@ Require(dice.Contains("six"), "Dice schema failed");
 
 using (var engine = await TurboJevEngine.LoadAsync(new { model = "fixture://dotnet-compat" }))
 {
+    var info = await engine.InfoAsync();
+    Require(info.GetProperty("runtime").GetString() == "fixture", "Engine info failed");
     var request = new { context = "niño 🐈 中文", schema };
     var response = await engine.GenerateAsync(request);
     Require(response.Result["person"].GetProperty("age").GetInt32() == 37, "Typed records failed");
@@ -107,7 +109,7 @@ var record = JsonSerializer.Serialize(new
     runtime = RuntimeInformation.FrameworkDescription,
     architecture = RuntimeInformation.ProcessArchitecture.ToString(),
     passed = true,
-    contracts = new[] { "package_asset_selection", "native_loading", "schema", "softmax", "typed_records", "dice", "utf8", "timeout", "cancellation", "sync_async_disposal", "ui_context" },
+    contracts = new[] { "package_asset_selection", "native_loading", "schema", "softmax", "typed_records", "engine_info", "dice", "utf8", "timeout", "cancellation", "sync_async_disposal", "ui_context" },
     real_model = model == null ? null : Path.GetFileName(model),
     real_evaluation_ms = realEvaluationMs,
     elapsed_ms = timer.ElapsedMilliseconds
