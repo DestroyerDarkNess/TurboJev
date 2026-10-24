@@ -88,3 +88,22 @@ The publisher verifies build evidence and library hashes. Linux requires a real
 Python inference check. macOS can qualify with either native execution or the
 explicit cross-build link checks. Cargo publishes portable source rather than
 one binary per target; the browser packages publish WebAssembly once.
+
+## 0.34.0 verification status
+
+The current registry report is
+[published-release-0.34.0.json](validation/published-release-0.34.0.json). npm's
+13 packages, including all eight native packages, passed tarball integrity,
+architecture and library-hash checks. All eight PyPI wheels matched their
+published SHA-256 hashes, and all 27 required crates.io packages are present.
+NuGet 0.34.0 is not published: the package upload was rejected with HTTP 403,
+and its flat-container URL returns 404. Update the local `NUGET_API_KEY` with a
+valid key authorized to push `TurboJev`, then rerun the local NuGet publisher and
+registry verifier before describing the release as complete.
+
+Real GGUF smoke runs passed on Windows x64 (Python, Node and .NET), Linux x64
+(Python and Node), Linux x86 (Python), and Linux ARM64 under QEMU on Linux x64
+(Python and Node). macOS x64/ARM64 passed cross-build, package and linker checks;
+neither was executed on a Mac. Windows x86/ARM64 passed package and architecture
+checks but was not run on matching hardware. These checks establish loading and
+typed response behavior, not model accuracy or GPU execution on every target.

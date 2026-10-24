@@ -90,6 +90,11 @@ assemblies, supporting .NET Core 3.1, .NET 5–7 and newer .NET versions. See
 See the [binding compatibility matrix](docs/BINDING_COMPATIBILITY.md) for runtime
 requirements, architecture coverage and the status of mobile/Apple bindings.
 
+Release verification is recorded in
+[the 0.34.0 registry report](docs/validation/published-release-0.34.0.json).
+That release is verified on npm, PyPI and crates.io. NuGet 0.34.0 is still
+pending; do not assume `dotnet add package TurboJev` installs that version yet.
+
 ## Quick start
 
 Download a compatible text GGUF to `model.gguf`, then ask a bounded question:
