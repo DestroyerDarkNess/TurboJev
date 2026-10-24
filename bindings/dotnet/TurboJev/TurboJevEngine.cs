@@ -104,6 +104,15 @@ public sealed class TurboJevEngine : IAsyncDisposable, IDisposable
     public Task<string> EvaluateCompatibleJsonAsync(string profile, string request) =>
         Run(queue, () => Call((out nint output) => Native.tj_engine_evaluate_compatible_json(handle, profile, request, out output)));
 
+    public Task<string> InfoJsonAsync() =>
+        Run(queue, () => Call((out nint output) => Native.tj_engine_info_json(handle, out output)));
+
+    public async Task<JsonElement> InfoAsync()
+    {
+        using var document = JsonDocument.Parse(await InfoJsonAsync().ConfigureAwait(false));
+        return document.RootElement.Clone();
+    }
+
     delegate int NativeCall(out nint pointer);
 
     static string Call(NativeCall fn)

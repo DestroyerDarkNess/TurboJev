@@ -14,6 +14,8 @@ if (distribution["a"] != 0.5) throw new Exception("Candidate normalization faile
 
 // Fixture checks prove binding contracts, not model intelligence.
 await using var engine = await TurboJevEngine.LoadAsync(new { model = "fixture://sdk-contract" });
+var info = await engine.InfoAsync();
+if (info.GetProperty("runtime").GetString() != "fixture" || info.GetProperty("model").GetString() != "fixture://sdk-contract") throw new Exception("Engine info failed");
 var request = new { context = "fixture contract", schema };
 var response = await engine.GenerateAsync(request);
 if (response.Result["person"].GetProperty("age").GetInt32() != 37) throw new Exception("Nested result failed");
