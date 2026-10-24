@@ -92,8 +92,8 @@ requirements, architecture coverage and the status of mobile/Apple bindings.
 
 Release verification is recorded in
 [the 0.34.0 registry report](docs/validation/published-release-0.34.0.json).
-That release is verified on npm, PyPI and crates.io. NuGet 0.34.0 is still
-pending; do not assume `dotnet add package TurboJev` installs that version yet.
+That release is verified on npm, PyPI, crates.io and NuGet, including the
+published NuGet payload and all eight native runtime directories.
 
 ## Quick start
 
